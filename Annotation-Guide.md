@@ -1,0 +1,241 @@
+
+***
+
+## Übriges:
+
+Alles was nicht eindeutig in eine der anderen Klassen passt.
+
+### Beispiele:
+
+Leere Seiten bzw. Seitenteile:
+
+https://annotat.de/image/391165
+
+https://annotat.de/image/539819
+
+Ganze Seiten oder Seitenteile mit Text:
+
+https://annotat.de/image/372286
+
+https://annotat.de/image/330727
+
+https://annotat.de/image/579738
+
+Seiten mit irgendwas drauf:
+
+https://annotat.de/image/232482
+
+***
+
+## Abbildung:
+ 
+###Beispiele: 
+
+Zeichnungen:
+
+https://annotat.de/image/328459
+
+https://annotat.de/image/362406
+
+https://annotat.de/image/262417
+
+Bilder aller Art:
+
+https://annotat.de/image/110267
+
+https://annotat.de/image/403602
+
+https://annotat.de/image/552819
+
+Werbeanzeigen, die eine größere Abbildung enthalten:
+
+https://annotat.de/image/369955
+
+https://annotat.de/image/526126
+
+Photos aller Art:
+
+https://annotat.de/image/560036
+
+https://annotat.de/image/429058
+
+https://annotat.de/image/460287
+
+https://annotat.de/image/544364
+
+***
+
+## Karte:
+
+
+### Beispiele:
+
+Karten aller Art:
+
+https://annotat.de/image/580734
+
+Kartenteile:
+
+https://annotat.de/image/298620
+ 
+***
+ 
+## Einband:
+
+Buch- Front oder Rücken:
+
+https://annotat.de/image/462169
+
+https://annotat.de/image/14862
+
+https://annotat.de/image/513909
+
+https://annotat.de/image/471304
+
+
+***
+
+## Stempel/Siegel:
+
+### Beispiele:
+
+Der preußische Adler:
+
+https://annotat.de/image/405200
+
+https://annotat.de/image/351232
+
+https://annotat.de/image/25654
+
+https://annotat.de/image/529804
+
+Der Staatsbibliotheksstempel (auch auf ganzer Seite):
+
+https://annotat.de/image/151214
+
+https://annotat.de/image/562002
+
+https://annotat.de/image/568366
+
+https://annotat.de/image/14799
+
+***
+ 
+## Farb-/Aufl-Tafel:
+
+Farb- und Auflösungstafeln bzw. Skalen:
+
+https://annotat.de/image/205522
+
+https://annotat.de/image/582836
+
+https://annotat.de/image/410976
+
+https://annotat.de/image/228050
+
+Teile von diesen Tafeln/Skalen:
+
+https://annotat.de/image/87137
+
+***
+
+## Initiale:
+
+###Beispiele:
+
+https://annotat.de/image/390992
+
+https://annotat.de/image/103157
+
+## Ornament:
+ 
+### Beispiele: 
+
+Verziehrungselemente:
+
+https://annotat.de/image/228543
+
+https://annotat.de/image/107422
+
+https://annotat.de/image/445435
+
+https://annotat.de/image/1710
+
+https://annotat.de/image/5098
+
+https://annotat.de/image/358751
+ 
+## Signatur:
+
+### Beispiele:
+
+Handschriftliche Buchsignaturen:
+
+https://annotat.de/image/357127
+
+https://annotat.de/image/128221
+
+Gedruckte Buchsignaturen:
+
+https://annotat.de/image/337156
+
+Seiten auf denen nur die Signatur zu sehen ist:
+
+https://annotat.de/image/474080
+
+https://annotat.de/image/381272
+
+Strichcodes:
+
+https://annotat.de/image/230192
+
+***
+
+## Druckermarke:
+
+Hier einige Beispiele aus Google zu Druckermarken:
+
+https://www.google.com/search?q=druckermarke&source=lnms&tbm=isch
+
+Beispiele:
+
+https://annotat.de/image/308025
+
+https://annotat.de/image/510277
+
+https://annotat.de/image/194280
+
+https://annotat.de/image/531727
+
+https://annotat.de/image/184209
+
+https://annotat.de/image/392574
+
+https://annotat.de/image/3295
+
+https://annotat.de/image/312188
+
+https://annotat.de/image/251594
+
+https://annotat.de/image/289797
+
+https://annotat.de/image/80054
+
+Seiten mit gut sichtbarer Druckermarke:
+
+https://annotat.de/image/153619
+
+***
+
+## Handschrift:
+
+### Beispiele:
+
+Seitenfragmente die nur Handschrift enthalten und keine Signatur sind:
+
+https://annotat.de/image/587361
+
+https://annotat.de/image/283127
+
+
+

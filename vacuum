@@ -1,0 +1,1 @@
+sqlite3 stabi-illustrations.sqlite "VACUUM"
