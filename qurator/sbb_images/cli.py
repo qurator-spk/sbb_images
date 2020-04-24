@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from torchvision import models, transforms
 from sklearn.model_selection import StratifiedKFold
-from classifier import ImageClassifier
+from .classifier import ImageClassifier
 # from feature_extraction import FeatureExtractor
 from .data_access import AnnotatedDataset
 from pprint import pprint
