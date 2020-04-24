@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <script src="js/jquery-3.4.1.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css" crossorigin="anonymous">
+    <style>
+        @media screen {
+            .fit-image{
+                max-height: 75vh;
+                width: auto;
+            }
+        }
+        @media screen and (max-width : 600px) {
+            .fit-image{
+                max-height: 30vh;
+                width: auto;
+            }
+        }
+
+        .btn-file {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-file input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            font-size: 100px;
+            text-align: right;
+            filter: alpha(opacity=0);
+            opacity: 0;
+            outline: none;
+            background: white;
+            cursor: inherit;
+            display: block;
+        }
+    </style>
+    <title>Image Search</title>
+</head>
+<body>
+<div class="container">
+    <div class="container">
+        <div class="row mt-3 text-center">
+            <div class="col-md-3"></div>
+            <div class="col-md-6">
+
+                <form>
+                  <div class="form-group">
+                    <!-- <label for="exampleFormControlFile1">Example file input</label> -->
+                    <input type="file" class="form-control-file" id="imgInp">
+                  </div>
+                </form>
+
+                <!--<div class="form-group">
+                    <label>Upload Image</label>
+                    <div class="input-group">
+                        <span class="input-group-btn">
+                            <span class="btn btn-default btn-file">
+                                Browse… <input type="file" id="imgInp"/>
+                            </span>
+                        </span>
+                        <input type="text" class="form-control" readonly/>
+                    </div> -->
+
+                </div>
+                <div class="col-md-3"></div>
+            </div>
+            <div class="row mt-2 text-center">
+                <div class="col-md-3"></div>
+                <div class="col-md-6">
+                    <img class="img-fluid fit-image" id='img-upload'/>
+                </div>
+                <div class="col-md-3"></div>
+            </div>
+        </div>
+    </div>
+    <script src="js/search.js"></script>
+</div>
+</body>
+</html>
