@@ -10,6 +10,7 @@ matplotlib
 
 # required due to slow inception load
 scipy==1.3.3
+sklearn
 
 tqdm
-annoy
+# annoy

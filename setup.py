@@ -20,11 +20,11 @@ setup(
     install_requires=install_requires,
     entry_points={
       'console_scripts': [
-        "create-database=cli:create_database",
-        "model-selection=cli:model_selection",
-        "train-classifier=cli:train",
-        "apply-classifier=cli:apply",
-        "create-search-index=cli:create_search_index"
+        "create-database=qurator.sbb_images.cli:create_database",
+        "model-selection=qurator.sbb_images.cli:model_selection",
+        "train-classifier=qurator.sbb_images.cli:train",
+        "apply-classifier=qurator.sbb_images.cli:apply",
+        "create-search-index=qurator.sbb_images.cli:create_search_index"
         ]
     },
     python_requires='>=3.6.0',

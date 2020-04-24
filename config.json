@@ -1,9 +1,0 @@
-{
-    "PASSWD_FILE": ".htpasswd",
-    "SQLITE_FILE": "stabi-illustrations.sqlite",
-    "LABELS": [ "Übriges", "Abbildung", "Photo", "Karte", "Einband", "Stempel/Siegel", "Farb-/Aufl-Tafel",
-                "Initiale","Ornament", "Signatur", "Druckermarke", "Handschrift", "Gesetzter Text", "Noten"],
-    "NUM_ANNOTATIONS": 3,
-    "WORKING_SET_SIZE": 100,
-    "MAX_IMG_SIZE": 500
-}
