@@ -13,7 +13,17 @@ https://annotat.de/image/391165
 
 https://annotat.de/image/539819
 
+Seiten mit irgendwas drauf:
+
+https://annotat.de/image/232482
+
+***
+
+## Gesetzter Text:
+
 Ganze Seiten oder Seitenteile mit Text:
+
+### Beispiele:
 
 https://annotat.de/image/372286
 
@@ -21,9 +31,6 @@ https://annotat.de/image/330727
 
 https://annotat.de/image/579738
 
-Seiten mit irgendwas drauf:
-
-https://annotat.de/image/232482
 
 ***
 
@@ -53,7 +60,13 @@ https://annotat.de/image/369955
 
 https://annotat.de/image/526126
 
-Photos aller Art:
+***
+
+## Photos:
+
+Photos aller Art.
+
+### Beispiele:
 
 https://annotat.de/image/560036
 
@@ -148,10 +161,10 @@ https://annotat.de/image/390992
 https://annotat.de/image/103157
 
 ## Ornament:
- 
-### Beispiele: 
 
-Verziehrungselemente:
+Verziehrungselemente.
+ 
+### Beispiele:
 
 https://annotat.de/image/228543
 
@@ -167,9 +180,7 @@ https://annotat.de/image/358751
  
 ## Signatur:
 
-### Beispiele:
-
-Handschriftliche Buchsignaturen:
+Handschriftliche Buchsignaturen.
 
 https://annotat.de/image/357127
 
@@ -197,7 +208,7 @@ Hier einige Beispiele aus Google zu Druckermarken:
 
 https://www.google.com/search?q=druckermarke&source=lnms&tbm=isch
 
-Beispiele:
+## Beispiele:
 
 https://annotat.de/image/308025
 
@@ -229,13 +240,19 @@ https://annotat.de/image/153619
 
 ## Handschrift:
 
-### Beispiele:
-
 Seitenfragmente die nur Handschrift enthalten und keine Signatur sind:
 
 https://annotat.de/image/587361
 
 https://annotat.de/image/283127
 
+***
 
+##Noten:
+
+https://annotat.de/image/582483
+
+https://annotat.de/image/497080
+
+https://annotat.de/image/152517
 
