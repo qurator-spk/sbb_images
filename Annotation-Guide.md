@@ -36,7 +36,7 @@ https://annotat.de/image/579738
 
 ## Abbildung:
  
-###Beispiele: 
+### Beispiele: 
 
 Zeichnungen:
 
@@ -154,7 +154,7 @@ https://annotat.de/image/87137
 
 ## Initiale:
 
-###Beispiele:
+### Beispiele:
 
 https://annotat.de/image/390992
 
@@ -248,7 +248,7 @@ https://annotat.de/image/283127
 
 ***
 
-##Noten:
+## Noten:
 
 https://annotat.de/image/582483
 
