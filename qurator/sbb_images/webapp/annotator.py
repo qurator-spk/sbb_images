@@ -49,7 +49,7 @@ def get_db():
 
 @app.route('/')
 def entry():
-    return redirect("index.html", code=302)
+    return redirect("annotator.html", code=302)
 
 
 @app.route('/image')
