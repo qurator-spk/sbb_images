@@ -15,7 +15,7 @@ from PIL import Image
 
 app = flask.Flask(__name__)
 
-app.config.from_json('config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
+app.config.from_json('annotator-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
 
 logging.basicConfig(level=logging.INFO)
 

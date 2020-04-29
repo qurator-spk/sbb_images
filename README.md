@@ -30,14 +30,14 @@ Options:
   --help  Show this message and exit.
 ```
 
-Edit qurator/sbb_images/webapp/config.json such that it points to the sqlite file that has been created by create-database.
+Edit qurator/sbb_images/webapp/annotator-config.json such that it points to the sqlite file that has been created by create-database.
 
 Create a passwd file:
 ```
 htpasswd -c .htpasswd username
 ```
 
-Edit qurator/sbb_images/webapp/config.json such that it points to ".htpasswd".
+Edit qurator/sbb_images/webapp/annotator-config.json such that it points to ".htpasswd".
 
 Proceed to "Run Annotator".
 
