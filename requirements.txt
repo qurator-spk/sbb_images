@@ -4,8 +4,8 @@ click
 pandas
 pillow
 gunicorn
-torch
-torchvision
+torch==1.2.0
+torchvision==0.4.0
 matplotlib
 
 # required due to slow inception load
@@ -13,4 +13,4 @@ scipy==1.3.3
 sklearn
 
 tqdm
-# annoy
+annoy
