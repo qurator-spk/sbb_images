@@ -1,4 +1,4 @@
-from .app import app
+from .annotator import app
 import logging
 
 if __name__ == "__main__":
