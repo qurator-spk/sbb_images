@@ -31,7 +31,7 @@ function makeAnnotator() {
                 pre_classification = null;
 
                 if (rowid > 0) {
-                    window.history.pushState({image: rowid}, 'image-page', 'index.html?image=' + rowid);
+                    window.history.pushState({image: rowid}, 'image-page', 'annotator.html?image=' + rowid);
 
                     setPreviewImage(rowid)
                 }
@@ -160,7 +160,7 @@ function makeAnnotator() {
 
                     if (url_params.has('image')) {
                         window.history.pushState({image: url_params.get('image')}, 'image-page',
-                                                "index.html?image=" + url_params.get('image'));
+                                                "annotator.html?image=" + url_params.get('image'));
 
                         setPreviewImage(url_params.get('image'))
                     }
