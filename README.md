@@ -42,6 +42,7 @@ Edit qurator/sbb_images/webapp/config.json such that it points to ".htpasswd".
 Proceed to "Run Annotator".
 
 ### config.json:
+* LABELS: The image classes that you want to assign to your images. 
 * PASSWD_FILE: The passwd file that contains the authentication data.
 * SQLITE_FILE: The image database that has been created by create-database.
 * NUM_ANNOTATIONS: Number of required annotations per image.
