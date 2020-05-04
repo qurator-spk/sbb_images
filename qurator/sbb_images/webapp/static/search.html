@@ -22,26 +22,8 @@
             }
         }
 
-        .btn-file {
-            position: relative;
-            overflow: hidden;
-        }
 
-        .btn-file input[type=file] {
-            position: absolute;
-            top: 0;
-            right: 0;
-            min-width: 100%;
-            min-height: 100%;
-            font-size: 100px;
-            text-align: right;
-            filter: alpha(opacity=0);
-            opacity: 0;
-            outline: none;
-            background: white;
-            cursor: inherit;
-            display: block;
-        }
+
     </style>
     <title>Image Search</title>
 </head>
@@ -52,37 +34,29 @@
             <div class="col-md-3"></div>
             <div class="col-md-6">
 
-                <form>
-                  <div class="form-group">
-                    <!-- <label for="exampleFormControlFile1">Example file input</label> -->
-                    <input type="file" class="form-control-file" id="imgInp">
-                  </div>
+                <form action="similar" method="post" enctype="multipart/form-data">
+                    <input type="file" name="file" id="the-image"/>
                 </form>
 
-                <!--<div class="form-group">
-                    <label>Upload Image</label>
-                    <div class="input-group">
-                        <span class="input-group-btn">
-                            <span class="btn btn-default btn-file">
-                                Browse… <input type="file" id="imgInp"/>
-                            </span>
-                        </span>
-                        <input type="text" class="form-control" readonly/>
-                    </div> -->
-
-                </div>
-                <div class="col-md-3"></div>
             </div>
-            <div class="row mt-2 text-center">
-                <div class="col-md-3"></div>
-                <div class="col-md-6">
-                    <img class="img-fluid fit-image" id='img-upload'/>
-                </div>
-                <div class="col-md-3"></div>
+            <div class="col-md-3"></div>
+        </div>
+        <div class="row mt-2 text-center">
+            <div class="col-md-3"></div>
+            <div class="col-md-6">
+                <img class="img-fluid fit-image" id='img-upload'/>
             </div>
+            <div class="col-md-3"></div>
+        </div>
+        <div class="row mt-2 text-center">
+            <div class="col-md-3"></div>
+            <div class="col-md-6" id="search-results">
+            </div>
+            <div class="col-md-3"></div>
         </div>
     </div>
-    <script src="js/search.js"></script>
+</div>
+<script src="js/search.js"></script>
 </div>
 </body>
 </html>

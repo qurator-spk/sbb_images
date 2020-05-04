@@ -16,6 +16,7 @@ from tqdm import tqdm
 from torchvision import models, transforms
 from sklearn.model_selection import StratifiedKFold
 from .classifier import ImageClassifier
+from .feature_extraction import load_extraction_model
 # from feature_extraction import FeatureExtractor
 from .data_access import AnnotatedDataset
 from pprint import pprint
@@ -372,35 +373,11 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     X = images['file'].astype(str)
 
-    input_size = {'inception_v3': 299}
-    classifcation_layer_names = {}
-
-    img_size = input_size.get(model_name, 224)
-    classification_layer_name = classifcation_layer_names.get(model_name, 'fc')
-
-    extract_transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(img_size),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    model_extr = getattr(models, model_name)(pretrained=True)
-
-    for p in model_extr.parameters():
-        p.requires_grad = False
-
-    model_extr = model_extr.to(device)
-
-    setattr(model_extr, classification_layer_name, nn.Identity())
+    model_extr, extract_transform, device = load_extraction_model(model_name)
 
     dataset = AnnotatedDataset(samples=X.values, targets=None, transform=extract_transform)
 
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8)
-
-    model_extr.eval()
 
     index = None
     pos = 0
@@ -421,9 +398,6 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     index.build(n_trees)
     index.save(index_file)
-
-
-
 
 
 

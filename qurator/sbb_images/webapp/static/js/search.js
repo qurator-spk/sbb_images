@@ -1,42 +1,50 @@
 $(document).ready( function() {
 
-    	//$(document).on('change', '.btn-file :file',
+		$("#the-image").change(function(){
 
-    	$("#upload-button").click(
-    	    function() {
+		    let fileInput = $('#the-image')[0]
+            let file = fileInput.files[0];
 
-		        let input = $("#upload-image"),
-                label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+            let reader = new FileReader();
 
-                input.trigger('fileselect', [label]);
-		    }
-        );
-
-		$('.btn-file :file').on('fileselect', function(event, label) {
-
-		    var input = $(this).parents('.input-group').find(':text'),
-		        log = label;
-
-		    if( input.length ) {
-		        input.val(log);
-		    } else {
-		        if( log ) alert(log);
-		    }
-
-		});
-		function readURL(input) {
-		    if (input.files && input.files[0]) {
-		        var reader = new FileReader();
-
-		        reader.onload = function (e) {
+		    reader.onload =
+		        function (e) {
 		            $('#img-upload').attr('src', e.target.result);
-		        }
+		            $('#search-results').html("");
+		        };
 
-		        reader.readAsDataURL(input.files[0]);
-		    }
-		}
+            reader.readAsDataURL(file);
 
-		$("#imgInp").change(function(){
-		    readURL(this);
+            let formData = new FormData();
+            formData.append('file', file);
+
+            $.ajax(
+                {
+                    url:  "similar",
+                    data: formData,
+                    type: 'POST',
+                    enctype: "multipart/form-data",
+                    processData: false,
+                    contentType: false,
+                    cache: false,
+                    success:
+                        function(results) {
+
+                            let result_html = ""
+
+                            $.each(results,
+                                function(index, result_id) {
+                                       result_html +=
+                                        '<img class="img-fluid fit-image" src="image/' + result_id + '"/>';
+                                });
+
+                            $('#search-results').html(result_html);
+                        },
+                    error:
+                        function(error) {
+                            console.log(error);
+                        }
+                }
+            );
 		});
 	});
