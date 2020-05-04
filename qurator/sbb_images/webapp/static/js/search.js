@@ -35,7 +35,7 @@ $(document).ready( function() {
                             $.each(results,
                                 function(index, result_id) {
                                        result_html +=
-                                        '<img class="img-fluid fit-image" src="image/' + result_id + '"/>';
+                                        '<img class="img-fluid fit-image mt-2 mr-2" src="image/' + result_id + '"/>';
                                 });
 
                             $('#search-results').html(result_html);
