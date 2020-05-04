@@ -1,4 +1,22 @@
-$(document).ready( function() {
+$(document).ready(
+
+    function() {
+
+        function makeResultList(results) {
+            let result_html = ""
+
+            $.each(results,
+                function(index, result_id) {
+                    result_html += '<a ' + 'href="search.html?search_id=' + result_id +'">' +
+                                        '<img class="img-fluid fit-result-image mt-2 mr-2" '
+                                        + 'src="image/' + result_id + '"' +'/>' +
+                                    '</a>';
+
+                }
+            );
+
+            $('#search-results').html(result_html);
+        }
 
 		$("#the-image").change(function(){
 
@@ -27,19 +45,7 @@ $(document).ready( function() {
                     processData: false,
                     contentType: false,
                     cache: false,
-                    success:
-                        function(results) {
-
-                            let result_html = ""
-
-                            $.each(results,
-                                function(index, result_id) {
-                                       result_html +=
-                                        '<img class="img-fluid fit-image mt-2 mr-2" src="image/' + result_id + '"/>';
-                                });
-
-                            $('#search-results').html(result_html);
-                        },
+                    success: makeResultList,
                     error:
                         function(error) {
                             console.log(error);
@@ -47,4 +53,13 @@ $(document).ready( function() {
                 }
             );
 		});
+
+		let url_params = new URLSearchParams(window.location.search);
+
+        if (url_params.has('search_id')) {
+
+            $('#img-upload').attr('src', "image/" + url_params.get('search_id'));
+
+            $.get("similar?search_id=" + url_params.get('search_id')).done(makeResultList);
+        }
 	});

@@ -61,10 +61,25 @@ class ThreadStore:
 
         return conn
 
-    def get_search_index(self, fe):
+    def get_search_index(self):
 
         if self._index is not None:
             return self._index
+
+        mode = 'RGB'
+        size = (100, 100)
+        color = (128, 128, 128)
+
+        img = Image.new(mode, size, color)
+
+        model_extr, extract_transform, device = self.get_extraction_model()
+
+        img = extract_transform(img)
+
+        img = img.to(device)
+
+        with torch.set_grad_enabled(False):
+            fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
 
         self._index = AnnoyIndex(fe.shape[1], app.config['DIST_MEASURE'])
 
@@ -92,12 +107,21 @@ def entry():
 
 
 @app.route('/similar', methods=['GET', 'POST'])
+@app.route('/similar/<start>/<stop>', methods=['GET', 'POST'])
 @htpasswd.required
-def get_similar(user):
+def get_similar(user, start=0, stop=100):
 
     del user
 
+    search_id = request.args.get('search_id', default=None, type=int)
+
     neighbours = []
+
+    if request.method == 'GET' and search_id is not None:
+
+        index = thread_store.get_search_index()
+
+        neighbours = index.get_nns_by_item(search_id-1, stop)
 
     if request.method == 'POST':
         # check if the post request has the file part
@@ -118,11 +142,11 @@ def get_similar(user):
         with torch.set_grad_enabled(False):
             fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
 
-        index = thread_store.get_search_index(fe)
+        index = thread_store.get_search_index()
 
-        neighbours = index.get_nns_by_vector(fe.squeeze(), 20)
+        neighbours = index.get_nns_by_vector(fe.squeeze(), stop)
 
-        neighbours = [n + 1 for n in neighbours]  # sqlite rowids are 1-based
+    neighbours = [n + 1 for n in neighbours[start:stop]]  # sqlite rowids are 1-based
 
     return jsonify(neighbours)
 
