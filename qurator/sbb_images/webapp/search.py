@@ -3,7 +3,7 @@ import os
 import flask
 import io
 import logging
-from flask_htpasswd import HtPasswdAuth
+
 from flask import send_from_directory, redirect, jsonify, request, send_file, flash
 import sqlite3
 import pandas as pd
@@ -26,7 +26,13 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
+if len(app.config['PASSWD_FILE']) > 0:
+    app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
+
+    from flask_htpasswd import HtPasswdAuth
+else:
+    print("AUTHENTICATION DISABLED!!!")
+    from .no_auth import NoAuth as HtPasswdAuth
 
 htpasswd = HtPasswdAuth(app)
 
@@ -123,7 +129,7 @@ def get_similar(user, start=0, stop=100):
 
         neighbours = index.get_nns_by_item(search_id-1, stop)
 
-    if request.method == 'POST':
+    elif request.method == 'POST':
         # check if the post request has the file part
         if 'file' not in request.files:
             flash('No file part')

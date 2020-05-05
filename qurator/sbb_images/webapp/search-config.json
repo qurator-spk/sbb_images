@@ -1,5 +1,5 @@
 {
-    "PASSWD_FILE": ".htpasswd",
+    "PASSWD_FILE": "",
     "SQLITE_FILE": "stabi-illustrations.sqlite",
     "MAX_IMG_SIZE": 250,
     "MODEL_NAME" : "googlenet",
