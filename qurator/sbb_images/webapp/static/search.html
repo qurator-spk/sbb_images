@@ -26,35 +26,34 @@
                 width: auto;
             }
         }
+
     </style>
     <title>Image Search</title>
 </head>
 <body>
 <div class="container">
     <div class="container">
-        <div class="row mt-3 text-center">
-            <div class="col-md-3"></div>
-            <div class="col-md-6">
-
-                <form action="similar" method="post" enctype="multipart/form-data">
-                    <input type="file" name="file" id="the-image"/>
-                </form>
-
-            </div>
-            <div class="col-md-3"></div>
-        </div>
         <div class="row mt-2 text-center">
             <div class="col-md-3"></div>
             <div class="col-md-6">
-                <img class="img-fluid fit-image" id='img-upload' src=""/>
+                <div class="card mt-2 mb-1">
+                    <div class="card-body">
+                        <img class="img-fluid fit-image mt-3" id='img-upload' src=""/>
+                        <form action="similar" method="post" enctype="multipart/form-data">
+                            <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
+                            <input type="file" name="file" id="the-image" style="display: none;"/>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-3"></div>
         </div>
-        <div class="row mt-2 text-center">
-            <div class="col-md-12" id="search-results">
-            </div>
+        <div class="col-md-3"></div>
+    </div>
+    <div class="row mt-2 text-center">
+        <div class="col-md-12" id="search-results">
         </div>
     </div>
+</div>
 </div>
 <script src="js/search.js"></script>
 </body>
