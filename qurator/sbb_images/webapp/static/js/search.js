@@ -8,7 +8,7 @@ $(document).ready(
             $.each(results,
                 function(index, result_id) {
 
-                    let result_html +=
+                    result_html +=
                             `
                             <div class="row-fluid">
                                 <div class="card">
