@@ -157,6 +157,34 @@ def get_similar(user, start=0, stop=100):
     return jsonify(neighbours)
 
 
+def has_links():
+    return \
+        thread_store.get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
+                                      ('links',)).fetchone()\
+        is not None
+
+
+@app.route('/haslinks')
+@htpasswd.required
+def get_has_links(user):
+    del user
+    return jsonify(has_links())
+
+
+@app.route('/link/<image_id>')
+@htpasswd.required
+def get_link(user, image_id=None):
+    del user
+
+    if not has_links():
+
+        return jsonify("")
+
+    url = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(), params=(image_id,)).url.iloc[0]
+
+    return jsonify(url)
+
+
 @app.route('/image')
 @app.route('/image/<image_id>')
 @htpasswd.required

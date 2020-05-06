@@ -13,8 +13,8 @@ $(document).ready(
                             <div class="row-fluid">
                                 <div class="card">
                                     <div class="card-body">
-                                    <a href="search.html?search_id=${result_id}" class="btn-sm"> ${result_id} </a><br>
-                                    <a  href="search.html?search_id=${result_id}" id="img-${result_id}">
+                                    <a href="search.html?search_id=${result_id}" class="btn-sm">More</a><br>
+                                    <a  href="" id="img-${result_id}">
                                         <img class="img-fluid fit-result-image" src="image/${result_id}"/>
                                     </a>
                                     </div>
@@ -25,6 +25,16 @@ $(document).ready(
             );
 
             $('#search-results').html(result_html);
+
+            $.each(results,
+                function(index, result_id) {
+                    $.get("link/" + result_id).done(
+                        function(result) {
+                            $("#img-" + result_id).attr('href', result);
+                        }
+                    );
+                }
+            );
         }
 
         let url_params = new URLSearchParams(window.location.search);

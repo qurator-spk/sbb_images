@@ -1,6 +1,7 @@
 import sqlite3
 import glob
 import click
+import re
 import pandas as pd
 # import time
 import copy
@@ -44,6 +45,34 @@ def create_database(directory, sqlite_file):
 
         conn.execute('create index idx_user on annotations(user);')
         conn.execute('create index idx_label on annotations(label);')
+
+
+@click.command()
+@click.argument('sqlite-file', type=click.Path(exists=True))
+def create_sbb_link_table(sqlite_file):
+
+    with sqlite3.connect(sqlite_file) as con:
+        images = pd.read_sql('select * from images', con=con)
+
+    links = []
+    for rowid, img in tqdm(images.iterrows(), total=len(images)):
+
+        m = re.match(r'.*/(PPN.+)/([0-9]+)_.*', img.file)
+
+        if m is None:
+            print(img.file)
+            continue
+
+        ppn = m.group(1)
+        phys_id = m.group(2)
+
+        links.append(("https://digital.staatsbibliothek-berlin.de/werkansicht?" +
+                      "PPN={}&PHYSID=PHYS_{}".format(ppn, phys_id), ppn, phys_id, rowid))
+
+    links = pd.DataFrame(links, columns=['url', 'ppn', 'phys_id', 'index']).set_index('index')
+
+    with sqlite3.connect(sqlite_file) as con:
+        links.to_sql('links', con=con, if_exists='replace')
 
 
 @click.command()
