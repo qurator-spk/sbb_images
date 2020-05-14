@@ -3,7 +3,7 @@ Mit Hilfe dieses Werkzeugs können aus Einzelseiten von Dokumenten in den [digit
 # Anleitung
 
 1. Öffnen Sie die URL https://annotat.de/index.html
-2. Geben Sie ihren Benutzernamen und Passwort ein
+2. Geben Sie ihren Benutzernamen und ihr Passwort ein
 3. Auf dem Bildschirm sollte nun folgendes zu sehen sein:
 
 ![](https://user-images.githubusercontent.com/952378/81933358-88046a80-95ed-11ea-8ea9-26a8168810cf.png)
@@ -20,6 +20,9 @@ An dieser Stelle sehen Sie das extrahierte graphische Objekt mit dem Ergebnis de
 Durch Klicken auf eines der vordefinierten Tags wird dem eingeblendeten graphischen Objekt diese Klassifikation zugewiesen. 
 
 Stimmt die Kategorie der Vorklassifikation bereits, genügt es diese nur noch durch einen Klick auf ``Nächstes`` zu bestätigen.
+
+Falls Sie den Bedarf sehen zusätzliche Kategorien einzurichten, schreiben Sie uns bitte eine Mail an   
+[qurator@sbb.spk-berlin.de](mailto:qurator@sbb.spk-berlin.de)
 
 # Beispiele für Kategorien
 
