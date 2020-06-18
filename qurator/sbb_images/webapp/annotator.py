@@ -92,6 +92,12 @@ def get_labels(user):
 
     return jsonify(app.config['LABELS'])
 
+def has_links():
+    return \
+        thread_store.get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
+                                      ('links',)).fetchone()\
+        is not None
+
 @app.route('/haslinks')
 @htpasswd.required
 def get_has_links(user):
