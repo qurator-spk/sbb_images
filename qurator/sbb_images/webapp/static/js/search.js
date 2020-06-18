@@ -13,8 +13,8 @@ $(document).ready(
                             <div class="row-fluid">
                                 <div class="card">
                                     <div class="card-body">
-                                    <a href="search.html?search_id=${result_id}" class="btn-sm">More</a><br>
-                                    <a  href="" id="img-${result_id}">
+                                    <a href="search.html?search_id=${result_id}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
+                                    <a  href="" id="img-${result_id}" target="_blank" rel="noopener noreferrer">
                                         <img class="img-fluid fit-result-image" src="image/${result_id}"/>
                                     </a>
                                     </div>
