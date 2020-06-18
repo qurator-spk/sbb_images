@@ -7,25 +7,28 @@ import pandas as pd
 import copy
 # import importlib
 import os
-import torch
-import torch.nn as nn
-from torch.optim import lr_scheduler
 import numpy as np
 import itertools
 from tqdm import tqdm
 
-from torchvision import models, transforms
 from sklearn.model_selection import StratifiedKFold
-from .classifier import ImageClassifier
-from .feature_extraction import load_extraction_model
-# from feature_extraction import FeatureExtractor
-from .data_access import AnnotatedDataset
 from pprint import pprint
-from torch.optim.adamw import AdamW
-from torch.utils.data import DataLoader
-# noinspection PyUnresolvedReferences
-from annoy import AnnoyIndex
 
+try:
+    import torch
+    import torch.nn as nn
+    from torch.optim import lr_scheduler
+    from torch.optim.adamw import AdamW
+    from torch.utils.data import DataLoader
+    from torchvision import models, transforms
+    from .classifier import ImageClassifier
+    from .feature_extraction import load_extraction_model
+    # from feature_extraction import FeatureExtractor
+    from .data_access import AnnotatedDataset
+    # noinspection PyUnresolvedReferences
+    from annoy import AnnoyIndex
+except:
+    pass
 
 @click.command()
 @click.argument('directory', type=click.Path(exists=True))
