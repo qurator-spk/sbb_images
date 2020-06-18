@@ -16,8 +16,15 @@ function makeAnnotator() {
 
                     pre_classification = classification;
 
+                    $("#preview-link").attr("href", "");
                     $("#preview").attr("src", "");
                     $("#preview").attr("src", "image/" + img);
+
+                    $.get("link/" + img).done(
+                        function(result) {
+                            $("#preview-link").attr('href', result);
+                        }
+                    );
                 }
             );
     }
@@ -36,6 +43,7 @@ function makeAnnotator() {
                     setPreviewImage(rowid)
                 }
                 else {
+                    $("#preview-link").attr("href", "");
                     $("#preview").attr("src", "");
                     $("#preview").attr("alt", "Everything has been labeled.");
                     $('#label-rgn').html('');

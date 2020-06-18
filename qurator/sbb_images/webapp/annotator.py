@@ -92,6 +92,25 @@ def get_labels(user):
 
     return jsonify(app.config['LABELS'])
 
+@app.route('/haslinks')
+@htpasswd.required
+def get_has_links(user):
+    del user
+    return jsonify(has_links())
+
+
+@app.route('/link/<image_id>')
+@htpasswd.required
+def get_link(user, image_id=None):
+    del user
+
+    if not has_links():
+
+        return jsonify("")
+
+    url = pd.read_sql('select * from links where rowid=?', con=get_db(), params=(image_id,)).url.iloc[0]
+
+    return jsonify(url)
 
 def has_predictions():
     return \
