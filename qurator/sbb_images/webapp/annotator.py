@@ -94,8 +94,7 @@ def get_labels(user):
 
 def has_links():
     return \
-        thread_store.get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
-                                      ('links',)).fetchone()\
+        get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", ('links',)).fetchone()\
         is not None
 
 @app.route('/haslinks')
