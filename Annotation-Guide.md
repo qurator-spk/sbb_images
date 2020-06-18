@@ -15,6 +15,7 @@ Per default ist ``Keine Vorklassifizierung`` eingestellt, d.h. es werden zufäll
 
 ### Extrahierte Grafik mit Vorklassifikation
 An dieser Stelle sehen Sie das extrahierte graphische Objekt mit dem Ergebnis der Vorklassifikation.
+Klick auf das Bild führt auf die zugehörige Seite in den digitalisierten Sammlungen.
 
 ### Auswahl vordefinierter Kategorien/Tags
 Durch Klicken auf eines der vordefinierten Tags wird dem eingeblendeten graphischen Objekt diese Klassifikation zugewiesen. 
