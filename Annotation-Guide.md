@@ -2,7 +2,7 @@ Mit Hilfe dieses Werkzeugs können aus Einzelseiten von Dokumenten in den [digit
 
 # Anleitung
 
-1. Öffnen Sie die URL https://annotat.de/index.html
+1. Öffnen Sie die URL https://annotat.de/annotator.html
 2. Geben Sie ihren Benutzernamen und ihr Passwort ein
 3. Auf dem Bildschirm sollte nun folgendes zu sehen sein:
 
