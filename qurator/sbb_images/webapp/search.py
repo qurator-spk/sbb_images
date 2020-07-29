@@ -187,8 +187,9 @@ def get_link(user, image_id=None):
 
 @app.route('/image')
 @app.route('/image/<image_id>')
+@app.route('/image/<image_id>/<version>')
 @htpasswd.required
-def get_image(user, image_id=None):
+def get_image(user, image_id=None, version='resize'):
 
     del user
 
@@ -202,14 +203,22 @@ def get_image(user, image_id=None):
         return "NOT FOUND", 404
 
     img = Image.open(filename)
-    max_size = float(max(img.size[0], img.size[1]))
 
-    scale_factor = 1.0 if max_size <= max_img_size else max_img_size / max_size
+    if version == 'resize':
 
-    hsize = int((float(img.size[0]) * scale_factor))
-    vsize = int((float(img.size[1]) * scale_factor))
+        max_size = float(max(img.size[0], img.size[1]))
 
-    img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+        scale_factor = 1.0 if max_size <= max_img_size else max_img_size / max_size
+
+        hsize = int((float(img.size[0]) * scale_factor))
+        vsize = int((float(img.size[1]) * scale_factor))
+
+        img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+
+    elif version == 'full':
+        pass
+    else:
+        return "BAD PARAMS", 400
 
     buffer = io.BytesIO()
     img.save(buffer, "JPEG")
