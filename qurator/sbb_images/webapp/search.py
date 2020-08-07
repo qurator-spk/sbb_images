@@ -11,7 +11,7 @@ import threading
 import torch
 
 import PIL
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from ..feature_extraction import load_extraction_model
 
@@ -121,40 +121,65 @@ def get_similar(user, start=0, stop=100):
 
     search_id = request.args.get('search_id', default=None, type=int)
 
-    neighbours = []
+    def get_neighbours():
+        neighbours = []
 
-    if request.method == 'GET' and search_id is not None:
+        if request.method == 'GET' and search_id is not None:
 
-        index = thread_store.get_search_index()
+            index = thread_store.get_search_index()
 
-        neighbours = index.get_nns_by_item(search_id-1, stop)
+            neighbours = index.get_nns_by_item(search_id-1, stop)
 
-    elif request.method == 'POST':
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
+        elif request.method == 'POST':
+            # check if the post request has the file part
+            if 'file' not in request.files:
+                flash('No file part')
+                return redirect(request.url)
 
-        file = request.files['file']
+            file = request.files['file']
 
-        img = Image.open(file).convert('RGB')
+            img = Image.open(file).convert('RGB')
 
-        model_extr, extract_transform, device = thread_store.get_extraction_model()
+            model_extr, extract_transform, device = thread_store.get_extraction_model()
 
-        img = extract_transform(img)
+            img = extract_transform(img)
 
-        img = img.to(device)
+            img = img.to(device)
 
-        with torch.set_grad_enabled(False):
-            fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
+            with torch.set_grad_enabled(False):
+                fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
 
-        index = thread_store.get_search_index()
+            index = thread_store.get_search_index()
 
-        neighbours = index.get_nns_by_vector(fe.squeeze(), stop)
+            neighbours = index.get_nns_by_vector(fe.squeeze(), stop)
 
-    neighbours = [n + 1 for n in neighbours[start:stop]]  # sqlite rowids are 1-based
+        return [n + 1 for n in neighbours[start:stop]]  # sqlite rowids are 1-based
 
-    return jsonify(neighbours)
+    result = []
+
+    while len(result) < stop - start:
+
+        neighbour_ids = get_neighbours()
+
+        imgs = pd.read_sql('SELECT * FROM images WHERE rowid=ANY(%(neighbour_ids)s)',
+                           con=thread_store.get_db(), params={'neighbour_ids': neighbour_ids})
+
+        rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid, rank']).\
+            set_index('rowid')
+
+        imgs = imgs.merge(rank, left_index=True, right_index=True)
+
+        result =\
+            pd.DataFrame(
+                [(img_grp.iloc[img_grp.rank.argmin()].name, img_grp.iloc[img_grp.rank.argmin()].rank)
+                 for _, img_grp in imgs.groupby('file')], columns=['rowid', 'rank']).\
+            sort_values('rank', ascending=True)
+
+        result = result.rowid.to_list()
+
+        stop += stop - start
+
+    return jsonify(result)
 
 
 def has_links():
@@ -188,15 +213,21 @@ def get_link(user, image_id=None):
 @app.route('/image')
 @app.route('/image/<image_id>')
 @app.route('/image/<image_id>/<version>')
+@app.route('/image/<image_id>/<version>/<marker>')
 @htpasswd.required
-def get_image(user, image_id=None, version='resize'):
+def get_image(user, image_id=None, version='resize', marker='regionmarker'):
 
     del user
 
     max_img_size = app.config['MAX_IMG_SIZE']
 
-    filename = pd.read_sql('select file from images where rowid=?', con=thread_store.get_db(),
-                           params=(image_id,)).file.iloc[0]
+    sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(image_id,))
+
+    filename = sample.file.iloc[0]
+    x = sample.x.iloc[0]
+    y = sample.y.iloc[0]
+    width = sample.width.iloc[0]
+    height = sample.height.iloc[0]
 
     if not os.path.exists(filename):
 
@@ -215,10 +246,22 @@ def get_image(user, image_id=None, version='resize'):
 
         img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
 
+        if x >= 0 and y >= 0 and width > 0 and height > 0:
+            x = int((float(x) * scale_factor))
+            y = int((float(y) * scale_factor))
+            width = int((float(width) * scale_factor))
+            height = int((float(height) * scale_factor))
+
     elif version == 'full':
         pass
     else:
         return "BAD PARAMS", 400
+
+    if marker == 'regionmarker' and x >= 0 and y >= 0 and width > 0 and height > 0:
+
+        draw = ImageDraw.Draw(img, 'RGBA')
+
+        draw.rectangle([(x, y), (x + width, y + height)], outline=(255, 255, 255))
 
     buffer = io.BytesIO()
     img.save(buffer, "JPEG")

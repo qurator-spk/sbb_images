@@ -5,11 +5,11 @@ with open('requirements.txt') as fp:
     install_requires = fp.read()
 
 setup(
-    name="image-annotator",
+    name="sbb-images",
     version="0.0.1",
     author="The Qurator Team",
     author_email="qurator@sbb.spk-berlin.de",
-    description="A tool to label images.",
+    description="An image search engine plus some tool to label images.",
     long_description=open("README.md", "r", encoding='utf-8').read(),
     long_description_content_type="text/markdown",
     keywords='qurator',

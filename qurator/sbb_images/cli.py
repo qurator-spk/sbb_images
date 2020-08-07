@@ -71,7 +71,7 @@ def create_database(directory, sqlite_file, pattern):
 def add_detections(detection_file, sqlite_file, replace):
     """
     DETECTION_FILE: Read object detection regions as a pickled pandas DataFrame from this file.
-    Required columns: 'path', 'x1', 'y1', 'box_w', 'box_h', 'conf'.
+    Required columns: 'path', 'x1', 'y1', 'box_w', 'box_h'.
     SQLITE_FILE: Either append the image regions to the image table in this sqlite3 database file or replace the
     image table in this sqlite3 database file (see --replace).
     """
@@ -461,9 +461,10 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True))
 @click.argument('index-file', type=click.Path(exists=False))
-@click.option('--model-name', type=str, default='resnet18')
-@click.option('--batch-size', type=int, default=32)
-@click.option('--dist-measure', type=str, default='angular')
+@click.option('--model-name', type=str, default='resnet18', help='PyTorch name of NN-model. default: resnet18')
+@click.option('--batch-size', type=int, default=32, help="Process batch-size. default: 32.")
+@click.option('--dist-measure', type=str, default='angular', help="Distance measure of the approximative nearest"
+              "neighbour index. default: angular.")
 @click.option('--n-trees', type=int, default=10)
 @click.option('--num-workers', type=int, default=8)
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers):
