@@ -14,5 +14,3 @@ sklearn
 
 tqdm
 annoy
-
-opencv-python

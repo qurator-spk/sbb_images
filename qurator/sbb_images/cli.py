@@ -14,7 +14,7 @@ from tqdm import tqdm
 from sklearn.model_selection import StratifiedKFold
 from pprint import pprint
 
-
+# noinspection PyBroadException
 try:
     import torch
     import torch.nn as nn
@@ -31,12 +31,19 @@ try:
 except:
     pass
 
+from .detections import summarize_detections
+
 
 @click.command()
 @click.argument('directory', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=False))
-def create_database(directory, sqlite_file):
-    images = [(f, 0) for f in glob.glob('{}/**/*.jpg'.format(directory), recursive=True)]
+@click.option('--pattern', type=str, default="*.jpg", help="File pattern to search for. Default: *.jpg")
+def create_database(directory, sqlite_file, pattern):
+    """
+    DIRECTORY: Recursively enlist all the image files in this directory.
+    Write the file list into the images table of SQLITE_FILE that is a sqlite3 database file.
+    """
+    images = [(f, 0) for f in glob.glob('{}/**/{}'.format(directory, pattern), recursive=True)]
 
     images = pd.DataFrame(images, columns=['file', 'num_annotations'])
 
@@ -60,8 +67,14 @@ def create_database(directory, sqlite_file):
 @click.command()
 @click.argument('detection-file', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=False))
-@click.option('--replace', type=bool, is_flag=True, default=False)
+@click.option('--replace', type=bool, is_flag=True, default=False, help="Replace the entire image table if specified.")
 def add_detections(detection_file, sqlite_file, replace):
+    """
+    DETECTION_FILE: Read object detection regions as a pickled pandas DataFrame from this file.
+    Required columns: 'path', 'x1', 'y1', 'box_w', 'box_h', 'conf'.
+    SQLITE_FILE: Either append the image regions to the image table in this sqlite3 database file or replace the
+    image table in this sqlite3 database file (see --replace).
+    """
 
     detections = pd.read_pickle(detection_file)
 
@@ -71,6 +84,36 @@ def add_detections(detection_file, sqlite_file, replace):
 
     with sqlite3.connect(sqlite_file) as conn:
         detections.to_sql('images', con=conn, if_exists='replace' if replace else 'append')
+
+
+@click.command()
+@click.argument('detection-in-file', type=click.Path(exists=True))
+@click.argument('detection-out-file', type=click.Path(exists=False))
+@click.option('--processes', type=int, default=8, help="number of parallel processes. default: 8")
+@click.option('--conf-thres', type=float, default=0.2,
+              help="Remove all detections that have confidence below this value. default: 0.2.")
+@click.option('--iou-thres', type=float, default=0.3,
+              help="Summarize all detections that have pairwise iou above this value. default: 0.3.")
+@click.option('--area-thres', type=float, default=100.0,
+              help="Remove all detections whose area in pixels is below this value. default: 100.0.")
+@click.option('--max-iter', type=float, default=np.inf, help="Perform only a limited number of iterations."
+              "default: process everything.")
+def filter_detections(detection_in_file, detection_out_file, processes, conf_thres, iou_thres, area_thres, max_iter):
+    """
+    DETECTION_IN_FILE: Read detections as pickled pandas DataFrame from this file.
+    Required columns: 'path', 'x1', 'y1', 'box_w', 'box_h', 'conf'
+    DETECTION_OUT_FILE: Write filtered detections as pickled pandas DataFrame to this file.
+    """
+
+    detections = pd.read_pickle(detection_in_file)
+
+    detections = detections.loc[detections.conf >= conf_thres]
+
+    summarized = summarize_detections(detections=detections, processes=processes,
+                                      iou_thres=iou_thres, area_thres=area_thres,
+                                      max_iter=max_iter)
+
+    summarized.to_pickle(detection_out_file)
 
 
 @click.command()
@@ -300,6 +343,7 @@ def load_ground_truth(sqlite_file):
     images = annotations.merge(images, left_on='IMAGE', right_on='index')
 
     assert (images.num_annotations == 0).sum() == 0
+    # noinspection PyUnresolvedReferences
     assert (images.consensus <= images.num_annotations).sum() == len(images)
 
     images = images.loc[images.consensus > 1].copy()
