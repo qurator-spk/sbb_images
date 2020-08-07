@@ -76,7 +76,7 @@ def add_detections(detection_file, sqlite_file, replace):
     image table in this sqlite3 database file (see --replace).
     """
 
-    detections = pd.read_pickle(detection_file).rest_index(drop=True)
+    detections = pd.read_pickle(detection_file).reset_index(drop=True)
 
     max_rowid = pd.read_sql('select max(rowid) from images').iloc[0, 0]
 
