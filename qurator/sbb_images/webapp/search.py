@@ -157,12 +157,18 @@ def get_similar(user, start=0, stop=100):
 
     result = []
 
-    while len(result) < stop - start:
+    min_result_len = stop - start
+
+    while len(result) < min_result_len:
 
         neighbour_ids = get_neighbours()
 
         imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
                            con=thread_store.get_db())
+
+        imgs['index'] = imgs['index']+1
+        imgs = imgs.reset_index(drop=True).set_index('index')
+
 
         rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid', 'rank']).\
             set_index('rowid')
@@ -171,7 +177,7 @@ def get_similar(user, start=0, stop=100):
 
         result =\
             pd.DataFrame(
-                [(img_grp.iloc[img_grp.rank.argmin()].name, img_grp.iloc[img_grp.rank.argmin()].rank)
+                [(img_grp.iloc[img_grp['rank'].argmin()].name, img_grp.iloc[img_grp['rank'].argmin()]['rank'])
                  for _, img_grp in imgs.groupby('file')], columns=['rowid', 'rank']).\
             sort_values('rank', ascending=True)
 
