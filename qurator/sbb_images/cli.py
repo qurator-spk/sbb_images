@@ -76,11 +76,17 @@ def add_detections(detection_file, sqlite_file, replace):
     image table in this sqlite3 database file (see --replace).
     """
 
-    detections = pd.read_pickle(detection_file)
+    detections = pd.read_pickle(detection_file).rest_index(drop=True)
+
+    max_rowid = pd.read_sql('select max(rowid) from images').iloc[0, 0]
+
+    detections.index = detections.index + max_rowid
 
     detections =\
         detections[['path', 'x1', 'y1', 'box_w', 'box_h']].\
-            rename(columns={'path': 'file', 'x1': 'x', 'y1': 'y', 'box_w': 'width', 'box_h': 'height'})
+        rename(columns={'path': 'file', 'x1': 'x', 'y1': 'y', 'box_w': 'width', 'box_h': 'height'})
+
+    detections['num_annotations'] = 0
 
     with sqlite3.connect(sqlite_file) as conn:
         detections.to_sql('images', con=conn, if_exists='replace' if replace else 'append')
