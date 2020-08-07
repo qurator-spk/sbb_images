@@ -29,7 +29,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y):
 
-        dataset = AnnotatedDataset(samples=X.values, targets=y.values, transform=self.fit_transform)
+        dataset = AnnotatedDataset(samples=X, targets=y, transform=self.fit_transform)
 
         data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=8, drop_last=True)
 
@@ -40,7 +40,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
         self.model.train()
 
-        for inputs, labels in tqdm(data_loader, total=len(data_loader), desc="train"):
+        for inputs, labels, _ in tqdm(data_loader, total=len(data_loader), desc="train"):
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
 
@@ -74,7 +74,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
 
-        dataset = AnnotatedDataset(samples=X.values, targets=None, transform=self.predict_transform)
+        dataset = AnnotatedDataset(samples=X, targets=None, transform=self.predict_transform)
 
         data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
@@ -84,7 +84,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
         prediction = list()
 
-        for inputs, _ in tqdm(data_loader, total=len(data_loader), desc="predict"):
+        for inputs, _, _ in tqdm(data_loader, total=len(data_loader), desc="predict"):
             inputs = inputs.to(self.device)
 
             with torch.set_grad_enabled(False):
@@ -97,7 +97,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
     def predict_proba(self, X):
 
-        dataset = AnnotatedDataset(samples=X.values, targets=None, transform=self.predict_transform)
+        dataset = AnnotatedDataset(samples=X, targets=None, transform=self.predict_transform)
 
         data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
@@ -107,7 +107,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
         proba = list()
 
-        for inputs, _ in tqdm(data_loader, total=len(data_loader), desc='predict_proba'):
+        for inputs, _, _ in tqdm(data_loader, total=len(data_loader), desc='predict_proba'):
             inputs = inputs.to(self.device)
 
             with torch.set_grad_enabled(False):

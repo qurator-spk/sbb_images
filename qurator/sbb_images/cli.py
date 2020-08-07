@@ -14,6 +14,7 @@ from tqdm import tqdm
 from sklearn.model_selection import StratifiedKFold
 from pprint import pprint
 
+
 try:
     import torch
     import torch.nn as nn
@@ -30,16 +31,22 @@ try:
 except:
     pass
 
+
 @click.command()
 @click.argument('directory', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=False))
 def create_database(directory, sqlite_file):
-    files = [(f, 0) for f in glob.glob('{}/**/*.jpg'.format(directory), recursive=True)]
+    images = [(f, 0) for f in glob.glob('{}/**/*.jpg'.format(directory), recursive=True)]
 
-    files = pd.DataFrame(files, columns=['file', 'num_annotations'])
+    images = pd.DataFrame(images, columns=['file', 'num_annotations'])
+
+    images['x'] = -1
+    images['y'] = -1
+    images['width'] = -1
+    images['height'] = -1
 
     with sqlite3.connect(sqlite_file) as conn:
-        files.to_sql('images', con=conn, if_exists='replace')
+        images.to_sql('images', con=conn, if_exists='replace')
 
         conn.execute('create index idx_num_annotations on images(num_annotations);')
 
@@ -48,6 +55,22 @@ def create_database(directory, sqlite_file):
 
         conn.execute('create index idx_user on annotations(user);')
         conn.execute('create index idx_label on annotations(label);')
+
+
+@click.command()
+@click.argument('detection-file', type=click.Path(exists=True))
+@click.argument('sqlite-file', type=click.Path(exists=False))
+@click.option('--replace', type=bool, is_flag=True, default=False)
+def add_detections(detection_file, sqlite_file, replace):
+
+    detections = pd.read_pickle(detection_file)
+
+    detections =\
+        detections[['path', 'x1', 'y1', 'box_w', 'box_h']].\
+            rename(columns={'path': 'file', 'x1': 'x', 'y1': 'y', 'box_w': 'width', 'box_h': 'height'})
+
+    with sqlite3.connect(sqlite_file) as conn:
+        detections.to_sql('images', con=conn, if_exists='replace' if replace else 'append')
 
 
 @click.command()
@@ -96,17 +119,17 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
 
         return
 
-    images, class_to_label, label_to_class = load_ground_truth(sqlite_file)
+    X, class_to_label, label_to_class = load_ground_truth(sqlite_file)
 
     y = None
     if train_only:
-        X = images['file'].astype(str)
-        y = images['class'].astype(int)
+        X['file'] = X['file'].astype(str)
+        y = X['class'].astype(int)
     else:
         with sqlite3.connect(sqlite_file) as con:
-            images = pd.read_sql('select * from images', con=con)
+            X = pd.read_sql('select * from images', con=con)
 
-        X = images['file'].astype(str)
+        X['file'] = X['file'].astype(str)
 
     batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, start_lr = load_model_selection(
         model_selection_file)
@@ -150,10 +173,10 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
 @click.argument('model-file', type=click.Path(exists=False))
 def train(sqlite_file, model_selection_file, model_file):
 
-    images, class_to_label, label_to_class = load_ground_truth(sqlite_file)
+    X, class_to_label, label_to_class = load_ground_truth(sqlite_file)
 
-    X = images['file'].astype(str)
-    y = images['class'].astype(int)
+    X['file'] = X['file'].astype(str)
+    y = X['class'].astype(int)
 
     batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, start_lr = load_model_selection(
         model_selection_file)
@@ -227,10 +250,10 @@ def model_selection(sqlite_file, result_file, n_splits, max_epoch, batch_size,
                     start_lr, momentum, decrease_epochs, decrease_factor, model_name,
                     num_trained_layers):
 
-    images, class_to_label, label_to_class = load_ground_truth(sqlite_file)
+    X, class_to_label, label_to_class = load_ground_truth(sqlite_file)
 
-    X = images['file'].astype(str)
-    y = images['class'].astype(int)
+    X['file'] = X['file'].astype(str)
+    y = X['class'].astype(int)
 
     sk_fold = StratifiedKFold(n_splits=n_splits)
 
@@ -398,23 +421,24 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
 @click.option('--batch-size', type=int, default=32)
 @click.option('--dist-measure', type=str, default='angular')
 @click.option('--n-trees', type=int, default=10)
-def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees):
+@click.option('--num-workers', type=int, default=8)
+def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers):
 
     with sqlite3.connect(sqlite_file) as con:
-        images = pd.read_sql('select * from images', con=con)
+        X = pd.read_sql('select * from images', con=con)
 
-    X = images['file'].astype(str)
+    X['file'] = X['file'].astype(str)
 
     model_extr, extract_transform, device = load_extraction_model(model_name)
 
-    dataset = AnnotatedDataset(samples=X.values, targets=None, transform=extract_transform)
+    dataset = AnnotatedDataset(samples=X, targets=None, transform=extract_transform)
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=8)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     index = None
-    pos = 0
 
-    for inputs, _ in tqdm(data_loader, total=len(data_loader), desc="Extract features"):
+    for inputs, _, pos in tqdm(data_loader, total=len(data_loader), desc="Extract features"):
+        pos = pos.cpu().numpy()
         inputs = inputs.to(device)
 
         with torch.set_grad_enabled(False):
@@ -424,14 +448,10 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
             index = AnnoyIndex(fe.shape[1], dist_measure)
 
         for idx, f in enumerate(fe):
-            index.add_item(X.index[pos + idx], f)
-
-        pos += len(fe)
+            index.add_item(pos[idx], f)
 
     index.build(n_trees)
     index.save(index_file)
-
-
 
 
 

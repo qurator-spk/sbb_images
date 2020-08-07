@@ -25,7 +25,8 @@ setup(
         "train-classifier=qurator.sbb_images.cli:train",
         "apply-classifier=qurator.sbb_images.cli:apply",
         "create-search-index=qurator.sbb_images.cli:create_search_index",
-        "create-sbb-links=qurator.sbb_images.cli:create_sbb_link_table"
+        "create-sbb-links=qurator.sbb_images.cli:create_sbb_link_table",
+        "add-detections=qurator.sbb_images.cli:add_detections"
         ]
     },
     python_requires='>=3.6.0',

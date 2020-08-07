@@ -16,12 +16,19 @@ class AnnotatedDataset(Dataset):
 
     def __getitem__(self, index):
 
-        path, target = self.samples[index], self.targets[index] if self.targets is not None else -1
-        sample = self.loader(path)
-        if self.transform is not None:
-            sample = self.transform(sample)
+        sample = self.samples.iloc[index]
 
-        return sample, target
+        target = self.targets.iloc[index] if self.targets is not None else -1
+
+        img = self.loader(sample.file)
+
+        if sample.x >= 0 and sample.y >= 0 and sample.width > 0 and sample.height > 0:
+            img = img.crop((sample.x, sample.y, sample.x + sample.width, sample.y + sample.height))
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, target, sample.name
 
     def __len__(self):
         return len(self.samples)
