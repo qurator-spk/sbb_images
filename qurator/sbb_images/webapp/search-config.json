@@ -1,8 +1,8 @@
 {
     "PASSWD_FILE": "",
-    "SQLITE_FILE": "stabi-illustrations.sqlite",
+    "SQLITE_FILE": "stabi-illustrations-with-detections.sqlite",
     "MAX_IMG_SIZE": 250,
     "MODEL_NAME" : "googlenet",
-    "INDEX_FILE": "search-index-googlenet.ann",
+    "INDEX_FILE": "search-index-googlenet-with-detections-50.ann",
     "DIST_MEASURE": "angular"
 }

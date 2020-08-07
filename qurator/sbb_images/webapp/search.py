@@ -161,10 +161,10 @@ def get_similar(user, start=0, stop=100):
 
         neighbour_ids = get_neighbours()
 
-        imgs = pd.read_sql('SELECT * FROM images WHERE rowid=ANY(%(neighbour_ids)s)',
-                           con=thread_store.get_db(), params={'neighbour_ids': neighbour_ids})
+        imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
+                           con=thread_store.get_db())
 
-        rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid, rank']).\
+        rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid', 'rank']).\
             set_index('rowid')
 
         imgs = imgs.merge(rank, left_index=True, right_index=True)
