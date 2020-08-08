@@ -211,7 +211,12 @@ def get_link(user, image_id=None):
 
         return jsonify("")
 
-    url = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(), params=(image_id,)).url.iloc[0]
+    link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(), params=(image_id,))
+
+    if link is None or len(link) == 0:
+        return jsonify("")
+
+    url = link.url.iloc[0]
 
     return jsonify(url)
 

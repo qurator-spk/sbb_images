@@ -126,6 +126,13 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True))
 def create_sbb_link_table(sqlite_file):
+    """
+    Special functionality of the SBB (Staatsbibliothek zu Berlin):
+    Creates an link table that links each image in the database to the corresponding webpage within the
+    "digitalisierte Sammlungen".
+
+    SQLITE_FILE: sqlite3 database file that contains the images table.
+    """
 
     with sqlite3.connect(sqlite_file) as con:
         images = pd.read_sql('select * from images', con=con)
