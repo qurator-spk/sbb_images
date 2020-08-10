@@ -113,62 +113,78 @@ def entry():
 
 
 @app.route('/similar', methods=['GET', 'POST'])
-@app.route('/similar/<start>/<stop>', methods=['GET', 'POST'])
+@app.route('/similar/<start>/<count>', methods=['GET', 'POST'])
+@app.route('/similar/<start>/<count>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
 @htpasswd.required
-def get_similar(user, start=0, stop=100):
+def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     del user
+    start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
 
     search_id = request.args.get('search_id', default=None, type=int)
 
-    def get_neighbours():
-        neighbours = []
+    if request.method == 'GET' and search_id is not None:
 
-        if request.method == 'GET' and search_id is not None:
+        sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(search_id,))
 
-            index = thread_store.get_search_index()
+        if sample is None or len(sample)==0:
+            return "NOT FOUND", 404
 
-            neighbours = index.get_nns_by_item(search_id-1, stop)
+        filename = sample.file.iloc[0]
 
-        elif request.method == 'POST':
-            # check if the post request has the file part
-            if 'file' not in request.files:
-                flash('No file part')
-                return redirect(request.url)
+        if not os.path.exists(filename):
+            return "NOT FOUND", 404
 
-            file = request.files['file']
+        img = Image.open(filename)
 
-            img = Image.open(file).convert('RGB')
+    elif request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
 
-            model_extr, extract_transform, device = thread_store.get_extraction_model()
+        file = request.files['file']
 
-            img = extract_transform(img)
+        img = Image.open(file).convert('RGB')
+    else:
+        return "BAD PARAMS", 400
 
-            img = img.to(device)
+    x = img.size[0]*x
+    y = img.size[1]*y
+    width = width*img.size[0]
+    height = height*img.size[1]
 
-            with torch.set_grad_enabled(False):
-                fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
+    if x >= 0 and y >= 0 and width > 0 and height > 0:
+        img = img.crop((x, y, x+width, y+height))
 
-            index = thread_store.get_search_index()
+    model_extr, extract_transform, device = thread_store.get_extraction_model()
 
-            neighbours = index.get_nns_by_vector(fe.squeeze(), stop)
+    img = extract_transform(img)
 
-        return [n + 1 for n in neighbours[start:stop]]  # sqlite rowids are 1-based
+    img = img.to(device)
+
+    with torch.set_grad_enabled(False):
+        fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
+
+    fe = fe.squeeze()
 
     result = []
 
-    min_result_len = stop - start
+    min_result_len = count
 
     while len(result) < min_result_len:
 
-        neighbour_ids = get_neighbours()
+        index = thread_store.get_search_index()
+
+        neighbours = index.get_nns_by_vector(fe, start + count)
+
+        neighbour_ids = [n + 1 for n in neighbours[start:start + count]]  # sqlite rowids are 1-based
 
         imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
                            con=thread_store.get_db())
 
         imgs['index'] = imgs['index']+1
         imgs = imgs.reset_index(drop=True).set_index('index')
-
 
         rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid', 'rank']).\
             set_index('rowid')
@@ -183,7 +199,7 @@ def get_similar(user, start=0, stop=100):
 
         result = result.rowid.to_list()
 
-        stop += stop - start
+        count += min_result_len
 
     return jsonify(result)
 
