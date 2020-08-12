@@ -133,14 +133,14 @@ $(document).ready(
 
             $("#search-rgn").html(upload_html);
 
-            $('#img-upload').attr('src', "image/" + url_params.get('search_id'));
+            $('#img-upload').attr('src', "image/" + url_params.get('search_id')+ "/resize/nomarker");
 
             update_results =
                     function(x, y, width, height) {
                         $.get("similar/0/100/"+x+"/"+y+"/"+width+"/"+height+"?search_id=" + url_params.get('search_id')).done(makeResultList);
                     };
 
-            create_cropper("image/" + url_params.get('search_id'));
+            create_cropper("image/" + url_params.get('search_id')+ "/resize/nomarker");
             cropper_update();
         }
         else {
