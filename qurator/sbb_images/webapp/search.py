@@ -288,7 +288,7 @@ def get_image(user, image_id=None, version='resize', marker='regionmarker'):
 
         draw = ImageDraw.Draw(img, 'RGBA')
 
-        draw.rectangle([(x, y), (x + width, y + height)], outline=(255, 255, 255))
+        draw.rectangle([(x, y), (x + width, y + height)], outline=(255, 25, 0))
 
     buffer = io.BytesIO()
     img.save(buffer, "JPEG")

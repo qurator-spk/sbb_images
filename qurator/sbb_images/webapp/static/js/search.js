@@ -19,7 +19,10 @@ $(document).ready(
 
                 image_requests=[];
 
+                $('#search-results').html("");
+
                 let result_html = "";
+
 
                 $.each(results,
                     function(index, result_id) {
@@ -29,7 +32,7 @@ $(document).ready(
                         result_html +=
                                 `
                                 <div class="row-fluid">
-                                    <div class="card">
+                                    <div class="card invisible" id="card-${result_id}">
                                         <div class="card-body">
                                         <a href="search.html?search_id=${result_id}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
                                         <a  href="" id="img-${result_id}" target="_blank" rel="noopener noreferrer">
@@ -44,9 +47,6 @@ $(document).ready(
 
                 if (counter_at_request < request_counter) return;
 
-                $('#search-results').html(result_html);
-
-
                 $.each(results,
                     function(index, result_id) {
                         if (counter_at_request < request_counter) return;
@@ -57,6 +57,12 @@ $(document).ready(
 
                                     if (counter_at_request < request_counter) return;
 
+                                    if (result_html.length > 0) {
+                                        $('#search-results').html(result_html);
+                                        result_html = "";
+                                    }
+
+                                    $("#card-"+ result_id).removeClass('invisible');
                                     $("#img-" + result_id).attr('href', result);
                                 }
                             )
