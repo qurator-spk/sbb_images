@@ -127,7 +127,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
         sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(search_id,))
 
-        if sample is None or len(sample)==0:
+        if sample is None or len(sample) == 0:
             return "NOT FOUND", 404
 
         filename = sample.file.iloc[0]
@@ -137,11 +137,16 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
         img = Image.open(filename)
 
+        if x < 0 and y < 0 and width < 0 and height < 0:
+            x, y, width, height = float(sample.x.iloc[0]), float(sample.y.iloc[0]), \
+                                  float(sample.width.iloc[0]), float(sample.height.iloc[0])
+
+            x, y, width, height = x / img.size[0], y / img.size[1], width / img.size[0], height / img.size[1]
+
     elif request.method == 'POST':
         # check if the post request has the file part
         if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
+            return "BAD PARAMS", 400
 
         file = request.files['file']
 
@@ -149,13 +154,11 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     else:
         return "BAD PARAMS", 400
 
-    x = img.size[0]*x
-    y = img.size[1]*y
-    width = width*img.size[0]
-    height = height*img.size[1]
+    # import ipdb;ipdb.set_trace()
 
     if x >= 0 and y >= 0 and width > 0 and height > 0:
-        img = img.crop((x, y, x+width, y+height))
+        img = img.crop((img.size[0]*x, img.size[1]*y, img.size[0]*x + width*img.size[0],
+                        img.size[1]*y + height*img.size[1]))
 
     model_extr, extract_transform, device = thread_store.get_extraction_model()
 
@@ -201,7 +204,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
         count += min_result_len
 
-    return jsonify(result)
+    return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height})
 
 
 def has_links():
@@ -282,13 +285,19 @@ def get_image(user, image_id=None, version='resize', marker='regionmarker'):
     elif version == 'full':
         pass
     else:
-        return "BAD PARAMS", 400
+        return "BAD PARAMS <version>: full/resize", 400
 
-    if marker == 'regionmarker' and x >= 0 and y >= 0 and width > 0 and height > 0:
+    if marker == 'nomarker':
+        pass
+    elif marker == 'regionmarker':
 
-        draw = ImageDraw.Draw(img, 'RGBA')
+        if x >= 0 and y >= 0 and width > 0 and height > 0:
 
-        draw.rectangle([(x, y), (x + width, y + height)], outline=(255, 25, 0))
+            draw = ImageDraw.Draw(img, 'RGBA')
+
+            draw.rectangle([(x, y), (x + width, y + height)], outline=(255, 25, 0))
+    else:
+        return "BAD PARAMS <marker>: regionmarker/nomarker", 400
 
     buffer = io.BytesIO()
     img.save(buffer, "JPEG")
