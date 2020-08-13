@@ -2,27 +2,16 @@ $(document).ready(
 
     function() {
 
-        let image_requests = [];
         let request_counter = 0;
 
         function makeResultList(results) {
             request_counter += 1;
 
             (function(counter_at_request) {
-                image_requests.forEach(
-                    function(img_request) {
-                        if (counter_at_request < request_counter) return;
-
-                        img_request.abort();
-                    }
-                );
-
-                image_requests=[];
 
                 $('#search-results').html("");
 
                 let result_html = "";
-
 
                 $.each(results,
                     function(index, result_id) {
@@ -35,8 +24,8 @@ $(document).ready(
                                     <div class="card invisible" id="card-${result_id}">
                                         <div class="card-body">
                                         <a href="search.html?search_id=${result_id}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
-                                        <a  href="" id="img-${result_id}" target="_blank" rel="noopener noreferrer">
-                                            <img class="img-fluid fit-result-image" src="image/${result_id}/resize/regionmarker"/>
+                                        <a  href="image/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
+                                            <img class="img-fluid fit-result-image" id="img-${result_id}" src=""/>
                                         </a>
                                         </div>
                                     </div>
@@ -45,30 +34,43 @@ $(document).ready(
                     }
                 );
 
-                if (counter_at_request < request_counter) return;
+                $('#search-results').html(result_html);
 
-                $.each(results,
-                    function(index, result_id) {
+                let triggerNextImage = function() {};
+
+                triggerNextImage =
+                    function (){
+
+                        if (results.length <= 0) return;
                         if (counter_at_request < request_counter) return;
 
-                        image_requests.push(
-                            $.get("link/" + result_id).done(
-                                function(result) {
+                        let next_one = results.shift();
 
-                                    if (counter_at_request < request_counter) return;
+                        console.log(next_one);
 
-                                    if (result_html.length > 0) {
-                                        $('#search-results').html(result_html);
-                                        result_html = "";
-                                    }
+                        (function(result_id) {
+                            $('#img-'+ next_one).on('load',
+                                function() {
+                                    $.get("link/" + result_id).done(
+                                        function(result) {
+                                            if (result.length <= 0) return;
 
-                                    $("#card-"+ result_id).removeClass('invisible');
-                                    $("#img-" + result_id).attr('href', result);
+                                            $("#lnk-" + result_id).attr('href', result);
+                                        }
+                                    );
+
+                                    triggerNextImage();
                                 }
-                            )
-                        );
-                    }
-                );
+                             );
+                        })(next_one);
+
+                        $('#img-'+ next_one).attr("src", "image/"+next_one+"/resize/regionmarker");
+
+                        $("#card-"+ next_one).removeClass('invisible');
+                    };
+
+                triggerNextImage();
+
             })(request_counter);
         }
 
