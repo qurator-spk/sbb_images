@@ -204,6 +204,9 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
         count += min_result_len
 
+    if x < 0 and y < 0 and width < 0 and height < 0:
+        x, y, width, height = 0.0, 0.0, 1.0, 1.0
+
     return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height})
 
 

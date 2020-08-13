@@ -150,7 +150,7 @@ $(document).ready(
 
             $.get("similar/0/100"+"?search_id=" + url_params.get('search_id')).
                 done(
-                                function(result) {
+                    function(result) {
 
                                     $('#img-upload').on('load',
                                         function() {
@@ -177,7 +177,7 @@ $(document).ready(
                                     $('#img-upload').attr('src', "image/" + url_params.get('search_id')+ "/resize/nomarker");
 
                                     makeResultList(result['ids']);
-                                }
+                    }
                 );
         }
         else {
