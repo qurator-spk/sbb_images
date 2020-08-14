@@ -46,8 +46,6 @@ $(document).ready(
 
                         let next_one = results.shift();
 
-                        console.log(next_one);
-
                         (function(result_id) {
                             $('#img-'+ next_one).on('load',
                                 function() {
