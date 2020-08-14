@@ -154,8 +154,6 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     else:
         return "BAD PARAMS", 400
 
-    # import ipdb;ipdb.set_trace()
-
     if x >= 0 and y >= 0 and width > 0 and height > 0:
         img = img.crop((img.size[0]*x, img.size[1]*y, img.size[0]*x + width*img.size[0],
                         img.size[1]*y + height*img.size[1]))
@@ -175,9 +173,9 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     min_result_len = count
 
-    while len(result) < min_result_len:
+    index = thread_store.get_search_index()
 
-        index = thread_store.get_search_index()
+    while len(result) < min_result_len:
 
         neighbours = index.get_nns_by_vector(fe, start + count)
 
