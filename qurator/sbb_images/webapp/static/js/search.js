@@ -152,36 +152,36 @@ $(document).ready(
                 done(
                     function(result) {
 
-                                    $('#img-upload').on('load',
-                                        function() {
-                                            create_cropper($('#img-upload').attr('src'));
-                                        });
+                         $('#img-upload').on('load',
+                             function() {
+                                 create_cropper($('#img-upload').attr('src'));
+                             });
 
-                                    $('#img-upload').on('ready',
-                                        function() {
-                                            if (this.cropper === cropper) {
+                         $('#img-upload').on('ready',
+                             function() {
+                                 if (!(this.cropper === cropper)) return;
 
-                                                let image_data = cropper.getImageData();
-                                                let canvas_data = cropper.getCanvasData();
+                                 let image_data = cropper.getImageData();
+                                 let canvas_data = cropper.getCanvasData();
 
-                                                cropper.setCropBoxData(
-                                                    {
-                                                        left: result['x']*image_data.width + canvas_data.left,
-                                                        top:result['y']*image_data.height + canvas_data.top,
-                                                        width:result['width']*image_data.width,
-                                                        height: result['height']*image_data.height
-                                                    });
-                                            }
-                                        });
+                                 cropper.setCropBoxData(
+                                     {
+                                         left: result['x']*image_data.width + canvas_data.left,
+                                         top:result['y']*image_data.height + canvas_data.top,
+                                         width:result['width']*image_data.width,
+                                         height: result['height']*image_data.height
+                                     }
+                                 );
+                             }
+                         );
 
-                                    $('#img-upload').attr('src', "image/" + url_params.get('search_id')+ "/resize/nomarker");
+                         $('#img-upload').attr('src', "image/" + url_params.get('search_id')+ "/resize/nomarker");
 
-                                    makeResultList(result['ids']);
+                         makeResultList(result['ids']);
                     }
                 );
         }
         else {
-
             let upload_html =
             `
                 <div class="card mt-2 mb-1">
@@ -202,14 +202,14 @@ $(document).ready(
             $('#img-upload').on('load',
                 function() {
                     create_cropper($('#img-upload').attr('src'));
-                });
+                }
+             );
 
             $('#img-upload').on('ready',
-                            function() {
-                                if (this.cropper === cropper) {
-                                    cropper_update();
-                                }
-                            });
+                 function() {
+                     if (this.cropper === cropper) cropper_update();
+                 }
+             );
 
             $("#the-image").change(function(){
 
@@ -243,7 +243,6 @@ $(document).ready(
                             }
                         );
                     };
-
 
                 reader.onload =
                     function (e) {
