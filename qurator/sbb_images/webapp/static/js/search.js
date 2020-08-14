@@ -109,7 +109,7 @@ $(document).ready(
                 cropper =
                     new Cropper($('#img-upload')[0],
                                 {viewMode: 2,
-                                 zoomable: true,
+                                 zoomable: false,
                                  background: false,
                                  autoCropArea: 1.0,
                                  modal: false,
