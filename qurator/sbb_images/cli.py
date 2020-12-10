@@ -163,8 +163,23 @@ def create_sbb_link_table(sqlite_file):
 @click.argument('model-selection-file', type=click.Path(exists=True))
 @click.argument('model-file', type=click.Path(exists=True))
 @click.argument('result-file', type=click.Path(exists=False))
-@click.option('--train-only', type=bool, is_flag=True, default=False)
+@click.option('--train-only', type=bool, is_flag=True, default=False,
+              help="If true, write only pickled predictions but not prediction table of database. Default false.")
 def apply(sqlite_file, model_selection_file, model_file, result_file, train_only):
+    """
+
+    Classifies all images of an image database and writes the predictions into a predictions table of the database.
+    The annotator tool can than display those predictions.
+
+    SQLITE_FILE: An annotated image database (see create-database).
+
+    MODEL_SELECTION_FILE: Result file of the model-selection (see model-selection).
+
+    MODEL_FILE: A finally trained pytorch model (see train-classifier).
+
+    RESULT_FILE: Additionally write predictions to this pickled pandas Dataframe.
+
+    """
 
     if os.path.exists(result_file) and not train_only:
         print("Result {} file already exists. Just writing it to the database {}.".format(result_file, sqlite_file))
@@ -229,6 +244,16 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
 @click.argument('model-selection-file', type=click.Path(exists=True))
 @click.argument('model-file', type=click.Path(exists=False))
 def train(sqlite_file, model_selection_file, model_file):
+    """
+
+    Selects the best model/training parameter combination from a model selection and
+    trains a final image classifier on the entire annotated part of the image database.
+
+    SQLITE_FILE: An annotated image database (see create-database).
+    MODEL_SELECTION_FILE: Results of a model selection created by the "model-selection" tool.
+    MODEL_FILE: Store the finally trained image classification model in this file.
+
+    """
 
     X, class_to_label, label_to_class = load_ground_truth(sqlite_file)
 
@@ -294,18 +319,32 @@ def load_model_selection(model_selection_file):
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True))
 @click.argument('result-file', type=click.Path(exists=False))
-@click.option('--n-splits', type=int, default=2)
-@click.option('--max-epoch', type=int, default=10)
-@click.option('--batch-size', type=int, default=16)
-@click.option('--start-lr', type=float, default=0.001)
+@click.option('--n-splits', type=int, default=10, help="Number of splits used in cross-validation. Default 10.")
+@click.option('--max-epoch', type=int, default=10, help="Number of training-epochs.")
+@click.option('--batch-size', type=int, default=16, help="Training batch-size.")
+@click.option('--start-lr', type=float, default=0.001, help="Start learning rate in lr-schedule.")
 @click.option('--momentum', type=float, default=0.9)
-@click.option('--decrease-epochs', type=int, default=10)
-@click.option('--decrease-factor', type=float, default=0.1)
-@click.option('--model-name', type=str, multiple=True, default=['resnet18'])
-@click.option('--num-trained-layers', type=int, multiple=True, default=[1])
+@click.option('--decrease-epochs', type=int, default=10, help="Step size of lr-schedule.")
+@click.option('--decrease-factor', type=float, default=0.1, help="Decrease factor of lr-schedule.")
+@click.option('--model-name', type=str, multiple=True, default=['resnet18'],
+              help="One or multiple pre-trained pytorch image classification models to try, "
+                   "see https://pytorch.org/docs/stable/torchvision/models.html for possible choices. "
+                   "Default resnet18.")
+@click.option('--num-trained-layers', type=int, multiple=True, default=[1],
+              help="One or multiple number of layers to unfreeze. Default [1] (Unfreeze last layer).")
 def model_selection(sqlite_file, result_file, n_splits, max_epoch, batch_size,
                     start_lr, momentum, decrease_epochs, decrease_factor, model_name,
                     num_trained_layers):
+    """
+
+    Performs a cross-validation in order to select an optimal model and training parameters for a given
+    image classification task that is defined by an annotated image database (see also annotator).
+
+    SQLITE_FILE: image database (see also create-database).
+
+    RESULT_FILE: A pickled pandas DataFrame that contains the results of the cross-validation.
+
+    """
 
     X, class_to_label, label_to_class = load_ground_truth(sqlite_file)
 
@@ -479,9 +518,17 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
 @click.option('--batch-size', type=int, default=32, help="Process batch-size. default: 32.")
 @click.option('--dist-measure', type=str, default='angular', help="Distance measure of the approximative nearest"
               "neighbour index. default: angular.")
-@click.option('--n-trees', type=int, default=10)
-@click.option('--num-workers', type=int, default=8)
+@click.option('--n-trees', type=int, default=10, help="Number of search trees. Default 10.")
+@click.option('--num-workers', type=int, default=8, help="Number of parallel workers during index creation."
+                                                         "Default 8.")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers):
+    """
+
+    Creates a CNN-features based similarity search index.
+
+    SQLITE_FILE: Image database (see create-database).
+    INDEX_FILE: Storage file for search index.
+    """
 
     with sqlite3.connect(sqlite_file) as con:
         X = pd.read_sql('select * from images', con=con)
