@@ -4,7 +4,7 @@ This package currently provides:
 
 * [A tool to annotate images.](doc/annotator.md) 
 * [A tool that trains an image classifier](doc/classifier.md) on the basis of the annotations. 
-* [A tool that implements an image similarity search](image-search.md) on the basis of an image classifier.
+* [A tool that implements an image similarity search](doc/image-search.md) on the basis of an image classifier.
 
 ## Installation
 
