@@ -100,7 +100,5 @@ within the image database.
 Once that has been done, the [annotator](annotator.md) will present 
 you the classification results below each image 
 such that you only have to correct them. 
-
-Additionally you can than filter for certain pre-classified 
-image classes such that 
-you can add training data especially for some particular image class.
+Additionally, it provides a filter functionality for the pre-classified image classes 
+in order to selectively add training data for some particular image class.
