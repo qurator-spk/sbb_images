@@ -102,4 +102,5 @@ you the classification results below each image
 such that you only have to correct them. 
 
 Additionally you can than filter for certain pre-classified 
-image classes such that can add training data especially for some particular image class.
+image classes such that 
+you can add training data especially for some particular image class.
