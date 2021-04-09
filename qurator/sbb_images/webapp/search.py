@@ -135,7 +135,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
         if not os.path.exists(filename):
             return "NOT FOUND", 404
 
-        img = Image.open(filename)
+        img = Image.open(filename).convert('RGB')
 
         if x < 0 and y < 0 and width < 0 and height < 0:
             x, y, width, height = float(sample.x.iloc[0]), float(sample.y.iloc[0]), \
