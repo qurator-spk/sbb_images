@@ -22,6 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
+app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
 
 htpasswd = HtPasswdAuth(app)
 

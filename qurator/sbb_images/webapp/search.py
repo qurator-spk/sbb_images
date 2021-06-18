@@ -28,14 +28,13 @@ logger = logging.getLogger(__name__)
 
 if len(app.config['PASSWD_FILE']) > 0:
     app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
-
+    app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
     from flask_htpasswd import HtPasswdAuth
 else:
     print("AUTHENTICATION DISABLED!!!")
     from .no_auth import NoAuth as HtPasswdAuth
 
 htpasswd = HtPasswdAuth(app)
-
 
 class ThreadStore:
 

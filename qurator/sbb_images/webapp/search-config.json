@@ -1,5 +1,6 @@
 {
     "PASSWD_FILE": "",
+    "AUTH_REALM": "",
     "SQLITE_FILE": "stabi-illustrations-with-detections.sqlite",
     "MAX_IMG_SIZE": 250,
     "MODEL_NAME" : "googlenet",
