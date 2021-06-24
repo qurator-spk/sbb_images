@@ -168,6 +168,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     fe = fe.squeeze()
 
+    #  import ipdb;ipdb.set_trace()
     result = []
 
     min_result_len = count
