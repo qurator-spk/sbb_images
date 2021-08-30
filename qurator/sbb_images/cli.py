@@ -260,6 +260,7 @@ def train(sqlite_file, model_selection_file, model_file):
     X['file'] = X['file'].astype(str)
     y = X['class'].astype(int)
 
+
     batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, start_lr = load_model_selection(
         model_selection_file)
 

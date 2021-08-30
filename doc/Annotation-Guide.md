@@ -35,7 +35,7 @@ Alles was nicht eindeutig in eine der anderen Klassen passt.
 
 Leere Seiten bzw. Seitenteile:
 
-https://annotat.de/image/391165
+![](https://annotat.de/image/391165)
 
 https://annotat.de/image/539819
 
