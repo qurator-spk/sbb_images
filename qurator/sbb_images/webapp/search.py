@@ -36,6 +36,7 @@ else:
 
 htpasswd = HtPasswdAuth(app)
 
+
 class ThreadStore:
 
     def __init__(self):
@@ -239,6 +240,30 @@ def get_link(user, image_id=None):
     url = link.url.iloc[0]
 
     return jsonify(url)
+
+
+@app.route('/ppn/<ppn>')
+@htpasswd.required
+def get_ppn_images(user, ppn=None):
+    del user
+
+    if not has_links():
+
+        return jsonify("")
+
+    links = pd.read_sql('select links.rowid from links join predictions on predictions.rowid=links.rowid '
+                        'where links.ppn=? and '
+                        '(predictions.label="Abbildung" or predictions.label="Photo" or predictions.label="Karte")',
+                        con=thread_store.get_db(), params=(ppn,))
+
+    # links = pd.read_sql('select rowid from links where ppn=?', con=thread_store.get_db(), params=(ppn,))
+
+    if links is None or len(links) == 0:
+        return jsonify("")
+
+    # import ipdb;ipdb.set_trace()
+
+    return jsonify({'ids': links.rowid.tolist()})
 
 
 @app.route('/image')

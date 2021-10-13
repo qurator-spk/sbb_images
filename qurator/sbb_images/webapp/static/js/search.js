@@ -181,6 +181,18 @@ $(document).ready(
                     }
                 );
         }
+        else if (url_params.has('ids')) {
+
+            var ids = url_params.get('ids');
+
+            if (ids.length > 0) {
+                ids = ids.split(/\s*,\s*/).map(Number);
+
+                console.log(ids.length);
+
+                makeResultList(ids);
+            }
+        }
         else {
             let upload_html =
             `
