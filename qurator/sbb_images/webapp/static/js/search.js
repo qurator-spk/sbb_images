@@ -21,7 +21,7 @@ $(document).ready(
                         result_html +=
                                 `
                                 <div class="row-fluid">
-                                    <div class="card invisible" id="card-${result_id}">
+                                    <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                                         <div class="card-body">
                                         <a href="search.html?search_id=${result_id}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
                                         <a  href="image/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
@@ -65,6 +65,35 @@ $(document).ready(
                         $('#img-'+ next_one).attr("src", "image/"+next_one+"/resize/regionmarker");
 
                         $("#card-"+ next_one).removeClass('invisible');
+
+                        (function(image_id) {
+                            $.get("image-ppn/" + image_id,
+                                function(result) {
+
+                                    console.log(image_id);
+
+                                    if (result['ppn'] === undefined) return;
+
+                                    $("#card-"+ image_id).attr('title', result['ppn']);
+
+                                    $.get("../meta_data/" + result['ppn'],
+                                        function(meta) {
+
+                                            var author="";
+
+                                            if ((meta.name0_displayForm != "None") && (meta.name0_role_roleTerm != "fnd")) {
+                                                author = `; ${meta.name0_displayForm}`;
+                                            }
+                                            else if (meta["originInfo-publication0_publisher"] != "None") {
+                                                author = `; ${meta["originInfo-publication0_publisher"]}`;
+                                            }
+
+                                            $("#card-"+ image_id).attr('title', meta.titleInfo_title + author);
+                                        }
+                                    );
+                                }
+                            );
+                        })(next_one);
                     };
 
                 triggerNextImage();

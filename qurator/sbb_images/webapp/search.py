@@ -9,6 +9,7 @@ import sqlite3
 import pandas as pd
 import threading
 import torch
+import json
 
 import PIL
 from PIL import Image, ImageDraw
@@ -264,6 +265,25 @@ def get_ppn_images(user, ppn=None):
     # import ipdb;ipdb.set_trace()
 
     return jsonify({'ids': links.rowid.tolist()})
+
+
+@app.route('/image-ppn/<rowid>')
+@htpasswd.required
+def get_image_ppn(user, rowid=None):
+    del user
+
+    if not has_links():
+
+        return jsonify("")
+
+    link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(), params=(rowid,))
+
+    if link is None or len(link) == 0:
+        return jsonify("")
+
+    # import ipdb;ipdb.set_trace()
+
+    return jsonify(json.loads(link.iloc[0].to_json()))
 
 
 @app.route('/image')
