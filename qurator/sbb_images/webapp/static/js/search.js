@@ -70,25 +70,13 @@ $(document).ready(
                             $.get("image-ppn/" + image_id,
                                 function(result) {
 
-                                    console.log(image_id);
-
                                     if (result['ppn'] === undefined) return;
 
                                     $("#card-"+ image_id).attr('title', result['ppn']);
 
                                     $.get("../meta_data/" + result['ppn'],
                                         function(meta) {
-
-                                            var author="";
-
-                                            if ((meta.name0_displayForm != "None") && (meta.name0_role_roleTerm != "fnd")) {
-                                                author = `; ${meta.name0_displayForm}`;
-                                            }
-                                            else if (meta["originInfo-publication0_publisher"] != "None") {
-                                                author = `; ${meta["originInfo-publication0_publisher"]}`;
-                                            }
-
-                                            $("#card-"+ image_id).attr('title', meta.titleInfo_title + author);
+                                            $("#card-"+ image_id).attr('title', meta.title + "; " + meta.author + "; " + meta.date);
                                         }
                                     );
                                 }
