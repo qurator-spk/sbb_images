@@ -227,6 +227,7 @@ def has_links():
 
 @app.route('/haslinks')
 @htpasswd.required
+@cache_for(minutes=10)
 def get_has_links(user):
     del user
     return jsonify(has_links())
@@ -234,6 +235,7 @@ def get_has_links(user):
 
 @app.route('/link/<image_id>')
 @htpasswd.required
+@cache_for(minutes=10)
 def get_link(user, image_id=None):
     del user
 
@@ -291,8 +293,6 @@ def get_image_ppn(user, rowid=None):
     if link is None or len(link) == 0:
         return jsonify("")
 
-    # import ipdb;ipdb.set_trace()
-
     return jsonify(json.loads(link.iloc[0].to_json()))
 
 
@@ -301,7 +301,7 @@ def get_image_ppn(user, rowid=None):
 @app.route('/image/<image_id>/<version>')
 @app.route('/image/<image_id>/<version>/<marker>')
 @htpasswd.required
-@cache_for(minutes=10)
+@cache_for(hours=3600)
 def get_image(user, image_id=None, version='resize', marker='regionmarker'):
 
     del user
@@ -360,7 +360,9 @@ def get_image(user, image_id=None, version='resize', marker='regionmarker'):
     img.save(buffer, "JPEG")
     buffer.seek(0)
 
-    return send_file(buffer, mimetype='image/jpeg')
+    #,
+
+    return send_file(buffer, mimetype='image/jpeg', last_modified = os.path.getmtime(filename))
 
 
 @app.route('/<path:path>')

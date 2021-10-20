@@ -24,8 +24,8 @@ $(document).ready(
                                     <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                                         <div class="card-body">
                                         <a href="search.html?search_id=${result_id}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
-                                        <a  href="image/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
-                                            <img class="img-fluid fit-result-image" id="img-${result_id}" src=""/>
+                                        <a href="image/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
+                                            <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer"/>
                                         </a>
                                         </div>
                                     </div>
