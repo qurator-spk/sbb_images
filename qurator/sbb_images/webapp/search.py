@@ -19,7 +19,13 @@ from ..feature_extraction import load_extraction_model
 # noinspection PyUnresolvedReferences
 from annoy import AnnoyIndex
 
+from flask_cachecontrol import (
+    FlaskCacheControl,
+    cache_for)
+
 app = flask.Flask(__name__)
+flask_cache_control = FlaskCacheControl()
+flask_cache_control.init_app(app)
 
 app.config.from_json('search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
 
@@ -117,6 +123,7 @@ def entry():
 @app.route('/similar/<start>/<count>', methods=['GET', 'POST'])
 @app.route('/similar/<start>/<count>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
 @htpasswd.required
+@cache_for(minutes=10)
 def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     del user
@@ -210,6 +217,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height})
 
 
+@cache_for(minutes=10)
 def has_links():
     return \
         thread_store.get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
@@ -245,6 +253,7 @@ def get_link(user, image_id=None):
 
 @app.route('/ppn/<ppn>')
 @htpasswd.required
+@cache_for(minutes=10)
 def get_ppn_images(user, ppn=None):
     del user
 
@@ -269,6 +278,7 @@ def get_ppn_images(user, ppn=None):
 
 @app.route('/image-ppn/<rowid>')
 @htpasswd.required
+@cache_for(minutes=10)
 def get_image_ppn(user, rowid=None):
     del user
 
@@ -291,6 +301,7 @@ def get_image_ppn(user, rowid=None):
 @app.route('/image/<image_id>/<version>')
 @app.route('/image/<image_id>/<version>/<marker>')
 @htpasswd.required
+@cache_for(minutes=10)
 def get_image(user, image_id=None, version='resize', marker='regionmarker'):
 
     del user
