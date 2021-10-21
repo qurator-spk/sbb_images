@@ -4,7 +4,7 @@ import flask
 import io
 import logging
 
-from flask import send_from_directory, redirect, jsonify, request, send_file, flash
+from flask import send_from_directory, redirect, jsonify, request, send_file  # , flash
 import sqlite3
 import pandas as pd
 import threading
@@ -268,12 +268,8 @@ def get_ppn_images(user, ppn=None):
                         '(predictions.label="Abbildung" or predictions.label="Photo" or predictions.label="Karte")',
                         con=thread_store.get_db(), params=(ppn,))
 
-    # links = pd.read_sql('select rowid from links where ppn=?', con=thread_store.get_db(), params=(ppn,))
-
     if links is None or len(links) == 0:
         return jsonify("")
-
-    # import ipdb;ipdb.set_trace()
 
     return jsonify({'ids': links.rowid.tolist()})
 
@@ -360,9 +356,7 @@ def get_image(user, image_id=None, version='resize', marker='regionmarker'):
     img.save(buffer, "JPEG")
     buffer.seek(0)
 
-    #,
-
-    return send_file(buffer, mimetype='image/jpeg', last_modified = os.path.getmtime(filename))
+    return send_file(buffer, mimetype='image/jpeg', last_modified=os.path.getmtime(filename))
 
 
 @app.route('/<path:path>')

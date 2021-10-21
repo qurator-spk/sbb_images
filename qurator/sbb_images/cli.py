@@ -157,6 +157,8 @@ def create_sbb_link_table(sqlite_file):
     with sqlite3.connect(sqlite_file) as con:
         links.to_sql('links', con=con, if_exists='replace')
 
+        con.execute("create index ix_links_ppn on links(ppn)")
+
 
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True))
@@ -188,6 +190,9 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
 
         with sqlite3.connect(sqlite_file) as con:
             predictions.to_sql('predictions', con=con, if_exists='replace')
+
+            con.execute('create index ix_predictions_labels on predictions(label)')
+            con.execute('create index ix_predictions_ppn on predictions(PPN)')
 
         return
 
@@ -236,6 +241,9 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
         with sqlite3.connect(sqlite_file) as con:
             predictions.to_sql('predictions', con=con, if_exists='replace')
 
+            con.execute('create index ix_predictions_labels on predictions(label)')
+            con.execute('create index ix_predictions_ppn on predictions(PPN)')
+
     predictions.to_pickle(result_file)
 
 
@@ -259,7 +267,6 @@ def train(sqlite_file, model_selection_file, model_file):
 
     X['file'] = X['file'].astype(str)
     y = X['class'].astype(int)
-
 
     batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, start_lr = load_model_selection(
         model_selection_file)
@@ -559,6 +566,3 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     index.build(n_trees)
     index.save(index_file)
-
-
-
