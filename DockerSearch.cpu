@@ -1,0 +1,31 @@
+FROM python:3.6-slim-stretch
+
+ARG http_proxy
+ENV http_proxy=$http_proxy
+ENV https_proxy=$http_proxy
+
+RUN echo $http_proxy
+
+RUN apt-get update && \
+    apt-get -y install build-essential && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY requirements.txt /tmp
+RUN pip install -U pip
+# RUN pip --no-cache-dir install -r /tmp/requirements.txt
+
+COPY . /usr/src/qurator-sbb-images
+
+RUN mkdir -p /usr/src/qurator-sbb-images/data
+RUN mkdir -p /usr/src/qurator-sbb-images/config
+
+RUN pip3 --no-cache-dir install -e /usr/src/qurator-sbb-images
+
+WORKDIR /usr/src/qurator-sbb-images
+
+CMD env PASSWD_FILE=/usr/src/qurator-sbb-images/config/htpasswd CONFIG=/usr/src/qurator-sbb-images/config/active.json env USE_CUDA=False gunicorn --bind 0.0.0.0:8081 qurator.sbb_images.webapp.wsgi_search:app
+
