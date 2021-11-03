@@ -20,6 +20,8 @@ RUN pip install -U pip
 
 COPY . /usr/src/qurator-sbb-images
 
+RUN mkdir -p /.cache
+RUN chmod a+w /.cache
 RUN mkdir -p /usr/src/qurator-sbb-images/data
 RUN mkdir -p /usr/src/qurator-sbb-images/config
 RUN ln -s /usr/src/qurator-sbb-images/data/Stabi-Illustrationen /usr/src/qurator-sbb-images/Stabi-Illustrationen
