@@ -22,6 +22,7 @@ COPY . /usr/src/qurator-sbb-images
 
 RUN mkdir -p /usr/src/qurator-sbb-images/data
 RUN mkdir -p /usr/src/qurator-sbb-images/config
+RUN ln -s /usr/src/qurator-sbb-images/data/Stabi-Illustrationen /usr/src/qurator-sbb-images/Stabi-Illustrationen
 
 RUN pip3 --no-cache-dir install -e /usr/src/qurator-sbb-images
 
