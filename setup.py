@@ -27,7 +27,8 @@ setup(
         "create-search-index=qurator.sbb_images.cli:create_search_index",
         "create-sbb-links=qurator.sbb_images.cli:create_sbb_link_table",
         "add-detections=qurator.sbb_images.cli:add_detections",
-        "filter-detections=qurator.sbb_images.cli:filter_detections"
+        "filter-detections=qurator.sbb_images.cli:filter_detections",
+        "image-info=qurator.sbb_images.cli:image_info"
         ]
     },
     python_requires='>=3.6.0',
