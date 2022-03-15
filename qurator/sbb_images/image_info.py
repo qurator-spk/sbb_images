@@ -41,7 +41,7 @@ class ExtractImageInfo:
 @click.argument('outfile', type=click.Path(exists=False))
 @click.option('--max-count', type=int, default=0, help="Maximum number of files to process. Default: no limit.")
 @click.option('--processes', type=int, default=8, help="Number of concurrent processes. Default: 8")
-def image_info(path, outfile, max_count, processes, file_types=('.tif', '.jpeg', '.jpg', '.png', '.gif')):
+def cli(path, outfile, max_count, processes, file_types=('.tif', '.jpeg', '.jpg', '.png', '.gif')):
 
     def file_it():
         dirs = [d for d in os.scandir(path)]
