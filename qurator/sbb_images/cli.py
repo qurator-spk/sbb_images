@@ -41,7 +41,8 @@ from .detections import summarize_detections
 @click.argument('directory', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=False))
 @click.option('--pattern', type=str, default="*.jpg", help="File pattern to search for. Default: *.jpg")
-def create_database(directory, sqlite_file, pattern):
+@click.option('--follow-symlinks', type=bool, is_flag=True, default=False)
+def create_database(directory, sqlite_file, pattern, follow_symlinks):
     """
     DIRECTORY: Recursively enlist all the image files in this directory.
     Write the file list into the images table of SQLITE_FILE that is a sqlite3 database file.
@@ -51,7 +52,7 @@ def create_database(directory, sqlite_file, pattern):
 
         for f in os.scandir(to_scan):
 
-            if f.is_dir(follow_symlinks=False):
+            if f.is_dir(follow_symlinks=follow_symlinks):
                 for g in file_it(f):
                     yield g
             else:
