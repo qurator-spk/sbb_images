@@ -7,6 +7,7 @@ import pandas as pd
 import copy
 # import importlib
 import os
+from fnmatch import fnmatch
 import numpy as np
 import itertools
 from tqdm import tqdm
@@ -45,7 +46,26 @@ def create_database(directory, sqlite_file, pattern):
     DIRECTORY: Recursively enlist all the image files in this directory.
     Write the file list into the images table of SQLITE_FILE that is a sqlite3 database file.
     """
-    images = [(f, 0) for f in glob.glob('{}/**/{}'.format(directory, pattern), recursive=True)]
+
+    def file_it(to_scan):
+
+        for f in os.scandir(to_scan):
+
+            if f.is_dir(follow_symlinks=False):
+                for g in file_it(f):
+                    yield g
+            else:
+                if not fnmatch(f.path, pattern):
+                    continue
+                yield f.path
+
+    _file_it = tqdm(file_it(directory))
+
+    print("Scanning for {} files ...".format(pattern))
+    images = []
+    for p in _file_it:
+        images.append((p, 0))
+        _file_it.set_description("[{}]".format(len(images)))
 
     images = pd.DataFrame(images, columns=['file', 'num_annotations'])
 
