@@ -52,13 +52,16 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks):
 
         for f in os.scandir(to_scan):
 
-            if f.is_dir(follow_symlinks=follow_symlinks):
-                for g in file_it(f):
-                    yield g
-            else:
-                if not fnmatch(f.path, pattern):
-                    continue
-                yield f.path
+            try:
+                if f.is_dir(follow_symlinks=follow_symlinks):
+                    for g in file_it(f):
+                        yield g
+                else:
+                    if not fnmatch(f.path, pattern):
+                        continue
+                    yield f.path
+            except NotADirectoryError:
+                continue
 
     _file_it = tqdm(file_it(directory))
 
