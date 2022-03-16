@@ -24,7 +24,9 @@ class AnnotatedDataset(Dataset):
 
         try:
             img = self.loader(sample.file)
-        except PermissionError:
+        except Exception as e:
+            print('Something went wrong on image {} : {}'.format(sample.file, e))
+            print('Providing dummy result ...')
             img = Image.new('RGB', (256, 256))
 
         if 'x' in sample.index and sample.x >= 0 and sample.y >= 0 and sample.width > 0 and sample.height > 0:
