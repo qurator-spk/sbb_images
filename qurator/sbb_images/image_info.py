@@ -4,6 +4,9 @@ import os
 from tqdm import tqdm
 
 import PIL
+import PIL.Image
+import PIL.ExifTags
+
 from .parallel import run as prun
 
 
@@ -18,8 +21,11 @@ class ExtractImageInfo:
         try:
             with PIL.Image.open(self._filename) as img:
 
-                img_info = {'filename': self._filename, 'format': img.format, 'mode': img.mode,
-                            'width': img.width, 'height': img.height}
+                img_info = {'filename': self._filename, 'format': img.format,
+                            'format_description': img.format_description, 'mimetype': img.get_format_mimetype(),
+                            'mode': img.mode,
+                            'width': img.width, 'height': img.height,
+                            'entropy': img.entropy(), 'bits': img.bits}
 
                 if 'dpi' in img.info:
                     img_info['dpi'] = min(img.info['dpi'])
@@ -27,11 +33,29 @@ class ExtractImageInfo:
                 if 'compression' in img.info:
                     img_info['compression'] = img.info['compression']
 
+                try:
+                    for band, e in zip(img.getbands(), img.getextrema()):
+                        img_info['{}_min'.format(band)] = e[0]
+                        img_info['{}_max'.format(band)] = e[1]
+
+                except Exception as e:
+                    print('Problem during extrema extraction in file {} : {}'.format(self._filename, e))
+
+                try:
+                    ex = img.getexif()
+
+                    for k, v in PIL.ExifTags.TAGS.items():
+                        if k in ex:
+                            img_info[v] = ex[k]
+
+                except Exception as e:
+                    print('Problem during exif extraction in file {} : {}'.format(self._filename, e))
+
                 return img_info
 
         except Exception as e:
 
-            print('Something went wrong with file {}: {}'.format(self._filename, e))
+            print('Something went wrong with file {} : {}'.format(self._filename, e))
 
             return None
 
