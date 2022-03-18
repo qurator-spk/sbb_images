@@ -21,7 +21,7 @@ class ExtractImageInfo:
         try:
             with PIL.Image.open(self._filename) as img:
 
-                img_info = {'filename': self._filename, 'format': img.format,
+                img_info = {'filename': self._filename, 'size': os.path.getsize(self._filename), 'format': img.format,
                             'format_description': img.format_description, 'mimetype': img.get_format_mimetype(),
                             'mode': img.mode,
                             'width': img.width, 'height': img.height,
