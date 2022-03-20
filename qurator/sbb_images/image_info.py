@@ -25,13 +25,19 @@ class ExtractImageInfo:
                             'format_description': img.format_description, 'mimetype': img.get_format_mimetype(),
                             'mode': img.mode,
                             'width': img.width, 'height': img.height,
-                            'entropy': img.entropy(), 'bits': img.bits}
+                            'entropy': img.entropy()}
 
                 if 'dpi' in img.info:
                     img_info['dpi'] = min(img.info['dpi'])
 
                 if 'compression' in img.info:
                     img_info['compression'] = img.info['compression']
+
+                try:
+                    img_info['bits'] = img.bits
+                except Exception as e:
+                    del e
+                    pass
 
                 try:
                     for band, e in zip(img.getbands(), img.getextrema()):
