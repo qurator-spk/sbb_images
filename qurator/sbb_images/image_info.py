@@ -65,7 +65,9 @@ class ExtractImageInfo:
 @click.argument('outfile', type=click.Path(exists=False))
 @click.option('--max-count', type=int, default=0, help="Maximum number of files to process. Default: no limit.")
 @click.option('--processes', type=int, default=8, help="Number of concurrent processes. Default: 8")
-def cli(path, outfile, max_count, processes, file_types=('.tif', '.jpeg', '.jpg', '.png', '.gif')):
+@click.option('--storage-interval', type=int, default=1000000,
+              help="Store intermediate results in intervals. Default: 10^6.")
+def cli(path, outfile, max_count, processes, storage_interval, file_types=('.tif', '.jpeg', '.jpg', '.png', '.gif')):
 
     def file_it():
         dirs = [d for d in os.scandir(path)]
@@ -91,9 +93,10 @@ def cli(path, outfile, max_count, processes, file_types=('.tif', '.jpeg', '.jpg'
 
         img_infos.append(img_info)
 
+        if len(img_info) > 0 and len(img_info) % storage_interval == 0:
+            pd.DataFrame(img_infos).to_pickle(outfile)
+
         if 0 < max_count < len(img_infos):
             break
 
-    df = pd.DataFrame(img_infos)
-
-    df.to_pickle(outfile)
+    pd.DataFrame(img_infos).to_pickle(outfile)
