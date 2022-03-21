@@ -99,7 +99,7 @@ def cli(path, outfile, max_count, processes, storage_interval, file_types=('.tif
 
         img_infos.append(img_info)
 
-        if len(img_info) > 0 and len(img_info) % storage_interval == 0:
+        if len(img_infos) > 0 and len(img_infos) % storage_interval == 0:
             pd.DataFrame(img_infos).to_pickle(outfile)
 
         if 0 < max_count < len(img_infos):
