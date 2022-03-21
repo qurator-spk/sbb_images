@@ -6,6 +6,7 @@ from tqdm import tqdm
 import PIL
 import PIL.Image
 import PIL.ExifTags
+import PIL.ImageStat
 
 from .parallel import run as prun
 
@@ -33,22 +34,35 @@ class ExtractImageInfo:
                 if 'compression' in img.info:
                     img_info['compression'] = img.info['compression']
 
-                try:
+                if hasattr(img, 'bits'):
                     img_info['bits'] = img.bits
-                except Exception as e:
-                    del e
-                    pass
 
                 try:
-                    for band, e in zip(img.getbands(), img.getextrema()):
-                        img_info['{}_min'.format(band)] = e[0]
-                        img_info['{}_max'.format(band)] = e[1]
+                    img_stat = PIL.ImageStat.Stat(img)
+
+                    if 0 < len(img.getbands()) < 2:
+                        img_info['{}_min'.format(img.getbands()[0])] = img.getextrema()[0]
+                        img_info['{}_max'.format(img.getbands()[0])] = img.getextrema()[0]
+                        img_info['{}_mean'.format(img.getbands()[0])] = img_stat.mean[0]
+                        img_info['{}_median'.format(img.getbands()[0])] = img_stat.median[0]
+                        img_info['{}_var'.format(img.getbands()[0])] = img_stat.var[0]
+
+                    elif len(img.getbands()) > 1:
+                        for band, e, b_mean, b_median, b_var in \
+                                zip(img.getbands(), img.getextrema(), img_stat.mean, img_stat.median, img_stat.var):
+                            img_info['{}_min'.format(band)] = e[0]
+                            img_info['{}_max'.format(band)] = e[1]
+                            img_info['{}_mean'.format(band)] = b_mean
+                            img_info['{}_median'.format(band)] = b_median
+                            img_info['{}_var'.format(band)] = b_var
 
                 except Exception as e:
                     print('Problem during extrema extraction in file {} : {}'.format(self._filename, e))
 
                 try:
                     ex = img.getexif()
+
+                    img_info['has_exif'] = len(ex.items()) > 0
 
                     for k, v in PIL.ExifTags.TAGS.items():
                         if k in ex:
