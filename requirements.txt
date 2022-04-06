@@ -15,3 +15,5 @@ sklearn
 
 tqdm
 annoy
+
+umap-learn
