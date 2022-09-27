@@ -8,31 +8,35 @@ from annoy import AnnoyIndex
 
 def load_extraction_model(model_name):
 
-    input_size = {'inception_v3': 299}
-    classifcation_layer_names = {}
+    if model_name == "VST":
+        pass
+    else:
 
-    img_size = input_size.get(model_name, 224)
-    classification_layer_name = classifcation_layer_names.get(model_name, 'fc')
+        input_size = {'inception_v3': 299}
+        classifcation_layer_names = {}
 
-    extract_transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(img_size),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
+        img_size = input_size.get(model_name, 224)
+        classification_layer_name = classifcation_layer_names.get(model_name, 'fc')
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        extract_transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(img_size),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
 
-    model_extr = getattr(models, model_name)(pretrained=True)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    for p in model_extr.parameters():
-        p.requires_grad = False
+        model_extr = getattr(models, model_name)(pretrained=True)
 
-    model_extr = model_extr.to(device)
+        for p in model_extr.parameters():
+            p.requires_grad = False
 
-    # noinspection PyUnresolvedReferences
-    setattr(model_extr, classification_layer_name, nn.Identity())
+        model_extr = model_extr.to(device)
 
-    model_extr.eval()
+        # noinspection PyUnresolvedReferences
+        setattr(model_extr, classification_layer_name, nn.Identity())
+
+        model_extr.eval()
 
     return model_extr, extract_transform, device

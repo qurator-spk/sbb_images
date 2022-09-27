@@ -17,3 +17,5 @@ tqdm
 annoy
 
 umap-learn
+
+VST
