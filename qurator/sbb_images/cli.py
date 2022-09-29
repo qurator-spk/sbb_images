@@ -545,14 +545,22 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True))
 @click.argument('index-file', type=click.Path(exists=False))
-@click.option('--model-name', type=str, default='resnet18', help='PyTorch name of NN-model. default: resnet18')
+@click.option('--model-name', type=str, default='resnet18', help='PyTorch name of NN-model. default: "resnet18".\n'
+              'Automatically set to "VST" if vit-model and vst-model given.')
 @click.option('--batch-size', type=int, default=32, help="Process batch-size. default: 32.")
-@click.option('--dist-measure', type=str, default='angular', help="Distance measure of the approximative nearest"
+@click.option('--dist-measure', type=str, default='angular', help="Distance measure of the approximate nearest"
               "neighbour index. default: angular.")
 @click.option('--n-trees', type=int, default=10, help="Number of search trees. Default 10.")
 @click.option('--num-workers', type=int, default=8, help="Number of parallel workers during index creation."
                                                          "Default 8.")
-def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers):
+@click.option('--vit-model', type=click.Path(exists=True), default=None,
+              help='Vision transformer pytorch model file.')
+@click.option('--vst-model', type=click.Path(exists=True), default=None,
+              help='Visual saliency transformer pytorch model file.')
+@click.option('--layer-name', type=str, default='fc', help="Name of feature layer. default: fc")
+@click.option('--layer-output', is_flag=True, help="User output of layer rather than its input.")
+def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers,
+                        vit_model, vst_model, layer_name, layer_output):
     """
 
     Creates a CNN-features based similarity search index.
@@ -566,7 +574,8 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     X['file'] = X['file'].astype(str)
 
-    model_extr, extract_transform, device = load_extraction_model(model_name)
+    extract_features, extract_transform = load_extraction_model(model_name, layer_name, layer_output,
+                                                                vit_model=vit_model, vst_model=vst_model)
 
     dataset = AnnotatedDataset(samples=X, targets=None, transform=extract_transform)
 
@@ -576,10 +585,8 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     for inputs, _, pos in tqdm(data_loader, total=len(data_loader), desc="Extract features"):
         pos = pos.cpu().numpy()
-        inputs = inputs.to(device)
 
-        with torch.set_grad_enabled(False):
-            fe = model_extr(inputs).to('cpu').numpy()
+        fe = extract_features(inputs)
 
         if index is None:
             index = AnnoyIndex(fe.shape[1], dist_measure)

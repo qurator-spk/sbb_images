@@ -50,9 +50,8 @@ class ThreadStore:
 
         self._connection_map = dict()
 
-        self._model_extr = None
+        self._extract_features = None
         self._extract_transform = None
-        self._device = None
 
         self._index = None
 
@@ -85,14 +84,16 @@ class ThreadStore:
 
         img = Image.new(mode, size, color)
 
-        model_extr, extract_transform, device = self.get_extraction_model()
+        extract_features, extract_transform, device = self.get_extraction_model()
 
-        img = extract_transform(img)
+        img = extract_transform(img).unsqueeze(0)
 
-        img = img.to(device)
+        # img = img.to(device)
+        #
+        # with torch.set_grad_enabled(False):
+        #     fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
 
-        with torch.set_grad_enabled(False):
-            fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
+        fe = extract_features(img)
 
         self._index = AnnoyIndex(fe.shape[1], app.config['DIST_MEASURE'])
 
@@ -102,13 +103,13 @@ class ThreadStore:
 
     def get_extraction_model(self):
 
-        if self._model_extr is not None:
+        if self._extract_features is not None:
 
-            return self._model_extr, self._extract_transform, self._device
+            return self._extract_features, self._extract_transform
 
-        self._model_extr, self._extract_transform, self._device = load_extraction_model(app.config['MODEL_NAME'])
+        self._extract_features, self._extract_transform = load_extraction_model(app.config['MODEL_NAME'])
 
-        return self._model_extr, self._extract_transform, self._device
+        return self._extract_features, self._extract_transform
 
 
 thread_store = ThreadStore()
@@ -166,14 +167,16 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
         img = img.crop((img.size[0]*x, img.size[1]*y, img.size[0]*x + width*img.size[0],
                         img.size[1]*y + height*img.size[1]))
 
-    model_extr, extract_transform, device = thread_store.get_extraction_model()
+    extract_features, extract_transform = thread_store.get_extraction_model()
 
-    img = extract_transform(img)
+    img = extract_transform(img).unsqueeze(0)
 
-    img = img.to(device)
+    # img = img.to(device)
+    #
+    # with torch.set_grad_enabled(False):
+    #     fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
 
-    with torch.set_grad_enabled(False):
-        fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
+    fe = extract_features(img)
 
     fe = fe.squeeze()
 
