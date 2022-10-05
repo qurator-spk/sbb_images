@@ -102,27 +102,39 @@ $(document).ready(
             crop_data = cropper.getCropBoxData();
             image_data = cropper.getImageData();
 
-            let crop_x = crop_data.left - canvas_data.left;
-            let crop_y = crop_data.top - canvas_data.top;
-            let crop_width = crop_data.width;
-            let crop_height = crop_data.height;
+            let crop_box =
+                {
+                    x : crop_data.left - canvas_data.left,
+                    y : crop_data.top - canvas_data.top,
+                    width : crop_data.width,
+                    height : crop_data.height
+                };
 
             image_width = image_data.width;
             image_height = image_data.height;
 
-            update_results(crop_x/image_width, crop_y/image_height,
-                            crop_width/image_width, crop_height/image_height);
+            update_results(crop_box.x/image_width, crop_box.y/image_height,
+                            crop_box.width/image_width, crop_box.height/image_height);
         }
 
         function create_cropper(img_src, x, y, width, height) {
+
+            console.log("create_cropper");
+
             if (cropper != null) {
 
                 if (img_src === cropper.url)
                     return;
 
-                cropper.replace(img_src);
+                console.log("cropper.replace");
+
+                cropper.replace(img_src, true);
             }
             else {
+                console.log("set img src");
+
+                $('#img-upload').attr('src', img_src);
+
                 cropper =
                     new Cropper($('#img-upload')[0],
                                 {viewMode: 2,
@@ -171,7 +183,7 @@ $(document).ready(
 
                          $('#img-upload').on('load',
                              function() {
-                                 create_cropper($('#img-upload').attr('src'));
+                                create_cropper($('#img-upload').attr('src'));
                              });
 
                          $('#img-upload').on('ready',
@@ -215,7 +227,7 @@ $(document).ready(
             `
                 <div class="card mt-2 mb-1">
                     <div class="card-body">
-                        <div>
+                        <div id="cropper">
                             <img style="img-fluid fit-image mt-3; max-width: 100%"  id='img-upload' src=""/>
                         </div>
                         <form action="similar" method="post" enctype="multipart/form-data">
@@ -228,19 +240,16 @@ $(document).ready(
 
             $("#search-rgn").html(upload_html);
 
-            $('#img-upload').on('load',
-                function() {
-                    create_cropper($('#img-upload').attr('src'));
-                }
-             );
-
-            $('#img-upload').on('ready',
-                 function() {
-                     if (this.cropper === cropper) cropper_update();
-                 }
-             );
+            let update_counter=0;
 
             $("#the-image").change(function(){
+
+                if (cropper != null) {
+                    cropper.destroy();
+                    cropper = null;
+
+                    $("#cropper").html(`<img style="img-fluid fit-image mt-3; max-width: 100%"  id='img-upload' src=""/>`);
+                }
 
                 let fileInput = $('#the-image')[0]
                 let file = fileInput.files[0];
@@ -250,32 +259,68 @@ $(document).ready(
                 let formData = new FormData();
                 formData.append('file', file);
 
+                console.log(file);
+
                 update_results =
                     function(x, y, width, height) {
-                        $.ajax(
-                            {
-                                url:  "similar/0/100/"+x+"/"+y+"/"+width+"/"+height,
-                                data: formData,
-                                type: 'POST',
-                                enctype: "multipart/form-data",
-                                processData: false,
-                                contentType: false,
-                                cache: false,
-                                success:
-                                    function(result) {
-                                        makeResultList(result['ids']);
-                                    },
-                                error:
-                                    function(error) {
-                                        console.log(error);
-                                    }
-                            }
-                        );
+                        update_counter++;
+
+                        (function(counter_at_request) {
+                            console.log("update_results");
+
+                            $.ajax(
+                                {
+                                    url:  "saliency/"+x+"/"+y+"/"+width+"/"+height,
+                                    data: formData,
+                                    type: 'POST',
+                                    enctype: "multipart/form-data",
+                                    processData: false,
+                                    contentType: false,
+                                    cache: false,
+                                    success:
+                                        function(result_image) {
+                                            if (update_counter > counter_at_request) return;
+
+                                            console.log("UPDATE",x,y,width,height);
+
+                                            create_cropper(result_image);
+
+                                            $.ajax(
+                                                {
+                                                    url:  "similar/0/100/"+x+"/"+y+"/"+width+"/"+height,
+                                                    contentType: 'application/json',
+                                                    data: JSON.stringify({ image : result_image }),
+                                                    type: 'POST',
+                                                    //enctype: "multipart/form-data",
+                                                    processData: false,
+                                                    //contentType: false,
+                                                    cache: false,
+                                                    success:
+                                                        function(result) {
+                                                            if (update_counter > counter_at_request) return;
+
+                                                            makeResultList(result['ids']);
+                                                        },
+                                                    error:
+                                                        function(error) {
+                                                            console.log(error);
+                                                        }
+                                                }
+                                            );
+
+                                        },
+                                    error:
+                                        function(error) {
+                                            console.log(error);
+                                        }
+                                }
+                            );
+                         })(update_counter);
                     };
 
                 reader.onload =
                     function (e) {
-                        $('#img-upload').attr('src', e.target.result);
+                          update_results(-1,-1,-1,-1);
                     };
 
                 reader.readAsDataURL(file);

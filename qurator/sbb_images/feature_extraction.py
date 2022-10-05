@@ -1,6 +1,6 @@
 import argparse
 import torch
-import torch.nn as nn
+# import torch.nn as nn
 
 from torchvision import models, transforms
 # noinspection PyUnresolvedReferences
@@ -11,6 +11,7 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    model_extr = None
     if vit_model is not None and vst_model is not None:
 
         from RGB_VST.Models.ImageDepthNet import ImageDepthNet
@@ -62,7 +63,9 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
         model_extr = model_extr.to(device)
         model_extr.eval()
 
-    layer = getattr(model_extr, layer_name, None)
+    layer = model_extr
+    for key in layer_name.split("."):
+        layer = getattr(layer, key, None)
 
     if layer is None:
         raise RuntimeError('Layer not available.')
@@ -70,12 +73,16 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
     fe = None
 
     def fw_hook(_layer, _input, _output):
+
         nonlocal fe
+        nonlocal model_extr
 
         if layer_output:
             fe = _output.detach().to('cpu').numpy()
         else:
             fe = _input[0].detach().to('cpu').numpy()
+
+        fe = fe.reshape(fe.shape[0], -1)
 
     layer.register_forward_hook(fw_hook)
 

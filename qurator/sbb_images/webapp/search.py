@@ -1,6 +1,7 @@
 import os
 # import signal
 import flask
+from werkzeug.exceptions import *
 import io
 import logging
 
@@ -8,13 +9,16 @@ from flask import send_from_directory, redirect, jsonify, request, send_file  # 
 import sqlite3
 import pandas as pd
 import threading
-import torch
+# import torch
 import json
+import base64
+import numpy as np
 
 import PIL
 from PIL import Image, ImageDraw
 
 from ..feature_extraction import load_extraction_model
+from ..saliency import load_saliency_model
 
 # noinspection PyUnresolvedReferences
 from annoy import AnnoyIndex
@@ -53,6 +57,8 @@ class ThreadStore:
         self._extract_features = None
         self._extract_transform = None
 
+        self._predict_saliency = None
+
         self._index = None
 
     def get_db(self):
@@ -84,14 +90,9 @@ class ThreadStore:
 
         img = Image.new(mode, size, color)
 
-        extract_features, extract_transform, device = self.get_extraction_model()
+        extract_features, extract_transform = self.get_extraction_model()
 
         img = extract_transform(img).unsqueeze(0)
-
-        # img = img.to(device)
-        #
-        # with torch.set_grad_enabled(False):
-        #     fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
 
         fe = extract_features(img)
 
@@ -111,6 +112,15 @@ class ThreadStore:
 
         return self._extract_features, self._extract_transform
 
+    def get_saliency_model(self):
+
+        if self._predict_saliency is not None:
+            return self._predict_saliency
+
+        self._predict_saliency = load_saliency_model(app.config['VIT_MODEL'], app.config['VST_MODEL'])
+
+        return self._predict_saliency
+
 
 thread_store = ThreadStore()
 
@@ -118,6 +128,93 @@ thread_store = ThreadStore()
 @app.route('/')
 def entry():
     return redirect("search.html", code=302)
+
+
+def load_image_from_database(search_id , x=-1, y=-1, width=-1, height=-1):
+    sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(search_id,))
+
+    if sample is None or len(sample) == 0:
+        raise NotFound()
+
+    filename = sample.file.iloc[0]
+
+    if not os.path.exists(filename):
+
+        parts = filename.split('.')
+
+        filename = ".".join(parts[:-1]) + ".jpeg"
+
+        if not os.path.exists(filename):
+            raise NotFound()
+
+    img = Image.open(filename).convert('RGB')
+
+    if x < 0 and y < 0 and width < 0 and height < 0:
+        x, y, width, height = float(sample.x.iloc[0]), float(sample.y.iloc[0]), \
+                              float(sample.width.iloc[0]), float(sample.height.iloc[0])
+
+        x, y, width, height = x / img.size[0], y / img.size[1], width / img.size[0], height / img.size[1]
+
+    return img, x, y, width, height
+
+
+@app.route('/saliency', methods=['GET', 'POST'])
+@app.route('/saliency/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
+def get_saliency(x=-1, y=-1, width=-1, height=-1):
+    x, y, width, height = float(x), float(y), float(width), float(height)
+
+    search_id = request.args.get('search_id', default=None, type=int)
+
+    if request.method == 'GET' and search_id is not None:
+
+        img, x, y, width, height = load_image_from_database(search_id, x, y, width, height)
+
+    elif request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            raise BadRequest()
+
+        file = request.files['file']
+
+        img = Image.open(file).convert('RGB')
+    else:
+        raise BadRequest()
+
+    full_img = img
+
+    if x >= 0 and y >= 0 and width > 0 and height > 0:
+        img = img.crop((full_img.size[0]*x, full_img.size[1]*y, full_img.size[0]*x + width*full_img.size[0],
+                        full_img.size[1]*y + height*full_img.size[1]))
+
+    predict_saliency = thread_store.get_saliency_model()
+
+    saliency_img = predict_saliency(img).convert("L")
+
+    full_img = full_img.convert("RGBA")
+
+    if x >= 0 and y >= 0 and width > 0 and height > 0:
+
+        mask = Image.fromarray(np.zeros((full_img.height, full_img.width))).convert("L")
+
+        mask.paste(saliency_img, (int(full_img.size[0]*x), int(full_img.size[1]*y)))
+    else:
+        mask = saliency_img
+
+    mask = mask.point(lambda p: 50 if p < 50 else p)
+
+    # import ipdb;ipdb.set_trace()
+
+    full_img.putalpha(mask)
+
+    buffer = io.BytesIO()
+    full_img.save(buffer, "PNG")
+    buffer.seek(0)
+
+    img_base64 = base64.b64encode(buffer.read()).decode("utf-8")
+
+    #  return send_file(buffer, mimetype='image/jpeg')
+
+    return 'data:image/png;base64,' + img_base64
 
 
 @app.route('/similar', methods=['GET', 'POST'])
@@ -134,34 +231,38 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     if request.method == 'GET' and search_id is not None:
 
-        sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(search_id,))
-
-        if sample is None or len(sample) == 0:
-            return "NOT FOUND", 404
-
-        filename = sample.file.iloc[0]
-
-        if not os.path.exists(filename):
-            return "NOT FOUND", 404
-
-        img = Image.open(filename).convert('RGB')
-
-        if x < 0 and y < 0 and width < 0 and height < 0:
-            x, y, width, height = float(sample.x.iloc[0]), float(sample.y.iloc[0]), \
-                                  float(sample.width.iloc[0]), float(sample.height.iloc[0])
-
-            x, y, width, height = x / img.size[0], y / img.size[1], width / img.size[0], height / img.size[1]
+        img, x, y, width, height = load_image_from_database(search_id, x, y, width, height)
 
     elif request.method == 'POST':
         # check if the post request has the file part
-        if 'file' not in request.files:
-            return "BAD PARAMS", 400
+        #if 'file' not in request.files:
+        #    raise BadRequest()
 
-        file = request.files['file']
+        #  file = request.files['file']
 
-        img = Image.open(file).convert('RGB')
+        # img_base64 = request.
+
+        # import ipdb;ipdb.set_trace()
+
+        img_base64 = request.json['image']
+        img_bytes = io.BytesIO(base64.b64decode(img_base64[len('data:image/png;base64,'):]))
+
+        img = Image.open(img_bytes) #  .convert('RGB')
+
+        mask = img.getchannel('A')
+
+        img_rgb = img.convert('RGB')
+        img_empty = Image.new('RGB', size=(img.width, img.height))
+
+        img = Image.composite(img_rgb, img_empty, mask=mask)
+
+        # import ipdb;ipdb.set_trace()
+
+        # img.save('test.jpeg', "JPEG")
     else:
-        return "BAD PARAMS", 400
+        raise BadRequest()
+
+    full_img = img
 
     if x >= 0 and y >= 0 and width > 0 and height > 0:
         img = img.crop((img.size[0]*x, img.size[1]*y, img.size[0]*x + width*img.size[0],
@@ -170,11 +271,6 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     extract_features, extract_transform = thread_store.get_extraction_model()
 
     img = extract_transform(img).unsqueeze(0)
-
-    # img = img.to(device)
-    #
-    # with torch.set_grad_enabled(False):
-    #     fe = model_extr(img.unsqueeze(0)).to('cpu').numpy()
 
     fe = extract_features(img)
 
@@ -317,9 +413,15 @@ def get_image(user, image_id=None, version='resize', marker='regionmarker'):
 
     if not os.path.exists(filename):
 
-        return "NOT FOUND", 404
+        parts = filename.split('.')
 
-    img = Image.open(filename)
+        filename = ".".join(parts[:-1]) + ".jpeg"
+
+        if not os.path.exists(filename):
+
+            return "NOT FOUND", 404
+
+    img = Image.open(filename).convert('RGB')
 
     if version == 'resize':
 
