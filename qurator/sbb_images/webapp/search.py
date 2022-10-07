@@ -4,6 +4,7 @@ import flask
 from werkzeug.exceptions import *
 import io
 import logging
+import cv2
 
 from flask import send_from_directory, redirect, jsonify, request, send_file  # , flash
 import sqlite3
@@ -15,7 +16,7 @@ import base64
 import numpy as np
 
 import PIL
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps, ImageFilter
 
 from ..feature_extraction import load_extraction_model
 from ..saliency import load_saliency_model
@@ -131,12 +132,17 @@ def entry():
 
 
 def load_image_from_database(search_id , x=-1, y=-1, width=-1, height=-1):
+    x, y, width, height = float(x), float(y), float(width), float(height)
+
     sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(search_id,))
 
     if sample is None or len(sample) == 0:
         raise NotFound()
 
     filename = sample.file.iloc[0]
+
+    detections = pd.read_sql('select x,y,width,height from images where file=?',
+                             con=thread_store.get_db(), params=(filename,))
 
     if not os.path.exists(filename):
 
@@ -155,19 +161,30 @@ def load_image_from_database(search_id , x=-1, y=-1, width=-1, height=-1):
 
         x, y, width, height = x / img.size[0], y / img.size[1], width / img.size[0], height / img.size[1]
 
-    return img, x, y, width, height
+    if len(detections) > 0:
+        detections.x /= img.size[0]
+        detections.y /= img.size[1]
+
+        detections.width /= img.size[0]
+        detections.height /= img.size[1]
+
+        detections = detections.loc[(detections.x > 0) & (detections.y > 0) &
+                                    (detections.width > 0) & (detections.height > 0)]
+
+    return img, x, y, width, height, detections
 
 
 @app.route('/saliency', methods=['GET', 'POST'])
 @app.route('/saliency/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
 def get_saliency(x=-1, y=-1, width=-1, height=-1):
-    x, y, width, height = float(x), float(y), float(width), float(height)
+
+    max_img_size = 4*app.config['MAX_IMG_SIZE']
 
     search_id = request.args.get('search_id', default=None, type=int)
 
     if request.method == 'GET' and search_id is not None:
 
-        img, x, y, width, height = load_image_from_database(search_id, x, y, width, height)
+        img, x, y, width, height, detections = load_image_from_database(search_id, x, y, width, height)
 
     elif request.method == 'POST':
         # check if the post request has the file part
@@ -180,31 +197,142 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
     else:
         raise BadRequest()
 
-    full_img = img
+    x, y, width, height = float(x), float(y), float(width), float(height)
 
-    if x >= 0 and y >= 0 and width > 0 and height > 0:
-        img = img.crop((full_img.size[0]*x, full_img.size[1]*y, full_img.size[0]*x + width*full_img.size[0],
-                        full_img.size[1]*y + height*full_img.size[1]))
+    if x < 0 and y < 0 and width < 0 and height < 0:
+        x, y, width, height = 0.0, 0.0, 1.0, 1.0
 
+    max_size = float(max(img.size[0], img.size[1]))
+
+    scale_factor = 1.0 if max_size <= max_img_size else max_img_size / max_size
+
+    hsize = int((float(img.size[0]) * scale_factor))
+    vsize = int((float(img.size[1]) * scale_factor))
+
+    img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+
+    full_img = ImageOps.autocontrast(img)
+    full_img = full_img.filter(ImageFilter.UnsharpMask(radius=2))
     predict_saliency = thread_store.get_saliency_model()
 
-    saliency_img = predict_saliency(img).convert("L")
+    def process_region(rx, ry, rwidth, rheight):
+        img = full_img
+
+        if rx >= 0 and ry >= 0 and rwidth > 0 and rheight > 0:
+            img = full_img.crop((full_img.size[0]*rx, full_img.size[1]*ry,
+                                 full_img.size[0]*rx + rwidth*full_img.size[0],
+                                 full_img.size[1]*ry + rheight*full_img.size[1]))
+
+        saliency_img = predict_saliency(img).convert("L")
+
+        local_mask = Image.fromarray(np.zeros((full_img.height, full_img.width))).convert("L")
+
+        local_mask.paste(saliency_img, (int(full_img.size[0] * rx), int(full_img.size[1] * ry)))
+
+        boolean_mask = local_mask.point(lambda p: 0 if p < 64 else 255)
+
+        num_components, component_labels, c_stats, centroids = \
+            cv2.connectedComponentsWithStats(np.asarray(boolean_mask))
+
+        c_stats = pd.DataFrame(c_stats, columns=['x', 'y', 'width', 'height', 'area'])
+
+        c_stats.x = (c_stats.x / full_img.width).round(2)
+        c_stats.width = (c_stats.width / full_img.width).round(2)
+
+        c_stats.y = (c_stats.y / full_img.height).round(2)
+        c_stats.height = (c_stats.height / full_img.height).round(2)
+
+        return c_stats[1:], local_mask
+
+    _, mask = process_region(x, y, width, height)
+
+    def find_all_regions(search_regions, regions=None):
+
+        cc_stats = []
+
+        if regions is not None:
+            max_area = max([search_regions.area.max(), regions.area.max()])
+        else:
+            max_area = search_regions.area.max()
+
+        for _, (rx, ry, rwidth, rheight, rarea) in search_regions.iterrows():
+
+            if regions is not None and (rx, ry, rwidth, rheight) in regions:
+                print("skip")
+                continue
+
+            if max_area > 0 and rarea / max_area < 10e-3:
+                print("skip")
+                continue
+
+            print(rx, ry, rwidth, rheight)
+
+            _cc_stats, _ = process_region(rx, ry, rwidth, rheight)
+
+            cc_stats.append(_cc_stats)
+
+        if len(cc_stats) == 0:
+            regions = regions.reset_index()
+
+            regions.x *= full_img.width
+            regions.width *= full_img.width
+
+            regions.y *= full_img.height
+            regions.height *= full_img.height
+
+            regions = regions.drop_duplicates(subset=['x', 'y', 'width'])
+            regions = regions.drop_duplicates(subset=['x', 'y', 'height'])
+
+            return regions
+
+        if regions is not None:
+            regions = pd.concat([regions, search_regions.set_index(['x', 'y', 'width', 'height'])])
+        else:
+            regions = search_regions.set_index(['x', 'y', 'width', 'height'])
+
+        regions = regions[~regions.index.duplicated(keep='first')]
+
+        search_regions = pd.concat(cc_stats).drop_duplicates(subset=['x', 'y', 'width', 'height'])
+
+        search_regions = search_regions.loc[
+            ~search_regions.set_index(['x', 'y', 'width', 'height']).index.isin(regions.index)]
+
+        return find_all_regions(search_regions, regions,)
+
+    search_regions = [(x, y, width, height, 0.0)]
+
+    if width > 0.2 and height > 0.2:
+        search_regions.append((min([1.0, x + 0.05]), min([1.0, y + 0.05]),
+                               max([0.0, width - 0.1]), max([0.0, height - 0.1, 0.0]), 0.0))
+
+    search_regions = pd.DataFrame(search_regions, columns=['x', 'y', 'width', 'height', 'area'])
+
+    all_stats = find_all_regions(search_regions)
+
+    mask = mask.point(lambda p: 25 if p < 64 else p)
 
     full_img = full_img.convert("RGBA")
-
-    if x >= 0 and y >= 0 and width > 0 and height > 0:
-
-        mask = Image.fromarray(np.zeros((full_img.height, full_img.width))).convert("L")
-
-        mask.paste(saliency_img, (int(full_img.size[0]*x), int(full_img.size[1]*y)))
-    else:
-        mask = saliency_img
-
-    mask = mask.point(lambda p: 50 if p < 50 else p)
-
-    # import ipdb;ipdb.set_trace()
-
     full_img.putalpha(mask)
+
+    full_area = all_stats.area.max()
+
+    draw = ImageDraw.Draw(full_img, 'RGBA')
+
+    for i, (rx, ry, rwidth, rheight, rarea) in all_stats.iterrows():
+
+        if rarea / full_area < 10e-3:
+            continue
+
+        print (rarea/full_area)
+
+        draw.rectangle([(rx, ry), (rx+rwidth, ry+rheight)], outline=(255, 25, 0))
+
+    for i, (dx, dy, dwidth, dheight) in detections.iterrows():
+
+        draw.rectangle([(dx*full_img.width, dy*full_img.height),
+                        ((dx+dwidth)*full_img.width, (dy+dheight)*full_img.height)],
+                       outline=(0, 25, 255))
+
 
     buffer = io.BytesIO()
     full_img.save(buffer, "PNG")
@@ -214,7 +342,9 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
 
     #  return send_file(buffer, mimetype='image/jpeg')
 
-    return 'data:image/png;base64,' + img_base64
+    return jsonify(
+        {'image': 'data:image/png;base64,' + img_base64,
+         'x': x, 'y': y, 'width': width, 'height': height})
 
 
 @app.route('/similar', methods=['GET', 'POST'])
@@ -265,8 +395,9 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     full_img = img
 
     if x >= 0 and y >= 0 and width > 0 and height > 0:
-        img = img.crop((img.size[0]*x, img.size[1]*y, img.size[0]*x + width*img.size[0],
-                        img.size[1]*y + height*img.size[1]))
+        img = full_img.crop((full_img.size[0]*x, full_img.size[1]*y,
+                             full_img.size[0]*x + width*full_img.size[0],
+                             full_img.size[1]*y + height*full_img.size[1]))
 
     extract_features, extract_transform = thread_store.get_extraction_model()
 

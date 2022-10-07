@@ -117,7 +117,7 @@ $(document).ready(
                             crop_box.width/image_width, crop_box.height/image_height);
         }
 
-        function create_cropper(img_src, x, y, width, height) {
+        function create_cropper(img_src, crop_box=null) {
 
             console.log("create_cropper");
 
@@ -136,23 +136,42 @@ $(document).ready(
                 $('#img-upload').attr('src', img_src);
 
                 cropper =
-                    new Cropper($('#img-upload')[0],
-                                {viewMode: 2,
-                                 zoomable: false,
-                                 background: false,
-                                 autoCropArea: 1.0,
-                                 modal: false,
-                                 rotatable: false,
-                                 restore: false}
+                   new Cropper($('#img-upload')[0],
+                        {
+                             viewMode: 2,
+                             zoomable: false,
+                             background: false,
+                             autoCropArea: 1.0,
+                             modal: false,
+                             rotatable: false,
+                             restore: false,
+                             ready() {
+                                 $('#img-upload').on('cropend',
+                                     function(event) {
+                                         cropper_update();
+                                     }
                                  );
 
-                $('#img-upload').on('cropend',
-                    function(event) {
-                        cropper_update();
-                    }
-                );
+                                 if (crop_box === null) return;
+
+                                 let image_data = cropper.getImageData();
+                                 let canvas_data = cropper.getCanvasData();
+
+                                 cropper.setCropBoxData(
+                                     {
+                                         left: crop_box['x']*image_data.width + canvas_data.left,
+                                         top:crop_box['y']*image_data.height + canvas_data.top,
+                                         width:crop_box['width']*image_data.width,
+                                         height: crop_box['height']*image_data.height
+                                     }
+                                 );
+                             }
+                         }
+                   );
             }
         }
+
+        let update_counter=0;
 
         if (url_params.has('search_id')) {
 
@@ -170,45 +189,60 @@ $(document).ready(
 
             update_results =
                     function(x, y, width, height) {
-                        $.get("similar/0/100/"+x+"/"+y+"/"+width+"/"+height+"?search_id=" + url_params.get('search_id')).
-                            done(
-                                function(result) {
-                                    makeResultList(result['ids']);
-                                });
+                        update_counter++;
+
+                        (function(counter_at_request) {
+                            console.log("update_results", x, y, width, height);
+
+                            $.ajax(
+                                {
+                                    url:  "saliency/"+x+"/"+y+"/"+width+"/"+height+"?search_id=" + url_params.get('search_id'),
+                                    type: 'GET',
+                                    cache: false,
+                                    success:
+                                        function(saliency_result) {
+                                            if (update_counter > counter_at_request) return;
+
+                                            console.log("UPDATE",saliency_result.x,saliency_result.y,saliency_result.width,saliency_result.height);
+
+                                            create_cropper(saliency_result.image,
+                                                           { x : saliency_result.x, y : saliency_result.y,
+                                                             width: saliency_result.width, height : saliency_result.height});
+
+                                            if (update_counter > counter_at_request) return;
+
+                                            $.ajax(
+                                                {
+                                                    url:  "similar/0/100/"+saliency_result.x+"/"+saliency_result.y+"/"+saliency_result.width+"/"+saliency_result.height,
+                                                    contentType: 'application/json',
+                                                    data: JSON.stringify(saliency_result),
+                                                    type: 'POST',
+                                                    processData: false,
+                                                    cache: false,
+                                                    success:
+                                                        function(result) {
+                                                            if (update_counter > counter_at_request) return;
+
+                                                            makeResultList(result['ids']);
+                                                        },
+                                                    error:
+                                                        function(error) {
+                                                            console.log(error);
+                                                        }
+                                                }
+                                            );
+
+                                        },
+                                    error:
+                                        function(error) {
+                                            console.log(error);
+                                        }
+                                }
+                            );
+                         })(update_counter);
                     };
 
-            $.get("similar/0/100"+"?search_id=" + url_params.get('search_id')).
-                done(
-                    function(result) {
-
-                         $('#img-upload').on('load',
-                             function() {
-                                create_cropper($('#img-upload').attr('src'));
-                             });
-
-                         $('#img-upload').on('ready',
-                             function() {
-                                 if (!(this.cropper === cropper)) return;
-
-                                 let image_data = cropper.getImageData();
-                                 let canvas_data = cropper.getCanvasData();
-
-                                 cropper.setCropBoxData(
-                                     {
-                                         left: result['x']*image_data.width + canvas_data.left,
-                                         top:result['y']*image_data.height + canvas_data.top,
-                                         width:result['width']*image_data.width,
-                                         height: result['height']*image_data.height
-                                     }
-                                 );
-                             }
-                         );
-
-                         $('#img-upload').attr('src', "image/" + url_params.get('search_id')+ "/resize/nomarker");
-
-                         makeResultList(result['ids']);
-                    }
-                );
+            update_results(-1,-1,-1,-1);
         }
         else if (url_params.has('ids')) {
 
@@ -240,8 +274,6 @@ $(document).ready(
 
             $("#search-rgn").html(upload_html);
 
-            let update_counter=0;
-
             $("#the-image").change(function(){
 
                 if (cropper != null) {
@@ -259,7 +291,7 @@ $(document).ready(
                 let formData = new FormData();
                 formData.append('file', file);
 
-                console.log(file);
+                //console.log(file);
 
                 update_results =
                     function(x, y, width, height) {
@@ -278,18 +310,20 @@ $(document).ready(
                                     contentType: false,
                                     cache: false,
                                     success:
-                                        function(result_image) {
+                                        function(saliency_result) {
                                             if (update_counter > counter_at_request) return;
 
                                             console.log("UPDATE",x,y,width,height);
 
-                                            create_cropper(result_image);
+                                            create_cropper(saliency_result.image);
+
+                                            if (update_counter > counter_at_request) return;
 
                                             $.ajax(
                                                 {
                                                     url:  "similar/0/100/"+x+"/"+y+"/"+width+"/"+height,
                                                     contentType: 'application/json',
-                                                    data: JSON.stringify({ image : result_image }),
+                                                    data: JSON.stringify(saliency_result),
                                                     type: 'POST',
                                                     //enctype: "multipart/form-data",
                                                     processData: false,
