@@ -216,9 +216,12 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
     predict_saliency = thread_store.get_saliency_model()
 
     def process_region(rx, ry, rwidth, rheight):
-        img = full_img.crop((full_img.size[0]*rx, full_img.size[1]*ry,
-                             full_img.size[0]*rx + rwidth*full_img.size[0],
-                             full_img.size[1]*ry + rheight*full_img.size[1]))
+        img = full_img
+
+        if rx >= 0 and ry >= 0 and rwidth > 0 and rheight > 0:
+            img = full_img.crop((full_img.size[0]*rx, full_img.size[1]*ry,
+                                 full_img.size[0]*rx + rwidth*full_img.size[0],
+                                 full_img.size[1]*ry + rheight*full_img.size[1]))
 
         saliency_img = predict_saliency(img).convert("L")
 
@@ -226,9 +229,10 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
 
         local_mask.paste(saliency_img, (int(full_img.size[0] * rx), int(full_img.size[1] * ry)))
 
+        boolean_mask = local_mask.point(lambda p: 0 if p < 64 else 255)
+
         num_components, component_labels, c_stats, centroids = \
-            cv2.connectedComponentsWithStats(
-                np.asarray(local_mask.point(lambda p: 0 if p < 64 else 255)))
+            cv2.connectedComponentsWithStats(np.asarray(boolean_mask))
 
         c_stats = pd.DataFrame(c_stats, columns=['x', 'y', 'width', 'height', 'area'])
 
