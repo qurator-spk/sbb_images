@@ -194,6 +194,8 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
         file = request.files['file']
 
         img = Image.open(file).convert('RGB')
+
+        detections = pd.DataFrame([])
     else:
         raise BadRequest()
 
