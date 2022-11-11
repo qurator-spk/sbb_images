@@ -32,7 +32,11 @@ except:
     pass
 
 from .detections import summarize_detections
+from .saliency import load_saliency_model
 
+from PIL import Image, ImageDraw, ImageOps, ImageFilter
+from torchvision import transforms
+import multiprocessing as mp
 
 @click.command()
 @click.argument('directory', type=click.Path(exists=True))
@@ -559,8 +563,10 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
               help='Visual saliency transformer pytorch model file.')
 @click.option('--layer-name', type=str, default='fc', help="Name of feature layer. default: fc")
 @click.option('--layer-output', is_flag=True, help="User output of layer rather than its input.")
+@click.option('--use-saliency-mask', is_flag=True, help="Mask images by saliency before feature computation.")
+@click.option('--vst-features', is_flag=True, help="")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers,
-                        vit_model, vst_model, layer_name, layer_output):
+                        vit_model, vst_model, layer_name, layer_output, use_saliency_mask, vst_features):
     """
 
     Creates a CNN-features based similarity search index.
@@ -574,16 +580,42 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     X['file'] = X['file'].astype(str)
 
-    extract_features, extract_transform = load_extraction_model(model_name, layer_name, layer_output,
-                                                                vit_model=vit_model, vst_model=vst_model)
+    extract_features_orig, extract_transform = \
+        load_extraction_model(model_name, layer_name, layer_output,
+                              vit_model=None if not vst_features else vit_model,
+                              vst_model=None if not vst_features else vst_model)
+    extract_features = extract_features_orig
+    transform = extract_transform
+    if use_saliency_mask:
 
-    dataset = AnnotatedDataset(samples=X, targets=None, transform=extract_transform)
+        predict_saliency, predict_transform_orig = load_saliency_model(vit_model, vst_model)
+
+        def predict_transform(img_orig):
+
+            img = ImageOps.autocontrast(img_orig)
+            img = img.filter(ImageFilter.UnsharpMask(radius=2))
+
+            return predict_transform_orig(img), img.width, img.height
+
+        transform = predict_transform
+
+        def extract_features_with_saliency(inputs):
+
+            saliency_map = predict_saliency(inputs)
+
+            masked_inputs = inputs*saliency_map
+
+            return extract_features_orig(masked_inputs)
+
+        extract_features = extract_features_with_saliency
+
+    dataset = AnnotatedDataset(samples=X, targets=None, transform=transform)
 
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     index = None
 
-    for inputs, _, pos in tqdm(data_loader, total=len(data_loader), desc="Extract features"):
+    for (inputs, widths, heights), _, pos in tqdm(data_loader, total=len(data_loader), desc="Extract features"):
         pos = pos.cpu().numpy()
 
         fe = extract_features(inputs)

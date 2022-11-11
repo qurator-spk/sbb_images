@@ -22,5 +22,8 @@ stabi-illustrations-saliency:
 
 # "token_trans.saliency_token_pre.sigmoid"
 
+stabi-illustrations-saliency-index:
+	create-search-index stabi-illustrations-with-detections.sqlite stabi-illustrations-with-detections-saliency.ann --model-name googlenet --use-saliency-mask  --vit-model /home/kai.labusch/MMK/VST/pretrained/80.7_T2T_ViT_t_14.pth --vst-model /home/kai.labusch/MMK/VST/pretrained/RGB_VST.pth --batch-size 64  --n-trees 50 --num-workers 20
+
 wasserzeichen-vst-index:
 	create-search-index wasserzeichen.sqlite wasserzeichen-vst.ann  --layer-name "token_trans.saliency_token_pre" --layer-output --vit-model /home/kai.labusch/MMK/VST/pretrained/80.7_T2T_ViT_t_14.pth --vst-model /home/kai.labusch/MMK/VST/pretrained/RGB_VST.pth --batch-size 16  --n-trees 50

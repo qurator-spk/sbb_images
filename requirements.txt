@@ -18,4 +18,5 @@ annoy
 
 umap-learn
 
+opencv-contrib-python
 VST
