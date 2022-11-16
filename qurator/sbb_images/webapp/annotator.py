@@ -3,26 +3,38 @@ import os
 import io
 import flask
 import logging
-from flask_htpasswd import HtPasswdAuth
+# from flask_htpasswd import HtPasswdAuth
 from flask import send_from_directory, redirect, jsonify, request, send_file
 import sqlite3
 import pandas as pd
 import threading
+import random
+import string
 
 import PIL
 from PIL import Image
 
-
 app = flask.Flask(__name__)
 
-app.config.from_json('annotator-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
+app.config.from_json('config/annotator-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
 
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
-app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
+if len(app.config['PASSWD_FILE']) > 0:
+    app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
+    app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
+
+    from flask_htpasswd import HtPasswdAuth
+
+    app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
+    app.config['FLASK_SECRET'] = \
+        ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(40))
+
+else:
+    print("AUTHENTICATION DISABLED!!!")
+    from .no_auth import NoAuth as HtPasswdAuth
 
 htpasswd = HtPasswdAuth(app)
 
@@ -30,13 +42,11 @@ connection_map = dict()
 
 
 def get_db():
-
     thid = threading.current_thread().ident
 
     conn = connection_map.get(thid)
 
     if conn is None:
-
         logger.info('Create database connection: {}'.format(app.config['SQLITE_FILE']))
 
         conn = sqlite3.connect(app.config['SQLITE_FILE'])
@@ -53,11 +63,30 @@ def entry():
     return redirect("annotator.html", code=302)
 
 
+@app.route('/authenticate')
+@htpasswd.required
+def authenticate(user):
+    return jsonify({'user': user})
+
+
+@app.route('/auth-test')
+@htpasswd.required
+def auth_test(user):
+    return jsonify({'user': user})
+
+
+@app.after_request
+def after(response):
+    if request.url.endswith('auth-test'):
+        response.headers.remove('WWW-Authenticate')
+
+    return response
+
+
 @app.route('/image')
 @app.route('/image/<image_id>')
 @htpasswd.required
 def get_image(user, image_id=None):
-
     del user
 
     max_img_size = app.config['MAX_IMG_SIZE']
@@ -65,7 +94,6 @@ def get_image(user, image_id=None):
     filename = pd.read_sql('select file from images where rowid=?', con=get_db(), params=(image_id,)).file.iloc[0]
 
     if not os.path.exists(filename):
-
         return "NOT FOUND", 404
 
     img = Image.open(filename)
@@ -88,15 +116,16 @@ def get_image(user, image_id=None):
 @app.route('/labels')
 @htpasswd.required
 def get_labels(user):
-
     del user
 
     return jsonify(app.config['LABELS'])
 
+
 def has_links():
     return \
-        get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", ('links',)).fetchone()\
+        get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", ('links',)).fetchone() \
         is not None
+
 
 @app.route('/haslinks')
 @htpasswd.required
@@ -111,16 +140,16 @@ def get_link(user, image_id=None):
     del user
 
     if not has_links():
-
         return jsonify("")
 
     url = pd.read_sql('select * from links where rowid=?', con=get_db(), params=(image_id,)).url.iloc[0]
 
     return jsonify(url)
 
+
 def has_predictions():
     return \
-        get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", ('predictions',)).fetchone()\
+        get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", ('predictions',)).fetchone() \
         is not None
 
 
@@ -137,7 +166,6 @@ def get_prediction(user, image_id=None):
     del user
 
     if not has_predictions():
-
         return jsonify("")
 
     label = pd.read_sql('select * from predictions where rowid=?', con=get_db(), params=(image_id,)).label.iloc[0]
@@ -148,7 +176,6 @@ def get_prediction(user, image_id=None):
 @app.route('/randomid')
 @htpasswd.required
 def get_random_id(user):
-
     selected_class = request.args.get('selected_class', default=None, type=str)
 
     del user
@@ -158,16 +185,17 @@ def get_random_id(user):
     if not has_predictions() or selected_class is None or len(selected_class) == 0:
 
         num_incomplete = get_db().execute('select count(*) from images '
-                                          'where num_annotations > 0 and num_annotations < ?', (num_anno,)).fetchone()[0]
+                                          'where num_annotations > 0 and num_annotations < ?', (num_anno,)).fetchone()[
+            0]
 
         if num_incomplete >= app.config['WORKING_SET_SIZE']:
             result = get_db().execute(
                 'select rowid from images where num_annotations > 0 and num_annotations < ? '
-                'order by RANDOM() limit 1', (num_anno,)).\
-                    fetchone()
+                'order by RANDOM() limit 1', (num_anno,)). \
+                fetchone()
         else:
             result = get_db().execute('select rowid from images '
-                                      'where num_annotations < ? order by RANDOM() limit 1', (num_anno,)).\
+                                      'where num_annotations < ? order by RANDOM() limit 1', (num_anno,)). \
                 fetchone()
     else:
         num_incomplete = get_db().execute('select count(*) from images '
@@ -204,7 +232,6 @@ def get_random_id(user):
 @app.route('/annotate', methods=['GET', 'POST'])
 @htpasswd.required
 def add_annotation(user):
-
     rowid = request.json['rowid']
     label = request.json['label']
 
@@ -224,7 +251,6 @@ def add_annotation(user):
 @app.route('/<path:path>')
 @htpasswd.required
 def send_js(user, path):
-
     del user
 
     return send_from_directory('static', path)

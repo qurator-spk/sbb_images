@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Annotator</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="annotorious/annotorious.min.css">
+
+    <script src="js/jquery-3.4.1.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="annotorious/annotorious.min.js"></script>
+    <script src="annotorious/annotorious-toolbar.min.js"></script>
+    <script src="annotorious/annotorious-better-polygon.js"></script>
+
+    <style>
+        @media screen {
+            .fit-image{
+                max-height: 75vh;
+                width: auto;
+            }
+        }
+        @media screen and (max-width : 600px) {
+            .fit-image{
+                max-height: 30vh;
+                width: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container-fluid">
+    <div class="row align-items-center">
+        <div class="col-sm-9 col mt-1">
+            <div class="form-group form-inline mb-1 mt-1 justify-content-center">
+                <div class="input-group" style="width: 100%;">
+                    <div class="input-group-prepend">
+                        <select id="action" class="selectpicker form-control form-control-sm">
+                            <option value="annotate" id="search-action">Annotate</option>
+                            <option value="add" id="add-action" disabled="">Add</option>
+                        </select>
+                        <label for="annotation-url" class="ml-3 mb-1">Image:</label>
+                    </div>
+                    <input type="text" list="suggestions" class="form-control form-control-sm ml-3 mb-1"
+                           id="annotation-url"
+                           autocomplete="off"/>
+                    <datalist id="suggestions">
+                    </datalist>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-3 col mt-1 text-center" id="auth-area">
+        </div>
+    </div>
+
+    <div class="row d-none" id="editor">
+        <div class="col-lg-9 col-md mt-1 mb-1">
+            <div class="card mt-2 mb-1 h-100">
+
+                <div class="card-body align-self-center d-flex flex-row">
+                    <div id="toolbar"></div>
+                    <img id="image-view" class="img-fluid fit-image" src=""/>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md mt-1 mb-1">
+            <div class="card mt-2 mb-1 h-100">
+                <!-- <div class="card-header text-center">
+                    Annotations
+                </div> -->
+                <div class="card-body">
+                    <!-- <ul class="list-group h-100" id="annotations-list" style="overflow-y: scroll;">
+                        <li class="list-group-item text-left" id="doc-list-PPN756689090">
+                            <a href="https://digital.staatsbibliothek-berlin.de/werkansicht?PPN=PPN756689090"
+                               target="_blank" rel="noopener noreferrer"> Das Buch wunderbarer Erfindungen </a> ;
+                            Thomas, Louis; 1860
+                            <a class="btn btn-info btn-sm ml-3"
+                               href="index.html?ppn=756689090&amp;model_id=precomputed&amp;el_model_id=precomputed&amp;task=ner&amp;search_id=Q34969"
+                               target="_blank" rel="noopener noreferrer">NER+EL</a>
+
+                            <a class="btn btn-info btn-sm ml-3"
+                               href="images/search.html?ids=516666,516667,516669,516670,516671,516673,516674,516675,516676,516677,516678,516679,516680,516681,516682,516684,516686,516687,516688,516689,516690,516691,516692,516695,516698,516699,516700,516702,516703,516704,516705,516706,516707,516708,516709,516710,516711,516712,516713,516715,516716,516718,516720,516721,516723,516724,516725,516726,516727,516728,516729,516730,516732,516733,516734,516735,516736,516737,516739,516740,516741,516742,516743,516744,516746,516747,516748,516749,516750,516751,516752,516753,516756"
+                               target="_blank" rel="noopener noreferrer">
+                                Graphical Objects (73)
+                            </a>
+                        </li>
+                    </ul>-->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="js/basic-auth.js"></script>
+<script src="js/region-annotator.js"></script>
+</body>

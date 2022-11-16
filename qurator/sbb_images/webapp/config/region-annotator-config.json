@@ -1,0 +1,8 @@
+{
+    "PASSWD_FILE": ".htpasswd",
+    "AUTH_REALM": "region-annotate",
+    "SQLITE_FILE": "region-annotations.sqlite",
+    "ADMIN_USERS": ["root"],
+    "COOPERATIVE_ACCESS": true,
+    "COOPERATIVE_MODIFICATION": false
+}
