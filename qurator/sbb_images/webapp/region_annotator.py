@@ -11,6 +11,9 @@ import random
 import string
 import json
 
+from datetime import datetime, timedelta
+from dateutil.parser import parse as parse_date
+
 app = flask.Flask(__name__)
 
 app.config.from_json('config/region-annotator-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
@@ -32,6 +35,9 @@ if len(app.config['PASSWD_FILE']) > 0:
 else:
     print("AUTHENTICATION DISABLED!!!")
     from .no_auth import NoAuth as HtPasswdAuth
+
+if app.config['COOPERATIVE_MODIFICATION']:
+    app.config['COOPERATIVE_ACCESS'] = True
 
 htpasswd = HtPasswdAuth(app)
 
@@ -62,8 +68,12 @@ def get_db():
 
         co.execute('CREATE TABLE "targets" ("url" TEXT primary key, "user" TEXT)')
 
+        # import ipdb;ipdb.set_trace()
+
         co.execute('CREATE TABLE "annotations" '
-                   '("anno_id" TEXT primary key, "url" TEXT, "user" TEXT, "anno_json" TEXT, "state" TEXT)')
+                   '("anno_id" TEXT primary key, "url" TEXT, "user" TEXT, "anno_json" TEXT, "state" TEXT,'
+                   '"counter" INTEGER, "write_permit" TEXT, "wp_valid_time" TEXT)')
+
         co.execute('CREATE INDEX "idx_annotations_by_url" ON annotations(url)')
         co.execute('CREATE INDEX "idx_annotations_by_url_and_state" ON annotations(url, state)')
         co.execute('CREATE INDEX "idx_annotations_by_url_and_user" ON annotations(url, user)')
@@ -71,6 +81,10 @@ def get_db():
         return co
 
     return make_conn()
+
+
+def writeable(user, owner):
+    return app.config['COOPERATIVE_MODIFICATION'] or (user == owner) or (user in app.config['ADMIN_USERS'])
 
 
 @app.route('/')
@@ -116,7 +130,8 @@ def add_annotation(user):
     anno_json = json.dumps(annotation)
 
     new_entry = pd.DataFrame(
-        {'anno_id': anno_id, "url": url, 'user': user, "anno_json": anno_json, "state": "private"},
+        {'anno_id': anno_id, "url": url, 'user': user, "anno_json": anno_json, "state": "private",
+         'counter': 0, 'write_permit': "", "wp_valid_time": str(datetime.now())},
         index=[0])
 
     try:
@@ -132,21 +147,108 @@ def add_annotation(user):
     return "OK", 200
 
 
+@app.route('/get-write-permit', methods=['POST'])
+@htpasswd.required
+def get_write_permit(user):
+
+    anno_id = request.json['anno_id']
+
+    get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    df_anno = pd.read_sql("SELECT user, write_permit, wp_valid_time, anno_json, counter"
+                          " FROM annotations WHERE anno_id=?", con=get_db(), params=(anno_id,))
+    if len(df_anno) == 0:
+        get_db().execute('COMMIT TRANSACTION')
+
+        raise BadRequest()
+
+    owner, write_permit, wp_valid_time, annotation, counter = \
+        df_anno.iloc[0].user, df_anno.iloc[0].write_permit, parse_date(df_anno.iloc[0].wp_valid_time), \
+        json.loads(df_anno.iloc[0].anno_json), df_anno.iloc[0].counter
+
+    if not writeable(user, owner):
+        get_db().execute('COMMIT TRANSACTION')
+        raise Forbidden()
+
+    if len(write_permit) > 0 and (wp_valid_time - datetime.now()).seconds < 60:
+        get_db().execute('COMMIT TRANSACTION')
+        raise Conflict()
+
+    characters = string.ascii_letters + string.digits + string.punctuation
+
+    write_permit = ''.join(random.choice(characters) for _ in range(20))
+
+    get_db().execute('UPDATE annotations SET write_permit = ? '
+                     'WHERE anno_id = ?', (write_permit, anno_id))
+
+    get_db().execute('UPDATE annotations SET wp_valid_time = ? '
+                     'WHERE anno_id = ?', ((datetime.now() + timedelta(seconds=60)), anno_id))
+
+    get_db().execute('COMMIT TRANSACTION')
+
+    return jsonify({'write_permit_id': anno_id, 'write_permit': write_permit, 'annotation': annotation})
+
+
+@app.route('/renew-write-permit', methods=['POST'])
+@htpasswd.required
+def renew_write_permit(user):
+
+    del user
+
+    write_permit = request.json['write_permit']
+
+    get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    get_db().execute('UPDATE annotations SET wp_valid_time = ? '
+                     'WHERE write_permit = ?', ((datetime.now() + timedelta(seconds=60)), write_permit))
+
+    get_db().execute('COMMIT TRANSACTION')
+
+    return "OK", 200
+
+
+@app.route('/release-write-permit', methods=['POST'])
+@htpasswd.required
+def release_write_permit(user):
+
+    del user
+
+    write_permit = request.json['write_permit']
+
+    get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    get_db().execute('UPDATE annotations SET wp_valid_time = ? '
+                     'WHERE write_permit = ?', (datetime.now(), write_permit))
+
+    get_db().execute('UPDATE annotations SET write_permit = ? '
+                     'WHERE write_permit = ?', (write_permit, write_permit))
+
+    get_db().execute('COMMIT TRANSACTION')
+
+    return "OK", 200
+
+
 @app.route('/update-annotation', methods=['POST'])
 @htpasswd.required
 def update_annotation(user):
 
+    del user
+
     annotation = request.json['annotation']
+    write_permit = request.json['write_permit']
     anno_id = annotation['id']
     anno_json = json.dumps(annotation)
 
     get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
 
-    if user in app.config['ADMIN_USERS']:
-        get_db().execute('UPDATE annotations SET anno_json = ? WHERE anno_id = ?', (anno_json, anno_id))
-    else:
-        get_db().execute('UPDATE annotations SET anno_json = ? WHERE anno_id = ? AND user = ?',
-                         (anno_json, anno_id, user))
+    get_db().execute('UPDATE annotations SET anno_json = ? '
+                     'WHERE anno_id = ? AND write_permit = ?', (anno_json, anno_id, write_permit))
+
+    get_db().execute('UPDATE annotations SET counter = counter + 1 '
+                     'WHERE anno_id = ? AND write_permit = ?', (anno_id, write_permit))
+
+    get_db().execute('UPDATE annotations SET write_permit = "" '
+                     'WHERE anno_id = ? AND write_permit = ?', (anno_id, write_permit))
 
     get_db().execute('COMMIT TRANSACTION')
 
@@ -158,17 +260,40 @@ def update_annotation(user):
 def delete_annotation(user):
 
     anno_id = request.json['anno_id']
+    write_permit = request.json['write_permit']
 
     get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
 
-    if user in app.config['ADMIN_USERS']:
-        get_db().execute('DELETE FROM annotations WHERE anno_id=?', (anno_id,))
-    else:
-        get_db().execute('DELETE FROM annotations WHERE anno_id=? AND user=user', (anno_id, user))
+    get_db().execute('DELETE FROM annotations WHERE anno_id=? AND write_permit=?', (anno_id, write_permit))
 
     get_db().execute('COMMIT TRANSACTION')
 
     return "OK", 200
+
+
+@app.route('/get-annotation', methods=['POST'])
+@htpasswd.required
+def get_annotation(user):
+    anno_id = request.json['anno_id']
+    since = request.json['since']
+
+    if user in app.config['ADMIN_USERS'] or app.config['COOPERATIVE_ACCESS']:
+        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, counter "
+                              "FROM annotations WHERE anno_id=?", con=get_db(), params=(anno_id,))
+    else:
+        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, counter "
+                              "FROM annotations WHERE anno_id=? AND user=?", con=get_db(), params=(anno_id, user))
+    annotations = dict()
+
+    for idx, (anno_id, url, owner, anno_json, state, counter) in df_anno.iterrows():
+
+        if counter <= since:
+            continue
+
+        annotations[anno_id] = {'url': url, 'user': owner, 'annotation': json.loads(anno_json), 'state': state,
+                                'read_only': not writeable(user, owner), 'counter': int(counter)}
+
+    return jsonify(annotations)
 
 
 @app.route('/get-annotations', methods=['POST'])
@@ -176,20 +301,23 @@ def delete_annotation(user):
 def get_annotations(user):
 
     url = request.json['url']
+    since = request.json['since']
 
     if user in app.config['ADMIN_USERS'] or app.config['COOPERATIVE_ACCESS']:
-        df_anno = pd.read_sql("SELECT * FROM annotations WHERE url=?", con=get_db(), params=(url,))
+        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, counter "
+                              "FROM annotations WHERE url=?", con=get_db(), params=(url,))
     else:
-        df_anno = pd.read_sql("SELECT * FROM annotations WHERE url=? AND user=?",
-                              con=get_db(), params=(url, user))
-    annotations = []
+        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, counter "
+                              "FROM annotations WHERE url=? AND user=?", con=get_db(), params=(url, user))
+    annotations = dict()
 
-    for idx, (anno_id, url, owner, anno_json, state) in df_anno.iterrows():
+    for idx, (anno_id, url, owner, anno_json, state, counter) in df_anno.iterrows():
 
-        writeable = app.config['COOPERATIVE_MODIFICATION'] or (user == owner) or (user in app.config['ADMIN_USERS'])
+        if counter <= since:
+            continue
 
-        annotations.append({'url': url, 'user': owner, 'annotation': json.loads(anno_json), 'state': state,
-                            'read_only': not writeable})
+        annotations[anno_id] = {'url': url, 'user': owner, 'annotation': json.loads(anno_json), 'state': state,
+                                'read_only': not writeable(user, owner), 'counter': int(counter)}
 
     return jsonify(annotations)
 
@@ -223,6 +351,18 @@ def add_url(user):
         raise InternalServerError()
 
     return "OK", 200
+
+
+@app.route('/has-url', methods=['POST'])
+@htpasswd.required
+def has_url(user):
+
+    url = request.json['url']
+
+    if len(pd.read_sql("SELECT * FROM targets WHERE url=?;", con=get_db(), params=(url,))) > 0:
+        return "OK", 200
+
+    raise BadRequest()
 
 
 @app.route('/<path:path>')
