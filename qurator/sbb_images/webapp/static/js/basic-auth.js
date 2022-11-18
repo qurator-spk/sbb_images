@@ -1,8 +1,8 @@
 function BasicAuth(auth_area) {
 
-    var initialized=false;
-    var user=null;
-    var that=null;
+    let initialized=false;
+    let user=null;
+    let that=null;
 
     function logout() {
         user=null;
@@ -12,10 +12,12 @@ function BasicAuth(auth_area) {
     }
 
     that = {
+        user: function() { return user; },
+
         enable_login:
             function () {
                 user=null;
-                var login_html =
+                let login_html =
                 `
                 <div class="alert alert-info mb-3">
                     <span> [Logged out] </span>
@@ -36,16 +38,18 @@ function BasicAuth(auth_area) {
                 );
             },
         enable_logout:
-            function () {
-                var logout_html =
-                `
-                <div class="alert alert-success mb-3">
-                    <span> [${user}] </span>
-                    <button class="btn btn-secondary ml-2" id="logout">Logout</button>
-                </div>
-                `;
+            function (logout_html=null) {
 
-                $(auth_area).html(logout_html);
+                let default_logout_html =
+                    `
+                    <div class="alert alert-success mb-3">
+                        <span> [${user}] </span>
+                        <button class="btn btn-secondary ml-2" id="logout">Logout</button>
+                    </div>
+                    `;
+
+                if (logout_html==null) $(auth_area).html(default_logout_html);
+                else $(auth_area).html(logout_html);
 
                 $('#logout').click(logout);
             },

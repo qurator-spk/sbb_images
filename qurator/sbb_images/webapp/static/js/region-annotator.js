@@ -22,12 +22,13 @@ function makeAnnotator() {
         );
     }
 
+    let is_active=true;
     let anno=null;
-    let read_only_state=true;
+    let update_timeout=null;
 
-    let basic_auth=null;
+    let access_manager=null;
 
-    let annotations=null;
+    let last_read_time="";
 
     let write_permit="";
     let write_permit_id="";
@@ -61,6 +62,7 @@ function makeAnnotator() {
             $('#toolbar').html("");
         }
 
+        $("#configuration").addClass("d-none");
         $("#editor").removeClass("d-none");
 
         anno = Annotorious.init({
@@ -72,8 +74,7 @@ function makeAnnotator() {
 
         Annotorious.BetterPolygon(anno);
 
-        if (basic_auth.getUser() != null) {
-
+        if (access_manager.hasUser()) {
             Annotorious.Toolbar(anno, $('#toolbar')[0]);
         }
 
@@ -81,28 +82,36 @@ function makeAnnotator() {
 
         anno.on('createAnnotation',
             function(annotation, overrideId) {
+                //console.log('createAnnotation',annotation);
                 add_annotation(annotation,
                     function() {
                         update_annotation_list();
                     }
                 );
+                access_manager.restoreReadOnlyState();
             }
         );
 
         anno.on('deleteAnnotation',
             function(annotation) {
+                //console.log('deleteAnnotation',annotation);
                 delete_annotation(annotation['id'],
                     function() {
                         write_permit="";
                         write_permit_id="";
-                        update_annotation_list();
+
+                        if (anno===null) return;
+
+                        anno.removeAnnotation(annotation['id']);
                     }
                 );
+                access_manager.restoreReadOnlyState();
             }
         );
 
         anno.on('updateAnnotation',
             function(annotation, previous) {
+                //console.log('updateAnnotation',annotation, previous);
                 update_annotation(annotation,
                     function() {
                         write_permit="";
@@ -110,11 +119,13 @@ function makeAnnotator() {
                         update_annotation_list();
                     }
                 );
+                access_manager.restoreReadOnlyState();
             }
         );
 
         anno.on('clickAnnotation',
             function(annotation, element) {
+                //console.log('clickAnnotation',annotation);
                 get_write_permit(annotation);
             }
         );
@@ -135,21 +146,36 @@ function makeAnnotator() {
 
         anno.on('mouseEnterAnnotation',
             function(annotation, element) {
+                //console.log('mouseEnterAnnotation', annotation);
             }
         );
 
         anno.on('mouseLeaveAnnotation',
             function(annotation, element) {
+                //console.log('mouseLeaveAnnotation', annotation);
             }
         );
 
-        update_read_only_state();
-        update_annotation_list();
+        access_manager.determineReadOnlyState();
+
+        if (update_timeout !== null) clearTimeout(update_timeout);
+
+        let interval_update = null
+        interval_update =
+            function() {
+                if (anno==null) return;
+
+                if (is_active) update_annotation_list();
+
+                intervall_update = setTimeout(interval_update, 5000);
+            };
+
+        interval_update();
     }
 
     function get_write_permit(annotation) {
 
-        console.log(annotation['id'])
+        //console.log(annotation['id'])
 
         if (!('id' in annotation)) return;
         if (annotation['id'] === write_permit_id) return;
@@ -157,9 +183,8 @@ function makeAnnotator() {
 
         write_permit_id=annotation['id'];
 
-        postit('get-write-permit', {'anno_id': annotation['id'] },
+        postit('get-write-permit', {'anno_id': annotation['id'], 'last_read_time': last_read_time },
             function(result) {
-
                 write_permit = result['write_permit'];
                 write_permit_id = result['write_permit_id'];
 
@@ -188,6 +213,8 @@ function makeAnnotator() {
     }
 
     function release_write_permit() {
+            access_manager.restoreReadOnlyState();
+
             if (write_permit === "") return;
 
             postit('release-write-permit', { 'write_permit': write_permit},function() {});
@@ -211,102 +238,103 @@ function makeAnnotator() {
         }
     }
 
-//    function update_single_annotation_view(anno_id) {
-//        let post_data = { "anno_id": anno_id };
-//
-//        $.ajax({
-//                url:  "get-annotation",
-//                data: JSON.stringify(post_data),
-//                type: 'POST',
-//                contentType: "application/json",
-//                success:
-//                    function(result) {
-//                        $.each(results,
-//                            function(index, result) {
-//                                //anno.addAnnotation(result['annotation'], result['read_only']);
-//                            }
-//                        );
-//                    },
-//                error:
-//                    function(error) {
-//                        console.log(error);
-//                    }
-//            }
-//        );
-//    }
-
-    function update_read_only_state() {
-        if (anno === null) return;
-
-        anno.readOnly = true;
-
-        if (basic_auth.getUser() != null) {
-            anno.setAuthInfo({
-              id: basic_auth.getUser(),
-              displayName: basic_auth.getUser()
-            });
-
-            anno.readOnly=false;
-        }
-
-        read_only_state = anno.readOnly;
-    }
-
     function update_annotation_list() {
 
-        function render_list(results) {
+        function render_list(result) {
+
+            let read_time = result['read_time'];
+            let annotations_update = result['annotations'];
 
             if (anno === null) return;
 
-            anno.clearAnnotations();
+            $.each(annotations_update,
+                function(index, anno_info) {
 
-            $.each(results,
-                function(index, result) {
-                    anno.addAnnotation(result['annotation'], result['read_only']);
+                    if ('annotation' in anno_info)
+                        anno.addAnnotation(anno_info['annotation'], result['read_only']);
+                    else
+                        anno.removeAnnotation(anno_info['anno_id']);
                 }
             );
+
+            last_read_time = read_time;
         }
 
-        if (basic_auth.getUser() === null) {
+        if (!access_manager.hasUser()) {
             if (anno === null) return;
 
             anno.clearAnnotations();
+            last_read_time="";
         }
         else {
-            let post_data =  { "url" : $("#image-view").attr("src"), 'since': -1 }
+            let post_data =  { "url" : $("#image-view").attr("src") };
+
+            if (last_read_time.length > 0) post_data['last_read_time'] = last_read_time;
 
             postit("get-annotations", post_data, render_list);
         }
     }
 
-    function update_admin_state() {
-        $.get("isadmin",
-            function(result) {
-                if (result.isadmin) {
-                    $("#add-action").prop("disabled", false);
-                }
-            }
-        );
+    function showConfiguration() {
+        console.log("showConfiguration");
+
+        $('#editor').addClass('d-none');
+        $('#url-selection').addClass('d-none');
+        $('#configuration').removeClass('d-none');
     }
 
-    function init() {
-        $("#annotation-url").on('input', annotation_url_input);
+    function applyConfiguration() {
+        $('#url-selection').removeClass('d-none');
+        $('#configuration').addClass('d-none');
+    }
 
-        $("#annotation-url").on('keydown',
-            function(e) {
-                if (e.keyCode === 13) annotation_url_submit();
-            }
-        );
+    function showUrlSection() {
+        $('#url-selection').removeClass('d-none');
+        $('#configuration').addClass('d-none');
+    }
 
-        basic_auth = BasicAuth('#auth-area');
+    function AccessManager() {
+        let read_only_state=true;
+
+        let basic_auth = BasicAuth('#auth-area');
 
         (function(enable_login, enable_logout) {
 
         basic_auth.enable_logout =
             function() {
-                enable_logout();
 
-                update_admin_state();
+                let logout_html=`
+                    <div class="alert alert-success mb-3">
+                        <span> [${basic_auth.user()}] </span>
+                        <div class="btn-group ml-2">
+                          <button type="button" class="btn btn-secondary" id="logout">Logout</button>
+                          <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="sr-only">Toggle Dropdown</span>
+                          </button>
+                          <div class="dropdown-menu">
+                            <button class="dropdown-item" id="configure">Configure</button>
+                          </div>
+                        </div>
+                    </div>
+                    `;
+
+                $.get("isadmin")
+                    .done(
+                        function(result) {
+                            if (result.isadmin) {
+                                enable_logout(logout_html);
+
+                                $('#configure').click(
+                                    function() {
+                                        showConfiguration();
+                                    }
+                                );
+                            }
+                            else {
+                                enable_logout();
+                            }
+                        });
 
                 if (anno === null) return;
 
@@ -317,7 +345,7 @@ function makeAnnotator() {
 
                 Annotorious.Toolbar(anno, $('#toolbar')[0]);
 
-                update_read_only_state();
+                determine_read_only_state();
                 update_annotation_list();
             }
 
@@ -334,18 +362,61 @@ function makeAnnotator() {
 
                 $('#toolbar').html("");
 
-                update_read_only_state();
+                determine_read_only_state();
                 update_annotation_list();
             };
 
         })(basic_auth.enable_login, basic_auth.enable_logout);
 
-        if (basic_auth.getUser() != null) {
-            update_admin_state();
+        function determine_read_only_state() {
+            if (anno === null) return;
+
+            read_only_state = true;
+
+            if (basic_auth.getUser() != null) {
+                anno.setAuthInfo({
+                  id: basic_auth.getUser(),
+                  displayName: basic_auth.getUser()
+                });
+
+                read_only_state=false;
+            }
+
+            anno.readOnly=read_only_state;
         }
+
+        let that =
+        {
+            hasUser: function() {  return (basic_auth.getUser() != null) },
+
+            determineReadOnlyState: determine_read_only_state,
+
+            restoreReadOnlyState:
+                function() {
+                    anno.readOnly = read_only_state;
+                }
+        };
+
+        basic_auth.getUser();
+
+        return that;
+    }
+
+    function init() {
+        $("#annotation-url").on('input', annotation_url_input);
+
+        $("#annotation-url").on('keydown',
+            function(e) {
+                if (e.keyCode === 13) annotation_url_submit();
+            }
+        );
+
+        access_manager = AccessManager();
 
         $("#image-view").on("load",
             function() {
+                if (!access_manager.hasUser()) return;
+
                 postit('has-url', {'url': $("#image-view").attr('src')},
                     function() {
                         annotation_setup($("#image-view").attr('src'));
@@ -353,11 +424,19 @@ function makeAnnotator() {
                 );
             }
         );
+
+        $("#apply-conf").click(applyConfiguration);
+        $("#cancel-conf").click(showUrlSection);
     }
 
     let that =
         {
-            init: function() { init(); }
+            init: function() { init(); },
+
+            setActive:
+                function (active) {
+                    is_active = active;
+                }
         };
 
     return that;
@@ -368,6 +447,18 @@ $(document).ready(
         let annotator = makeAnnotator();
 
         annotator.init();
+
+        $(window).focus(
+            function() {
+                annotator.setActive(true);
+            }
+        );
+
+        $(window).blur(
+            function() {
+                annotator.setActive(false);
+            }
+        );
     }
 );
 
