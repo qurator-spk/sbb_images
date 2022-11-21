@@ -9,7 +9,9 @@
     <link rel="stylesheet" href="annotorious/annotorious.min.css">
 
     <script src="js/jquery-3.4.1.js"></script>
+    <script src="js/popper.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
+
     <script src="annotorious/annotorious.min.js"></script>
     <script src="annotorious/annotorious-toolbar.min.js"></script>
     <script src="annotorious/annotorious-better-polygon.js"></script>
@@ -27,31 +29,34 @@
                 width: auto;
             }
         }
+
     </style>
 </head>
 
 <body>
 <div class="container-fluid">
-    <div class="row align-items-center">
-        <div class="col-sm-9 col mt-1">
-            <div class="form-group form-inline mb-1 mt-1 justify-content-center">
-                <div class="input-group" style="width: 100%;">
-                    <div class="input-group-prepend">
-                        <select id="action" class="selectpicker form-control form-control-sm">
-                            <option value="annotate" id="search-action">Annotate</option>
-                            <option value="add" id="add-action" disabled="">Add</option>
-                        </select>
-                        <label for="annotation-url" class="ml-3 mb-1">Image:</label>
-                    </div>
-                    <input type="text" list="suggestions" class="form-control form-control-sm ml-3 mb-1"
-                           id="annotation-url"
-                           autocomplete="off"/>
-                    <datalist id="suggestions">
-                    </datalist>
-                </div>
-            </div>
-        </div>
+    <div class="row align-items-top" id="url-selection">
+        <form class="col-sm-9 col mt-3" id="edit-form">
 
+                <div class="form-group form-inline justify-content-center">
+                    <div class="input-group" style="width: 100%;">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Image-URL:</span>
+                        </div>
+                        <input type="text" list="suggestions" class="form-control form-control-sm"
+                               id="annotation-url" autocomplete="off"/>
+                        <datalist id="suggestions">
+                        </datalist>
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" id="edit-button" type="submit" disabled> Edit</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="collapse" id="search-result-list-collapse">
+                    <div class="list-group" id="search-result-list" style="overflow-y: scroll;">
+                    </div>
+                </div>
+        </form>
         <div class="col-sm-3 col mt-1 text-center" id="auth-area">
         </div>
     </div>
@@ -59,7 +64,6 @@
     <div class="row d-none" id="editor">
         <div class="col-lg-9 col-md mt-1 mb-1">
             <div class="card mt-2 mb-1 h-100">
-
                 <div class="card-body align-self-center d-flex flex-row">
                     <div id="toolbar"></div>
                     <img id="image-view" class="img-fluid fit-image" src=""/>
@@ -92,7 +96,75 @@
             </div>
         </div>
     </div>
-</div>
-<script src="js/basic-auth.js"></script>
-<script src="js/region-annotator.js"></script>
+
+    <div class="row d-none" id="configuration">
+        <div class="col-lg col-md mt-1 mb-1">
+            <div class="card mt-2 mb-1">
+                <div class="card-header">
+                    <h1> Configuration </h1>
+                </div>
+                <div class="card-body">
+
+                    <div class="card-title text-center mt-3">
+                        Permitted Image-URLs/URL-Patterns
+                    </div>
+
+                    <hr>
+
+                    <div class="list-group" id="url-list" style="overflow-y: scroll;">
+                    </div>
+
+                    <hr>
+
+                    <form class="mt-2">
+                        <div class="form-row">
+                            <div class="form-group col">
+                                <label for="conf-url">Image-URL/URL-pattern</label>
+                                <input type="text" id="conf-url" class="form-control" autocomplete="off"/>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col">
+                                <label for="conf-description">Description</label>
+                                <input type="text" id="conf-description" class="form-control" autocomplete="off"/>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-sm btn-secondary" id="add-url" disabled>Add</button>
+                        <button class="btn btn-sm btn-secondary" id="change-url" disabled>Change</button>
+                        <button class="btn btn-sm btn-secondary" id="delete-url" disabled>Delete</button>
+
+                    </form>
+                </div>
+                <div class="card-footer text-right">
+                    <button class="btn btn-primary back-to-editor">Back</button>
+                </div>
+            </div>
+
+        </div>
+        <div class="row d-none" id="data-export">
+            <div class="col-lg col-md mt-1 mb-1">
+                <div class="card mt-2 mb-1">
+                    <div class="card-body">
+                        <hr class="mt-3">
+
+                        <div class="card-title text-center mt-3">
+                            Data Export
+                        </div>
+
+                        <button class="btn btn-sm btn-secondary">Download JSON</button>
+                        <button class="btn btn-sm btn-secondary" disabled>Download TEI</button>
+                    </div>
+
+                    <div class="card-footer text-right">
+                        <button class="btn btn-primary back-to-editor">Back</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+    <script src="js/basic-auth.js"></script>
+    <script src="js/region-annotator.js"></script>
 </body>

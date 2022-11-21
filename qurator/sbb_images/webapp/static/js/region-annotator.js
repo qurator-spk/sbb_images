@@ -22,21 +22,15 @@ function makeAnnotator() {
         );
     }
 
-    let is_active=true;
+    let is_active=true; // Browser-Tab active or not
     let anno=null;
-    let update_timeout=null;
 
     let access_manager=null;
 
     let last_read_time="";
-
-    let write_permit="";
     let write_permit_id="";
+    let write_permit="";
     let renew_permit_timeout=null;
-
-    function annotation_url_input() {
-        console.log("annotation_url_input");
-    }
 
     function add_annotation(annotation, onSuccess) {
         postit("add-annotation", { "annotation": annotation, "url" : $("#image-view").attr("src") }, onSuccess);
@@ -50,19 +44,37 @@ function makeAnnotator() {
         postit("delete-annotation", { "anno_id": anno_id, 'write_permit': write_permit }, onSuccess);
     }
 
-    function add_url(img_url, onSuccess) {
-        postit ("add-url", { "url" : img_url }, onSuccess);
+    function add_url(img_url, description, onSuccess) {
+        postit ("add-url-pattern", { "url_pattern" : img_url, 'description': description }, onSuccess);
     }
 
-    function annotation_setup(img_url) {
+    function change_url(img_url, description, onSuccess) {
+        postit ("change-url-pattern", { "url_pattern" : img_url, 'description': description }, onSuccess);
+    }
+
+    function delete_url(img_url, onSuccess) {
+        postit ("delete-url-pattern", { "url_pattern" : img_url}, onSuccess);
+    }
+
+     function clear_editor() {
+        last_read_time="";
 
         if (anno != null) {
             anno.destroy();
+            anno = null;
 
             $('#toolbar').html("");
         }
 
         $("#configuration").addClass("d-none");
+        $("#data-export").addClass("d-none");
+        $("#editor").addClass("d-none");
+        $("#search-result-list-collapse").collapse('hide');
+     }
+
+    function annotation_setup(img_url) {
+        clear_editor();
+
         $("#editor").removeClass("d-none");
 
         anno = Annotorious.init({
@@ -158,14 +170,14 @@ function makeAnnotator() {
 
         access_manager.determineReadOnlyState();
 
-        if (update_timeout !== null) clearTimeout(update_timeout);
-
         let interval_update = null
         interval_update =
             function() {
-                if (anno==null) return;
+                if (anno===null) return;
 
                 if (is_active) update_annotation_list();
+
+                if (anno===null) return;
 
                 intervall_update = setTimeout(interval_update, 5000);
             };
@@ -174,8 +186,6 @@ function makeAnnotator() {
     }
 
     function get_write_permit(annotation) {
-
-        //console.log(annotation['id'])
 
         if (!('id' in annotation)) return;
         if (annotation['id'] === write_permit_id) return;
@@ -226,20 +236,11 @@ function makeAnnotator() {
     function annotation_url_submit() {
         let img_url = $("#annotation-url").val();
 
-        if ($("#action").val() === "add") {
-            add_url(img_url,
-                function() {
-                    $("#action").val("annotate")
-                }
-            );
-        }
-        else {
-            $("#image-view").attr("src", img_url);
-        }
+        $("#search-result-list-collapse").collapse('hide');
+        $("#image-view").attr("src", img_url);
     }
 
     function update_annotation_list() {
-
         function render_list(result) {
 
             let read_time = result['read_time'];
@@ -276,21 +277,70 @@ function makeAnnotator() {
     }
 
     function showConfiguration() {
-        console.log("showConfiguration");
-
         $('#editor').addClass('d-none');
         $('#url-selection').addClass('d-none');
         $('#configuration').removeClass('d-none');
+
+        render_target_list();
     }
 
-    function applyConfiguration() {
+    function showEditor() {
         $('#url-selection').removeClass('d-none');
+        if ($("#image-view").attr('src').length > 0) $('#editor').removeClass('d-none');
+
         $('#configuration').addClass('d-none');
+        $('#data-export').addClass('d-none');
     }
 
-    function showUrlSection() {
-        $('#url-selection').removeClass('d-none');
-        $('#configuration').addClass('d-none');
+    function render_target_list() {
+        postit("get-url-patterns", {},
+            function(results) {
+                $('#url-list').html("");
+
+                if (results.length==0) {
+                    $('#url-list').html(`<li><span></span></li>`);
+                    return;
+                }
+
+                let url_list_html="";
+
+                $.each(results,
+                    function(index, result) {
+                        let description_html=""
+
+                        if (result.description.length > 0) {
+                            description_html = `<span>[${result.description}]</span>`;
+                        }
+
+                        let item_html=`
+                            <button class="list-group-item list-group-item-action text-left" id="target-item-${index}">
+                                <span class="mr-2">${result.url_pattern}</span>
+                                ${description_html}
+                            </button>
+                        `;
+
+                        url_list_html += item_html;
+                    }
+                );
+
+                $('#url-list').html(url_list_html);
+
+                $.each(results,
+                    function(index, result) {
+                        $("#target-item-"+ index).click(
+                            function() {
+                                $("#conf-url").val(result.url_pattern);
+                                $("#conf-description").val(result.description);
+
+                                $("#add-url").prop('disabled', true);
+                                $("#change-url").prop('disabled', false);
+                                $("#delete-url").prop('disabled', false);
+                            }
+                        );
+                    }
+                );
+            }
+        );
     }
 
     function AccessManager() {
@@ -305,15 +355,16 @@ function makeAnnotator() {
 
                 let logout_html=`
                     <div class="alert alert-success mb-3">
-                        <span> [${basic_auth.user()}] </span>
-                        <div class="btn-group ml-2">
-                          <button type="button" class="btn btn-secondary" id="logout">Logout</button>
-                          <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split"
+                        <span class="mr-1"> [${basic_auth.user()}] </span>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-sm btn-secondary" id="logout">Logout</button>
+                          <button type="button" class="btn btn-sm btn-secondary dropdown-toggle dropdown-toggle-split"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span class="sr-only">Toggle Dropdown</span>
+                            <!--<span class="sr-only">Toggle Dropdown</span>-->
                           </button>
-                          <div class="dropdown-menu">
+                          <div class="dropdown-menu text-center">
                             <button class="dropdown-item" id="configure">Configure</button>
+                            <button class="dropdown-item" id="data-export-dropdown" disabled>Data Export</button>
                           </div>
                         </div>
                     </div>
@@ -325,15 +376,9 @@ function makeAnnotator() {
                             if (result.isadmin) {
                                 enable_logout(logout_html);
 
-                                $('#configure').click(
-                                    function() {
-                                        showConfiguration();
-                                    }
-                                );
+                                $('#configure').click(showConfiguration);
                             }
-                            else {
-                                enable_logout();
-                            }
+                            else enable_logout();
                         });
 
                 if (anno === null) return;
@@ -402,14 +447,118 @@ function makeAnnotator() {
         return that;
     }
 
-    function init() {
-        $("#annotation-url").on('input', annotation_url_input);
+    let search_url = "";
+    let suggestions_html = "";
 
-        $("#annotation-url").on('keydown',
-            function(e) {
-                if (e.keyCode === 13) annotation_url_submit();
+    function update_suggestions(success) {
+
+        if ($("#annotation-url").val() === search_url) return;
+
+        search_url = $("#annotation-url").val();
+
+        if (search_url.includes("*")) {
+            $('#edit-button').prop('disabled', true);
+        }
+
+        (function(last_search_url) {
+            postit('suggestions', {'url': search_url},
+                function(suggestions) {
+
+                    if (last_search_url !== search_url) return;
+
+                    suggestions_html="";
+                    $.each(suggestions,
+                       function(index, item){
+
+                            let description_html="";
+
+                            if (item.description.length > 0)
+                                description_html = `<span> [ ${item.description} ]</span>`;
+
+                            suggestions_html += `
+                                <button class="list-group-item list-group-item-action text-left" id="search-result-${index}">
+                                    <span class="mr-2"> ${item.url_pattern} </span> ${description_html}
+                                </button>`;
+                        });
+
+                    if (last_search_url != search_url) return;
+
+                    $('#search-result-list').html(suggestions_html);
+                    $('#editor').addClass("d-none");
+
+                    $.each(suggestions,
+                        function(index, item) {
+                            $("#search-result-"+ index).click(
+                                function() {
+                                    search_url = item.url_pattern;
+
+                                    $("#annotation-url").val(item.url_pattern);
+                                    $('#search-result-list').html("");
+
+                                    if (item.url_pattern.includes("*")) {
+                                        $('#edit-button').prop('disabled', true);
+                                        clear_editor();
+                                        return;
+                                    }
+
+                                    postit('match-url', {'url': $("#annotation-url").val()},
+                                        function() {
+
+                                            $('#edit-button').prop('disabled', false);
+                                            annotation_url_submit();
+                                        },
+                                        function() {
+                                            $('#edit-button').prop('disabled', true);
+                                        }
+                                    );
+                                }
+                            );
+                        }
+                    );
+
+                    $("#search-result-list-collapse").collapse('show');
+                    console.log(suggestions);
+
+                    success();
+                }
+            );
+        })(search_url);
+    }
+
+    let suggestion_timeout=null;
+
+    function init() {
+        $("#annotation-url").on('input',
+            function() {
+                $("#search-result-list-collapse").collapse('hide');
+
+                postit('match-url', {'url': $("#annotation-url").val()},
+                    function() {
+                        $('#edit-button').prop('disabled', false);
+                    },
+                    function() {
+                        $('#edit-button').prop('disabled', true);
+                    }
+                );
+
+                if (suggestion_timeout !== null) clearTimeout(suggestion_timeout);
+
+                suggestion_timeout = setTimeout(
+                    function() {
+                        update_suggestions(function(){});
+                    }, 500);
             }
         );
+
+        $("#search-result-list-collapse").collapse();
+
+        $("#annotation-url").click(
+            function() {
+                $("#search-result-list-collapse").collapse('toggle');
+            }
+        );
+
+        $("#edit-form").submit(annotation_url_submit);
 
         access_manager = AccessManager();
 
@@ -417,7 +566,7 @@ function makeAnnotator() {
             function() {
                 if (!access_manager.hasUser()) return;
 
-                postit('has-url', {'url': $("#image-view").attr('src')},
+                postit('match-url', {'url': $("#image-view").attr('src')},
                     function() {
                         annotation_setup($("#image-view").attr('src'));
                     }
@@ -425,8 +574,96 @@ function makeAnnotator() {
             }
         );
 
-        $("#apply-conf").click(applyConfiguration);
-        $("#cancel-conf").click(showUrlSection);
+        $("#image-view").on("error",
+            function() {
+                clear_editor();
+            }
+        );
+
+        $(".back-to-editor").click(showEditor);
+
+        $("#add-url").click(
+            function() {
+                let url = $("#conf-url").val();
+                let description = $("#conf-description").val();
+
+                if (url.length < 7) return;
+
+                add_url(url, description,
+                    function() {
+                        render_target_list();
+
+                        $("#conf-url").val("");
+                        $("#conf-description").val("");
+
+                        $("#add-url").prop('disabled', true);
+                        $("#change-url").prop('disabled', true);
+                        $("#delete-url").prop('disabled', true);
+                    }
+                );
+            }
+        );
+
+        $("#change-url").click(
+            function() {
+                let url = $("#conf-url").val();
+                let description = $("#conf-description").val();
+
+                if (url.length < 7) return;
+
+                change_url(url, description,
+                    function() {
+                        render_target_list();
+
+                        $("#conf-url").val("");
+                        $("#conf-description").val("");
+
+                        $("#add-url").prop('disabled', true);
+                        $("#change-url").prop('disabled', true);
+                        $("#delete-url").prop('disabled', true);
+                    }
+                );
+            }
+        );
+
+        $("#delete-url").click(
+            function() {
+                let url = $("#conf-url").val();
+                let description = $("#conf-description").val();
+
+                if (url.length < 7) return;
+
+                delete_url(url,
+                    function() {
+                        render_target_list();
+
+                        $("#conf-url").val("");
+                        $("#conf-description").val("");
+
+                        $("#add-url").prop('disabled', true);
+                        $("#change-url").prop('disabled', true);
+                        $("#delete-url").prop('disabled', true);
+                    }
+                );
+            }
+        );
+
+        $("#conf-url").on('input',
+            function() {
+                postit('has-url-pattern', {'url_pattern': $("#conf-url").val()},
+                    function() {
+                        $("#add-url").prop('disabled', true);
+                        $("#change-url").prop('disabled', false);
+                        $("#delete-url").prop('disabled', false);
+                    },
+                    function() {
+                        $("#add-url").prop('disabled', false);
+                        $("#change-url").prop('disabled', true);
+                        $("#delete-url").prop('disabled', true);
+                    }
+                );
+            }
+         );
     }
 
     let that =

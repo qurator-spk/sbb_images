@@ -11,6 +11,9 @@ import random
 import string
 import json
 
+from urlmatch import urlmatch
+from urlmatch import BadMatchPattern
+
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 
@@ -66,13 +69,12 @@ def get_db():
 
         co = make_conn()
 
-        co.execute('CREATE TABLE "targets" ("url" TEXT primary key, "user" TEXT)')
-
-        # import ipdb;ipdb.set_trace()
+        co.execute('CREATE TABLE "target_patterns" ("url_pattern" TEXT primary key, "description" TEXT, '
+                   '"user" TEXT)')
 
         co.execute('CREATE TABLE "annotations" '
                    '("anno_id" TEXT primary key, "url" TEXT, "user" TEXT, "anno_json" TEXT, "state" TEXT,'
-                   '"counter" INTEGER, "write_permit" TEXT, "wp_valid_time" TEXT)')
+                   '"last_write_time" TEXT, "write_permit" TEXT, "wp_valid_time" TEXT)')
 
         co.execute('CREATE INDEX "idx_annotations_by_url" ON annotations(url)')
         co.execute('CREATE INDEX "idx_annotations_by_url_and_state" ON annotations(url, state)')
@@ -118,53 +120,29 @@ def isadmin(user):
     return jsonify({'isadmin': user in app.config['ADMIN_USERS']})
 
 
-@app.route('/add-annotation', methods=['POST'])
-@htpasswd.required
-def add_annotation(user):
-
-    annotation = request.json['annotation']
-
-    anno_id = annotation['id']
-    url = annotation['target']['source']
-
-    anno_json = json.dumps(annotation)
-
-    new_entry = pd.DataFrame(
-        {'anno_id': anno_id, "url": url, 'user': user, "anno_json": anno_json, "state": "private",
-         'counter': 0, 'write_permit': "", "wp_valid_time": str(datetime.now())},
-        index=[0])
-
-    try:
-        new_entry.to_sql('annotations', con=get_db(), if_exists='append', index=False)
-
-    except sqlite3.IntegrityError as e:
-        print(e)
-        raise BadRequest()
-    except sqlite3.OperationalError as e:
-        print(e)
-        raise InternalServerError()
-
-    return "OK", 200
-
-
 @app.route('/get-write-permit', methods=['POST'])
 @htpasswd.required
 def get_write_permit(user):
 
     anno_id = request.json['anno_id']
+    last_read_time = parse_date(request.json['last_read_time'])
 
     get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
 
-    df_anno = pd.read_sql("SELECT user, write_permit, wp_valid_time, anno_json, counter"
+    df_anno = pd.read_sql("SELECT user, write_permit, wp_valid_time, anno_json, last_write_time"
                           " FROM annotations WHERE anno_id=?", con=get_db(), params=(anno_id,))
     if len(df_anno) == 0:
         get_db().execute('COMMIT TRANSACTION')
 
         raise BadRequest()
 
-    owner, write_permit, wp_valid_time, annotation, counter = \
+    owner, write_permit, wp_valid_time, anno_json, last_write_time = \
         df_anno.iloc[0].user, df_anno.iloc[0].write_permit, parse_date(df_anno.iloc[0].wp_valid_time), \
-        json.loads(df_anno.iloc[0].anno_json), df_anno.iloc[0].counter
+        df_anno.iloc[0].anno_json, parse_date(df_anno.iloc[0].last_write_time)
+
+    if len(anno_json) > 0 and last_write_time > last_read_time:
+        get_db().execute('COMMIT TRANSACTION')
+        raise Conflict()
 
     if not writeable(user, owner):
         get_db().execute('COMMIT TRANSACTION')
@@ -186,7 +164,9 @@ def get_write_permit(user):
 
     get_db().execute('COMMIT TRANSACTION')
 
-    return jsonify({'write_permit_id': anno_id, 'write_permit': write_permit, 'annotation': annotation})
+    permit = {'write_permit_id': anno_id, 'write_permit': write_permit}
+
+    return jsonify(permit)
 
 
 @app.route('/renew-write-permit', methods=['POST'])
@@ -228,6 +208,38 @@ def release_write_permit(user):
     return "OK", 200
 
 
+@app.route('/add-annotation', methods=['POST'])
+@htpasswd.required
+def add_annotation(user):
+
+    annotation = request.json['annotation']
+
+    anno_id = annotation['id']
+    url = annotation['target']['source']
+
+    if not _match_url(url):
+        raise BadRequest()
+
+    anno_json = json.dumps(annotation)
+
+    new_entry = pd.DataFrame(
+        {'anno_id': anno_id, "url": url, 'user': user, "anno_json": anno_json, "state": "private",
+         'last_write_time': str(datetime.now()), 'write_permit': "", "wp_valid_time": str(datetime.now())},
+        index=[0])
+
+    try:
+        new_entry.to_sql('annotations', con=get_db(), if_exists='append', index=False)
+
+    except sqlite3.IntegrityError as e:
+        print(e)
+        raise BadRequest()
+    except sqlite3.OperationalError as e:
+        print(e)
+        raise InternalServerError()
+
+    return "OK", 200
+
+
 @app.route('/update-annotation', methods=['POST'])
 @htpasswd.required
 def update_annotation(user):
@@ -244,8 +256,8 @@ def update_annotation(user):
     get_db().execute('UPDATE annotations SET anno_json = ? '
                      'WHERE anno_id = ? AND write_permit = ?', (anno_json, anno_id, write_permit))
 
-    get_db().execute('UPDATE annotations SET counter = counter + 1 '
-                     'WHERE anno_id = ? AND write_permit = ?', (anno_id, write_permit))
+    get_db().execute('UPDATE annotations SET last_write_time = ?'
+                     'WHERE anno_id = ? AND write_permit = ?', (str(datetime.now()), anno_id, write_permit))
 
     get_db().execute('UPDATE annotations SET write_permit = "" '
                      'WHERE anno_id = ? AND write_permit = ?', (anno_id, write_permit))
@@ -264,36 +276,20 @@ def delete_annotation(user):
 
     get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
 
-    get_db().execute('DELETE FROM annotations WHERE anno_id=? AND write_permit=?', (anno_id, write_permit))
+    # get_db().execute('DELETE FROM annotations WHERE anno_id=? AND write_permit=?', (anno_id, write_permit))
+
+    get_db().execute('UPDATE annotations SET anno_json = "" '
+                     'WHERE anno_id = ? AND write_permit = ?', (anno_id, write_permit))
+
+    get_db().execute('UPDATE annotations SET last_write_time = ?'
+                     'WHERE anno_id = ? AND write_permit = ?', (str(datetime.now()), anno_id, write_permit))
+
+    get_db().execute('UPDATE annotations SET write_permit = "" '
+                     'WHERE anno_id = ? AND write_permit = ?', (anno_id, write_permit))
 
     get_db().execute('COMMIT TRANSACTION')
 
     return "OK", 200
-
-
-@app.route('/get-annotation', methods=['POST'])
-@htpasswd.required
-def get_annotation(user):
-    anno_id = request.json['anno_id']
-    since = request.json['since']
-
-    if user in app.config['ADMIN_USERS'] or app.config['COOPERATIVE_ACCESS']:
-        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, counter "
-                              "FROM annotations WHERE anno_id=?", con=get_db(), params=(anno_id,))
-    else:
-        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, counter "
-                              "FROM annotations WHERE anno_id=? AND user=?", con=get_db(), params=(anno_id, user))
-    annotations = dict()
-
-    for idx, (anno_id, url, owner, anno_json, state, counter) in df_anno.iterrows():
-
-        if counter <= since:
-            continue
-
-        annotations[anno_id] = {'url': url, 'user': owner, 'annotation': json.loads(anno_json), 'state': state,
-                                'read_only': not writeable(user, owner), 'counter': int(counter)}
-
-    return jsonify(annotations)
 
 
 @app.route('/get-annotations', methods=['POST'])
@@ -301,48 +297,69 @@ def get_annotation(user):
 def get_annotations(user):
 
     url = request.json['url']
-    since = request.json['since']
+    last_read_time = parse_date(request.json['last_read_time']) if 'last_read_time' in request.json else None
+
+    read_time = datetime.now()
 
     if user in app.config['ADMIN_USERS'] or app.config['COOPERATIVE_ACCESS']:
-        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, counter "
+        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, last_write_time "
                               "FROM annotations WHERE url=?", con=get_db(), params=(url,))
     else:
-        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, counter "
+        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, last_write_time "
                               "FROM annotations WHERE url=? AND user=?", con=get_db(), params=(url, user))
-    annotations = dict()
 
-    for idx, (anno_id, url, owner, anno_json, state, counter) in df_anno.iterrows():
+    annotations_update = dict()
 
-        if counter <= since:
+    for idx, (anno_id, url, owner, anno_json, state, last_write_time) in df_anno.iterrows():
+
+        last_write_time = parse_date(last_write_time)
+
+        if len(anno_json) == 0 and last_write_time - read_time > timedelta(hours=1):
+            get_db().execute('DELETE FROM annotations WHERE anno_id=?', (anno_id,))
             continue
 
-        annotations[anno_id] = {'url': url, 'user': owner, 'annotation': json.loads(anno_json), 'state': state,
-                                'read_only': not writeable(user, owner), 'counter': int(counter)}
+        if last_read_time is not None and last_write_time <= last_read_time:
+            continue
 
-    return jsonify(annotations)
+        anno_info = {'anno_id': anno_id, 'url': url, 'user': owner, 'state': state,
+                     'read_only': not writeable(user, owner)}
 
-# @app.route('/find-url', methods=['POST'])
-# @htpasswd.required
-# def find_url(user):
-#
-#     url = request.json['url']
-#
-#     pd.read_sql()
+        if len(anno_json) > 0:
+            anno_info['annotation'] = json.loads(anno_json)
+
+        annotations_update[anno_id] = anno_info
+
+    return jsonify({'annotations': annotations_update, 'read_time': str(read_time)})
 
 
-@app.route('/add-url', methods=['POST'])
+@app.route('/get-url-patterns', methods=['POST'])
 @htpasswd.required
-def add_url(user):
+def get_url_patterns(user):
+
+    df_target_patterns = pd.read_sql("SELECT url_pattern,description,user from target_patterns", con=get_db())
+
+    target_patterns = []
+
+    for _, (url_pattern, description, user) in df_target_patterns.iterrows():
+        target_patterns.append({'url_pattern': url_pattern, 'description': description, 'user': user})
+
+    return jsonify(target_patterns)
+
+
+@app.route('/add-url-pattern', methods=['POST'])
+@htpasswd.required
+def add_url_pattern(user):
 
     if user not in app.config['ADMIN_USERS']:
         raise Unauthorized()
 
-    url = request.json['url']
+    url = request.json['url_pattern']
+    description = request.json['description']
 
-    new_entry = pd.DataFrame({'url': url, 'user': user}, index=[0])
+    new_entry = pd.DataFrame({'url_pattern': url, 'description': description, 'user': user}, index=[0])
 
     try:
-        new_entry.to_sql('targets', con=get_db(), if_exists='append', index=False)
+        new_entry.to_sql('target_patterns', con=get_db(), if_exists='append', index=False)
     except sqlite3.IntegrityError as e:
         print(e)
         raise BadRequest()
@@ -353,16 +370,114 @@ def add_url(user):
     return "OK", 200
 
 
-@app.route('/has-url', methods=['POST'])
+@app.route('/change-url-pattern', methods=['POST'])
 @htpasswd.required
-def has_url(user):
+def change_url_pattern(user):
 
-    url = request.json['url']
+    if user not in app.config['ADMIN_USERS']:
+        raise Unauthorized()
 
-    if len(pd.read_sql("SELECT * FROM targets WHERE url=?;", con=get_db(), params=(url,))) > 0:
+    url_pattern = request.json['url_pattern']
+    description = request.json['description']
+
+    get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    try:
+        get_db().execute('UPDATE target_patterns SET description = ? '
+                         'WHERE url_pattern = ? ', (description, url_pattern))
+
+        get_db().execute('UPDATE target_patterns SET url_pattern = ? '
+                         'WHERE url_pattern = ? ', (url_pattern, url_pattern))
+
+        get_db().execute('COMMIT TRANSACTION')
+
+    except sqlite3.IntegrityError as e:
+        get_db().execute('COMMIT TRANSACTION')
+        print(e)
+        raise BadRequest()
+    except sqlite3.OperationalError as e:
+        get_db().execute('COMMIT TRANSACTION')
+        print(e)
+        raise InternalServerError()
+
+    return "OK", 200
+
+
+@app.route('/delete-url-pattern', methods=['POST'])
+@htpasswd.required
+def delete_url_pattern(user):
+
+    if user not in app.config['ADMIN_USERS']:
+        raise Unauthorized()
+
+    url_pattern = request.json['url_pattern']
+
+    get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    get_db().execute('DELETE FROM target_patterns WHERE url_pattern=?', (url_pattern,))
+
+    get_db().execute('COMMIT TRANSACTION')
+
+    return "OK", 200
+
+
+@app.route('/has-url-pattern', methods=['POST'])
+@htpasswd.required
+def has_url_pattern(user):
+
+    url_pattern = request.json['url_pattern']
+
+    if len(pd.read_sql("SELECT * FROM target_patterns WHERE url_pattern=?;", con=get_db(), params=(url_pattern,))) > 0:
         return "OK", 200
 
     raise BadRequest()
+
+
+def _match_url(url):
+    df_url_patterns = pd.read_sql("SELECT url_pattern, description FROM target_patterns", con=get_db())
+
+    for _, (url_pattern, description) in df_url_patterns.iterrows():
+        if urlmatch(url_pattern, url):
+            return True
+
+    return False
+
+
+@app.route('/match-url', methods=['POST'])
+@htpasswd.required
+def match_url(user):
+
+    url = request.json['url']
+
+    if _match_url(url):
+        return "OK", 200
+
+    raise BadRequest()
+
+
+@app.route('/suggestions', methods=['POST'])
+@htpasswd.required
+def suggestions(user):
+
+    search_pattern = request.json['url']
+
+    df_url_patterns = pd.read_sql("SELECT url_pattern, description FROM target_patterns", con=get_db())
+
+    found = []
+    for _, (url_pattern, description) in df_url_patterns.iterrows():
+        try:
+            if urlmatch(url_pattern, search_pattern, path_required=False, fuzzy_scheme=True):
+                found.append({'url_pattern': url_pattern, 'description': description})
+        except BadMatchPattern:
+            pass
+
+        try:
+            if urlmatch(search_pattern, url_pattern, path_required=False, fuzzy_scheme=True):
+                found.append({'url_pattern': url_pattern, 'description': description})
+        except BadMatchPattern:
+            pass
+
+    return jsonify(found)
 
 
 @app.route('/<path:path>')
