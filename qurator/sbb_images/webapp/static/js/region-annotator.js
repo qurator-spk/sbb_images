@@ -279,9 +279,19 @@ function makeAnnotator() {
     function showConfiguration() {
         $('#editor').addClass('d-none');
         $('#url-selection').addClass('d-none');
+        $('#data-export').addClass('d-none');
+
         $('#configuration').removeClass('d-none');
 
         render_target_list();
+    }
+
+    function showDataExport() {
+        $('#editor').addClass('d-none');
+        $('#url-selection').addClass('d-none');
+        $('#configuration').addClass('d-none');
+
+        $('#data-export').removeClass('d-none');
     }
 
     function showEditor() {
@@ -362,9 +372,9 @@ function makeAnnotator() {
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <!--<span class="sr-only">Toggle Dropdown</span>-->
                           </button>
-                          <div class="dropdown-menu text-center">
-                            <button class="dropdown-item" id="configure">Configure</button>
-                            <button class="dropdown-item" id="data-export-dropdown" disabled>Data Export</button>
+                          <div class="dropdown-menu text-left">
+                            <button class="dropdown-item" id="configure-dropdown">Configure</button>
+                            <button class="dropdown-item" id="data-export-dropdown">Data Export</button>
                           </div>
                         </div>
                     </div>
@@ -376,7 +386,8 @@ function makeAnnotator() {
                             if (result.isadmin) {
                                 enable_logout(logout_html);
 
-                                $('#configure').click(showConfiguration);
+                                $('#configure-dropdown').click(showConfiguration);
+                                $('#data-export-dropdown').click(showDataExport);
                             }
                             else enable_logout();
                         });
@@ -587,7 +598,7 @@ function makeAnnotator() {
                 let url = $("#conf-url").val();
                 let description = $("#conf-description").val();
 
-                if (url.length < 7) return;
+                if (url.length < 5) return;
 
                 add_url(url, description,
                     function() {
@@ -631,8 +642,6 @@ function makeAnnotator() {
                 let url = $("#conf-url").val();
                 let description = $("#conf-description").val();
 
-                if (url.length < 7) return;
-
                 delete_url(url,
                     function() {
                         render_target_list();
@@ -664,6 +673,55 @@ function makeAnnotator() {
                 );
             }
          );
+
+         $("#json-export").click(
+            function() {
+                postit('data-export',{'export_type': 'json'},
+                    function(result) {
+                        openSaveFileDialog(
+                            JSON.stringify(result['data'], null, 2), result['filename'], 'text/plain');
+                    }
+                );
+            }
+         );
+
+         $("#sql-export").click(
+            function() {
+                postit('data-export',{'export_type': 'sqlite'},
+                    function(response, status, xhr) {
+                        content_disp = xhr.getResponseHeader('Content-Disposition');
+                        openSaveFileDialog(response, content_disp.match(/.*filename=(.*)$/)[1]);
+                    }
+                );
+            }
+         );
+    }
+
+    function openSaveFileDialog (data, filename, mimetype) {
+
+        if (!data) return;
+
+        let blob = data.constructor !== Blob
+          ? new Blob([data], {type: mimetype || 'application/octet-stream'})
+          : data ;
+
+        if (navigator.msSaveBlob) {
+          navigator.msSaveBlob(blob, filename);
+          return;
+        }
+
+        let lnk = document.createElement('a'),
+            url = window.URL,
+            objectURL;
+
+        if (mimetype) {
+          lnk.type = mimetype;
+        }
+
+        lnk.download = filename || 'untitled';
+        lnk.href = objectURL = url.createObjectURL(blob);
+        lnk.dispatchEvent(new MouseEvent('click'));
+        setTimeout(url.revokeObjectURL.bind(url, objectURL));
     }
 
     let that =

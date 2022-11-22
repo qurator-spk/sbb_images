@@ -3,13 +3,17 @@ import flask
 from werkzeug.exceptions import *
 import logging
 
-from flask import send_from_directory, redirect, jsonify, request  # , send_file
+from flask import send_from_directory, redirect, jsonify, request, send_file
 import sqlite3
 import pandas as pd
 import threading
 import random
 import string
 import json
+import re
+import io
+
+from pathlib import Path
 
 from urlmatch import urlmatch
 from urlmatch import BadMatchPattern
@@ -478,6 +482,49 @@ def suggestions(user):
             pass
 
     return jsonify(found)
+
+
+@app.route('/data-export', methods=['POST'])
+@htpasswd.required
+def data_export(user):
+
+    if user not in app.config['ADMIN_USERS']:
+        raise Unauthorized()
+
+    export_type = request.json['export_type']
+
+    if export_type == "json":
+        df_anno = pd.read_sql("SELECT * FROM annotations", con=get_db())
+
+        df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
+
+        data = [json.loads(df_anno.iloc[i].anno_json) for i in range(len(df_anno))]
+
+        filename = Path(app.config['SQLITE_FILE']).stem + '-' + str(datetime.now()) + '.json'
+
+        filename = re.sub(r'\s+|:', '-', filename)
+
+        return jsonify({'data': data, 'mimetype': 'application/json', 'filename': filename})
+    elif export_type == "sqlite":
+
+        get_db().execute("VACUUM")
+
+        filename = Path(app.config['SQLITE_FILE']).stem + '-' + str(datetime.now()) + '.sql'
+
+        filename = re.sub(r'\s+|:', '-', filename)
+
+        buffer = io.BytesIO()
+
+        for line in get_db().iterdump():
+            buffer.write(bytes('%s\n' % line, 'utf8'))
+
+        buffer.seek(0)
+
+        response = send_file(buffer, attachment_filename=filename, mimetype='application/octet-stream',
+                             as_attachment=True)
+        return response
+
+    raise BadRequest()
 
 
 @app.route('/<path:path>')
