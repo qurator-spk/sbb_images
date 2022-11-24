@@ -493,6 +493,12 @@ def data_export(user):
 
     export_type = request.json['export_type']
 
+    get_db().execute("VACUUM")
+
+    filename = Path(app.config['SQLITE_FILE']).stem + '-' + str(datetime.now())
+
+    filename = re.sub(r'\s+|:', '-', filename)
+
     if export_type == "json":
         df_anno = pd.read_sql("SELECT * FROM annotations", con=get_db())
 
@@ -500,18 +506,9 @@ def data_export(user):
 
         data = [json.loads(df_anno.iloc[i].anno_json) for i in range(len(df_anno))]
 
-        filename = Path(app.config['SQLITE_FILE']).stem + '-' + str(datetime.now()) + '.json'
+        return jsonify({'data': data, 'mimetype': 'application/json', 'filename': filename + '.json'})
 
-        filename = re.sub(r'\s+|:', '-', filename)
-
-        return jsonify({'data': data, 'mimetype': 'application/json', 'filename': filename})
     elif export_type == "sqlite":
-
-        get_db().execute("VACUUM")
-
-        filename = Path(app.config['SQLITE_FILE']).stem + '-' + str(datetime.now()) + '.sql'
-
-        filename = re.sub(r'\s+|:', '-', filename)
 
         buffer = io.BytesIO()
 
@@ -520,7 +517,7 @@ def data_export(user):
 
         buffer.seek(0)
 
-        response = send_file(buffer, attachment_filename=filename, mimetype='application/octet-stream',
+        response = send_file(buffer, attachment_filename=filename + '.sql', mimetype='application/octet-stream',
                              as_attachment=True)
         return response
 

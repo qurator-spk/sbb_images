@@ -234,6 +234,7 @@ function makeAnnotator() {
         }
 
     function annotation_url_submit() {
+
         let img_url = $("#annotation-url").val();
 
         $("#search-result-list-collapse").collapse('hide');
@@ -473,7 +474,7 @@ function makeAnnotator() {
 
         (function(last_search_url) {
             postit('suggestions', {'url': search_url},
-                function(suggestions) {
+                function(suggestions) {0202
 
                     if (last_search_url !== search_url) return;
 
@@ -528,7 +529,7 @@ function makeAnnotator() {
                     );
 
                     $("#search-result-list-collapse").collapse('show');
-                    console.log(suggestions);
+                    //console.log(suggestions);
 
                     success();
                 }
@@ -569,7 +570,12 @@ function makeAnnotator() {
             }
         );
 
-        $("#edit-form").submit(annotation_url_submit);
+        $("#edit-form").submit(
+            function(evt) {
+                evt.preventDefault();
+                annotation_url_submit();
+            }
+        );
 
         access_manager = AccessManager();
 
@@ -586,7 +592,7 @@ function makeAnnotator() {
         );
 
         $("#image-view").on("error",
-            function() {
+            function(evt) {
                 clear_editor();
             }
         );
