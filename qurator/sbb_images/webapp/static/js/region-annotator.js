@@ -516,6 +516,11 @@ function makeAnnotator() {
                                     postit('match-url', {'url': $("#annotation-url").val()},
                                         function() {
 
+                                            if ($("#annotation-url").val().includes("*")) {
+                                                $('#edit-button').prop('disabled', true);
+                                                return;
+                                            }
+
                                             $('#edit-button').prop('disabled', false);
                                             annotation_url_submit();
                                         },
@@ -546,6 +551,11 @@ function makeAnnotator() {
 
                 postit('match-url', {'url': $("#annotation-url").val()},
                     function() {
+                        if ($("#annotation-url").val().includes("*")) {
+                            $('#edit-button').prop('disabled', true);
+                            return;
+                        }
+
                         $('#edit-button').prop('disabled', false);
                     },
                     function() {
