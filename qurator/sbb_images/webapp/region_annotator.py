@@ -342,6 +342,12 @@ def get_url_patterns(user):
 
     df_target_patterns = pd.read_sql("SELECT url_pattern,description,user from target_patterns", con=get_db())
 
+    df_target_patterns['is_generic'] = df_target_patterns.url_pattern.str.contains('\*')
+
+    df_target_patterns = df_target_patterns.sort_values(['is_generic', 'url_pattern'], ascending=[False, True])
+
+    df_target_patterns = df_target_patterns.drop(columns=['is_generic'])
+
     target_patterns = []
 
     for _, (url_pattern, description, user) in df_target_patterns.iterrows():

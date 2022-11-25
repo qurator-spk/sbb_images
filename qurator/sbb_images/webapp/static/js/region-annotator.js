@@ -278,6 +278,7 @@ function makeAnnotator() {
     }
 
     function showConfiguration() {
+        $("#search-result-list-collapse").collapse('hide');
         $('#editor').addClass('d-none');
         $('#url-selection').addClass('d-none');
         $('#data-export').addClass('d-none');
@@ -288,6 +289,7 @@ function makeAnnotator() {
     }
 
     function showDataExport() {
+        $("#search-result-list-collapse").collapse('hide');
         $('#editor').addClass('d-none');
         $('#url-selection').addClass('d-none');
         $('#configuration').addClass('d-none');
@@ -314,19 +316,33 @@ function makeAnnotator() {
                 }
 
                 let url_list_html="";
+                let pattern_part=false;
 
                 $.each(results,
                     function(index, result) {
-                        let description_html=""
+                        let description_html="";
+                        let font_modifier="";
 
                         if (result.description.length > 0) {
                             description_html = `<span>[${result.description}]</span>`;
                         }
 
+                        if ((pattern_part) && (!result.url_pattern.includes("*"))) {
+                                 url_list_html += `<li class="divider"></li>`;
+                        }
+
+                        pattern_part = result.url_pattern.includes("*");
+
+                        if (pattern_part) {
+                            font_modifier = "font-italic";
+                        }
+
                         let item_html=`
                             <button class="list-group-item list-group-item-action text-left" id="target-item-${index}">
-                                <span class="mr-2">${result.url_pattern}</span>
+                                <small>
+                                <span class="mr-2 ${font_modifier}">${result.url_pattern}</span>
                                 ${description_html}
+                                </small>
                             </button>
                         `;
 
@@ -460,7 +476,6 @@ function makeAnnotator() {
     }
 
     let search_url = "";
-    let suggestions_html = "";
 
     function update_suggestions(success) {
 
@@ -474,22 +489,39 @@ function makeAnnotator() {
 
         (function(last_search_url) {
             postit('suggestions', {'url': search_url},
-                function(suggestions) {0202
+                function(suggestions) {
 
                     if (last_search_url !== search_url) return;
 
-                    suggestions_html="";
+                    let suggestions_html="";
+                    let pattern_part=false;
+
                     $.each(suggestions,
                        function(index, item){
 
                             let description_html="";
+                            let font_modifier="";
+
+                            if ((pattern_part) && (!item.url_pattern.includes("*"))) {
+                                 suggestions_html += `<li class="divider"></li>`;
+                            }
+
+                            pattern_part = item.url_pattern.includes("*");
+
+                            if (pattern_part) {
+                                font_modifier = "font-italic";
+                            }
 
                             if (item.description.length > 0)
-                                description_html = `<span> [ ${item.description} ]</span>`;
+                                description_html = `
+                                    <span class=""> [ ${item.description} ]</span>
+                                `;
 
                             suggestions_html += `
                                 <button class="list-group-item list-group-item-action text-left" id="search-result-${index}">
-                                    <span class="mr-2"> ${item.url_pattern} </span> ${description_html}
+                                    <small>
+                                    <span class="mr-2 ${font_modifier}"> ${item.url_pattern} </span> ${description_html}
+                                    </small>
                                 </button>`;
                         });
 
