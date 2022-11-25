@@ -587,6 +587,12 @@ function makeAnnotator() {
             }
         );
 
+        $("#configure-form").submit(
+            function(evt) {
+                evt.preventDefault();
+            }
+        );
+
         access_manager = AccessManager();
 
         $("#image-view").on("load",
