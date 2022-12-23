@@ -322,28 +322,30 @@ function makeAnnotator() {
                     function(index, result) {
                         let description_html="";
                         let font_modifier="";
+                        let list_group_item_context="";
 
                         if (result.description.length > 0) {
                             description_html = `<span>[${result.description}]</span>`;
                         }
 
                         if ((pattern_part) && (!result.url_pattern.includes("*"))) {
-                                 url_list_html += `<li class="divider"></li>`;
+                                 url_list_html += `<div class="dropdown-divider"></div>`;
                         }
 
                         pattern_part = result.url_pattern.includes("*");
 
                         if (pattern_part) {
                             font_modifier = "font-italic";
+                            list_group_item_context = "list-group-item-dark";
                         }
 
                         let item_html=`
-                            <button class="list-group-item list-group-item-action text-left" id="target-item-${index}">
+                            <li class="list-group-item list-group-item-action ${list_group_item_context} text-left" id="target-item-${index}">
                                 <small>
                                 <span class="mr-2 ${font_modifier}">${result.url_pattern}</span>
                                 ${description_html}
                                 </small>
-                            </button>
+                            </li>
                         `;
 
                         url_list_html += item_html;
@@ -501,15 +503,17 @@ function makeAnnotator() {
 
                             let description_html="";
                             let font_modifier="";
+                            let list_group_item_context="";
 
                             if ((pattern_part) && (!item.url_pattern.includes("*"))) {
-                                 suggestions_html += `<li class="divider"></li>`;
+                                 suggestions_html += `<div class="dropdown-divider"></div>`;
                             }
 
                             pattern_part = item.url_pattern.includes("*");
 
                             if (pattern_part) {
                                 font_modifier = "font-italic";
+                                list_group_item_context = "list-group-item-dark";
                             }
 
                             if (item.description.length > 0)
@@ -518,11 +522,11 @@ function makeAnnotator() {
                                 `;
 
                             suggestions_html += `
-                                <button class="list-group-item list-group-item-action text-left" id="search-result-${index}">
+                                <li class="list-group-item list-group-item-action ${list_group_item_context}" id="search-result-${index}">
                                     <small>
                                     <span class="mr-2 ${font_modifier}"> ${item.url_pattern} </span> ${description_html}
                                     </small>
-                                </button>`;
+                                </li>`;
                         });
 
                     if (last_search_url != search_url) return;
