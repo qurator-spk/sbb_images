@@ -16,7 +16,7 @@ import base64
 import numpy as np
 
 import PIL
-from PIL import Image, ImageDraw, ImageOps, ImageFilter
+from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageStat
 
 from ..feature_extraction import load_extraction_model
 from ..saliency import load_saliency_model, process_region, find_all_regions
@@ -25,12 +25,13 @@ from ..saliency import load_saliency_model, process_region, find_all_regions
 from annoy import AnnoyIndex
 
 from flask_cachecontrol import (
-    FlaskCacheControl,
     cache_for)
 
+from torchvision import transforms
+
 app = flask.Flask(__name__)
-flask_cache_control = FlaskCacheControl()
-flask_cache_control.init_app(app)
+# flask_cache_control = FlaskCacheControl()
+# flask_cache_control.init_app(app)
 
 app.config.from_json('search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
 
@@ -118,6 +119,9 @@ class ThreadStore:
 
         if self._predict_saliency is not None:
             return self._predict_saliency, self._predict_transform
+
+        if len(app.config['VIT_MODEL']) == 0 or (app.config['VST_MODEL'] == 0):
+            return None, None
 
         self._predict_saliency, self._predict_transform = \
             load_saliency_model(app.config['VIT_MODEL'], app.config['VST_MODEL'])
@@ -220,47 +224,51 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
 
     predict_saliency, predict_transform = thread_store.get_saliency_model()
 
-    _, mask = process_region(predict_saliency, predict_transform, full_img, x, y, width, height)
+    if predict_saliency is not None and predict_transform is not None:
 
-    search_regions = [(x, y, width, height, 0.0)]
+        _, mask = process_region(predict_saliency, predict_transform, full_img, x, y, width, height)
 
-    if width > 0.2 and height > 0.2:
+        search_regions = [(x, y, width, height, 0.0)]
 
-        for offset in [0.01, 0.05, 0.1]:
+        if width > 0.2 and height > 0.2:
 
-            search_regions.append(
-                (min([1.0, x + offset]), min([1.0, y + offset]),
-                 max([0.0, width - 2*offset]), max([0.0, height - 2*offset]), 0.0))
+            for offset in [0.01, 0.05, 0.1]:
 
-    search_regions = pd.DataFrame(search_regions, columns=['x', 'y', 'width', 'height', 'area'])
+                search_regions.append(
+                    (min([1.0, x + offset]), min([1.0, y + offset]),
+                     max([0.0, width - 2*offset]), max([0.0, height - 2*offset]), 0.0))
 
-    all_stats = find_all_regions(predict_saliency, predict_transform, full_img, search_regions)
+        search_regions = pd.DataFrame(search_regions, columns=['x', 'y', 'width', 'height', 'area'])
 
-    mask = mask.point(lambda p: 25 if p < 64 else p)
+        all_stats = find_all_regions(predict_saliency, predict_transform, full_img, search_regions)
 
-    full_img = full_img.convert("RGBA")
-    full_img.putalpha(mask)
+        # mask = mask.point(lambda p: 25 if p < 64 else p)
 
-    full_area = all_stats.area.max()
+        full_img = full_img.convert("RGBA")
+        full_img.putalpha(mask)
 
-    draw = ImageDraw.Draw(full_img, 'RGBA')
+        full_area = all_stats.area.max()
 
-    for i, (rx, ry, rwidth, rheight, rarea) in all_stats.iterrows():
+        draw = ImageDraw.Draw(full_img, 'RGBA')
 
-        if rarea / full_area < 10e-3:
-            continue
+        if "SALIENCY_DEBUG" in app.config and app.config["SALIENCY_DEBUG"] == 1:
 
-        print (rarea/full_area)
+            for i, (rx, ry, rwidth, rheight, rarea) in all_stats.iterrows():
 
-        # noinspection PyTypeChecker
-        draw.rectangle([(rx, ry), (rx+rwidth, ry+rheight)], outline=(255, 25, 0))
+                if rarea / full_area < 10e-3:
+                    continue
 
-    for i, (dx, dy, dwidth, dheight) in detections.iterrows():
+                print(rarea/full_area)
 
-        # noinspection PyTypeChecker
-        draw.rectangle([(dx*full_img.width, dy*full_img.height),
-                        ((dx+dwidth)*full_img.width, (dy+dheight)*full_img.height)],
-                       outline=(0, 25, 255))
+                # noinspection PyTypeChecker
+                draw.rectangle([(rx, ry), (rx+rwidth, ry+rheight)], outline=(255, 25, 0))
+
+            for i, (dx, dy, dwidth, dheight) in detections.iterrows():
+
+                # noinspection PyTypeChecker
+                draw.rectangle([(dx*full_img.width, dy*full_img.height),
+                                ((dx+dwidth)*full_img.width, (dy+dheight)*full_img.height)],
+                               outline=(0, 25, 255))
 
     buffer = io.BytesIO()
     full_img.save(buffer, "PNG")
@@ -285,7 +293,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     del user
     start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
 
-    search_id = request.args.get('search_id', default=None, type=int)
+    # search_id = request.args.get('search_id', default=None, type=int)
 
     # if request.method == 'GET' and search_id is not None:
     #
@@ -293,30 +301,38 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     if request.method == 'POST':
         # check if the post request has the file part
-        #if 'file' not in request.files:
+        # if 'file' not in request.files:
         #    raise BadRequest()
 
         #  file = request.files['file']
 
         # img_base64 = request.
 
-        # import ipdb;ipdb.set_trace()
-
         img_base64 = request.json['image']
         img_bytes = io.BytesIO(base64.b64decode(img_base64[len('data:image/png;base64,'):]))
 
-        img = Image.open(img_bytes) #  .convert('RGB')
-
-        mask = img.getchannel('A')
+        img = Image.open(img_bytes)  # .convert('RGB')
 
         img_rgb = img.convert('RGB')
-        img_empty = Image.new('RGB', size=(img.width, img.height))
+        img_mean = ImageStat.Stat(img_rgb).mean
+        img_rgb = np.array(img_rgb).astype(float)
 
-        img = Image.composite(img_rgb, img_empty, mask=mask)
+        mask = img.getchannel('A')
+        mask = np.expand_dims(np.array(mask), -1).astype(float) / 255.0
 
-        # import ipdb;ipdb.set_trace()
+        img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
+        img_empty = np.array(img_empty).astype(float)
+
+        img = (1.0 - mask) * img_empty + mask*img_rgb
+
+        img = Image.fromarray(img.astype('uint8'))
 
         # img.save('test.jpeg', "JPEG")
+
+        # img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
+        # img = Image.composite(img_rgb, img_empty, mask=mask)
+
+        img.save('test.jpeg', "JPEG")
     else:
         raise BadRequest()
 
@@ -330,13 +346,18 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     extract_features, extract_transform = thread_store.get_extraction_model()
 
-    img = extract_transform(img).unsqueeze(0)
+    img = extract_transform(img)
+
+    # import ipdb;ipdb.set_trace()
+
+    # transforms.ToPILImage()(img).save('test.jpeg', 'JPEG')
+
+    img = img.unsqueeze(0)
 
     fe = extract_features(img)
 
     fe = fe.squeeze()
 
-    #  import ipdb;ipdb.set_trace()
     result = []
 
     min_result_len = count

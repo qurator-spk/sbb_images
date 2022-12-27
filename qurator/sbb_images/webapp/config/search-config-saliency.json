@@ -4,8 +4,9 @@
     "SQLITE_FILE": "stabi-illustrations-with-detections.sqlite",
     "MAX_IMG_SIZE": 250,
     "MODEL_NAME" : "googlenet",
-    "INDEX_FILE": "search-index-googlenet-with-detections-50.ann",
+    "INDEX_FILE": "stabi-illustrations-with-detections-saliency.ann",
     "DIST_MEASURE": "angular",
     "VIT_MODEL": "/home/kai.labusch/MMK/VST/pretrained/80.7_T2T_ViT_t_14.pth",
-    "VST_MODEL":"/home/kai.labusch/MMK/VST/pretrained/RGB_VST.pth"
+    "VST_MODEL":"/home/kai.labusch/MMK/VST/pretrained/RGB_VST.pth",
+    "SALIENCY_DEBUG": 0
 }

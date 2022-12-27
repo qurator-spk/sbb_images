@@ -7,7 +7,8 @@ from torchvision import models, transforms
 from annoy import AnnoyIndex
 
 
-def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_model=None, vst_model=None):
+def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_model=None, vst_model=None,
+                          clip_model=None):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -43,17 +44,38 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),  # 处理的是Tensor
         ])
+
+        normalization = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+    elif clip_model is not None:
+        import clip
+
+        # "ViT-B/32"
+        model, extract_transform = clip.load(clip_model, device=device)
+
+        def model_extr(inputs):
+
+            inputs = inputs.to(device)
+
+            return model.encode_image(inputs).detach().to('cpu').numpy()
+
+        normalization = transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+
+        return model_extr, extract_transform, normalization
+
     else:
         input_size = {'inception_v3': 299}
 
         img_size = input_size.get(model_name, 224)
 
         extract_transform = transforms.Compose([
-            transforms.Resize(256),
+            transforms.Resize(img_size),
             transforms.CenterCrop(img_size),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
+
+        normalization = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
         model_extr = getattr(models, model_name)(pretrained=True)
 
@@ -97,4 +119,4 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
         return fe
 
-    return extract_features, extract_transform
+    return extract_features, extract_transform, normalization

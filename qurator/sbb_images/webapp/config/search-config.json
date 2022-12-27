@@ -1,0 +1,11 @@
+{
+    "PASSWD_FILE": "",
+    "AUTH_REALM": "search",
+    "SQLITE_FILE": "stabi-illustrations-with-detections.sqlite",
+    "MAX_IMG_SIZE": 250,
+    "MODEL_NAME" : "googlenet",
+    "INDEX_FILE": "search-index-googlenet-with-detections-50.ann",
+    "DIST_MEASURE": "angular",
+    "VIT_MODEL": "",
+    "VST_MODEL":""
+}
