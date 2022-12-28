@@ -635,13 +635,11 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
             img = ImageOps.autocontrast(img_orig)
             img = img.filter(ImageFilter.UnsharpMask(radius=2))
 
-            return extract_transform(img), None
+            return (extract_transform(img),)
 
         transform = default_image_transform
 
-        def default_extract_features(inputs, saliency_inputs, empty_inputs):
-            del saliency_inputs
-            del empty_inputs
+        def default_extract_features(inputs):
 
             return extract_features_orig(inputs)
 
@@ -653,11 +651,11 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     index = None
 
-    for (inp, sal_inputs, empty), _, pos in \
+    for batch, _, pos in \
             tqdm(data_loader, total=len(data_loader), desc="Extract features"):
         pos = pos.cpu().numpy()
 
-        fe = extract_features(inp, sal_inputs, empty)
+        fe = extract_features(*batch)
 
         if index is None:
             index = AnnoyIndex(fe.shape[1], dist_measure)
