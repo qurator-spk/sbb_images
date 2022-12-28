@@ -32,7 +32,7 @@ stabi-illustrations-clip-index:
 	create-search-index stabi-illustrations-with-detections.sqlite stabi-illustrations-with-detections-clip.ann --clip-model="ViT-B/32" --batch-size 64  --n-trees 50 --num-workers 20
 
 stabi-illustrations-clip-index-large:
-	create-search-index stabi-illustrations-with-detections.sqlite stabi-illustrations-with-detections-clip.ann --clip-model="ViT-L/14" --batch-size 64  --n-trees 50 --num-workers 20
+	create-search-index stabi-illustrations-with-detections.sqlite stabi-illustrations-with-detections-clip-large.ann --clip-model="ViT-L/14" --batch-size 64  --n-trees 50 --num-workers 20
 
 wasserzeichen-vst-index:
 	create-search-index wasserzeichen.sqlite wasserzeichen-vst.ann  --layer-name "token_trans.saliency_token_pre" --layer-output --vit-model /home/kai.labusch/MMK/VST/pretrained/80.7_T2T_ViT_t_14.pth --vst-model /home/kai.labusch/MMK/VST/pretrained/RGB_VST.pth --batch-size 16  --n-trees 50

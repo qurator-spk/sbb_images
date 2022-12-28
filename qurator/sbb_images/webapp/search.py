@@ -111,7 +111,16 @@ class ThreadStore:
 
             return self._extract_features, self._extract_transform
 
-        self._extract_features, self._extract_transform = load_extraction_model(app.config['MODEL_NAME'])
+        model_name = None
+        if "MODEL_NAME" in app.config:
+            model_name = app.config["MODEL_NAME"]
+
+        clip_model = None
+        if "CLIP_MODEL" in app.config:
+            clip_model = app.config["CLIP_MODEL"]
+
+        self._extract_features, self._extract_transform, _ = load_extraction_model(model_name=model_name,
+                                                                                   clip_model=clip_model)
 
         return self._extract_features, self._extract_transform
 
@@ -120,7 +129,8 @@ class ThreadStore:
         if self._predict_saliency is not None:
             return self._predict_saliency, self._predict_transform
 
-        if len(app.config['VIT_MODEL']) == 0 or (app.config['VST_MODEL'] == 0):
+        if "VIT_MODEL" not in app.config or "VST_MODEL" not in app.config or \
+                len(app.config['VIT_MODEL']) == 0 or (app.config['VST_MODEL'] == 0):
             return None, None
 
         self._predict_saliency, self._predict_transform = \
@@ -228,30 +238,34 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
 
         _, mask = process_region(predict_saliency, predict_transform, full_img, x, y, width, height)
 
-        search_regions = [(x, y, width, height, 0.0)]
+        if "SALIENCY_DEBUG" not in app.config or app.config["SALIENCY_DEBUG"] < 1:
 
-        if width > 0.2 and height > 0.2:
+            full_img = full_img.convert("RGBA")
+            full_img.putalpha(mask)
 
-            for offset in [0.01, 0.05, 0.1]:
+        else:
+            search_regions = [(x, y, width, height, 0.0)]
 
-                search_regions.append(
-                    (min([1.0, x + offset]), min([1.0, y + offset]),
-                     max([0.0, width - 2*offset]), max([0.0, height - 2*offset]), 0.0))
+            if width > 0.2 and height > 0.2:
 
-        search_regions = pd.DataFrame(search_regions, columns=['x', 'y', 'width', 'height', 'area'])
+                for offset in [0.01, 0.05, 0.1]:
 
-        all_stats = find_all_regions(predict_saliency, predict_transform, full_img, search_regions)
+                    search_regions.append(
+                        (min([1.0, x + offset]), min([1.0, y + offset]),
+                         max([0.0, width - 2*offset]), max([0.0, height - 2*offset]), 0.0))
 
-        # mask = mask.point(lambda p: 25 if p < 64 else p)
+            search_regions = pd.DataFrame(search_regions, columns=['x', 'y', 'width', 'height', 'area'])
 
-        full_img = full_img.convert("RGBA")
-        full_img.putalpha(mask)
+            all_stats = find_all_regions(predict_saliency, predict_transform, full_img, search_regions)
 
-        full_area = all_stats.area.max()
+            # mask = mask.point(lambda p: 25 if p < 64 else p)
 
-        draw = ImageDraw.Draw(full_img, 'RGBA')
+            full_img = full_img.convert("RGBA")
+            full_img.putalpha(mask)
 
-        if "SALIENCY_DEBUG" in app.config and app.config["SALIENCY_DEBUG"] == 1:
+            full_area = all_stats.area.max()
+
+            draw = ImageDraw.Draw(full_img, 'RGBA')
 
             for i, (rx, ry, rwidth, rheight, rarea) in all_stats.iterrows():
 
@@ -313,26 +327,29 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
         img = Image.open(img_bytes)  # .convert('RGB')
 
-        img_rgb = img.convert('RGB')
-        img_mean = ImageStat.Stat(img_rgb).mean
-        img_rgb = np.array(img_rgb).astype(float)
+        try:
+            img_rgb = img.convert('RGB')
+            img_mean = ImageStat.Stat(img_rgb).mean
+            img_rgb = np.array(img_rgb).astype(float)
 
-        mask = img.getchannel('A')
-        mask = np.expand_dims(np.array(mask), -1).astype(float) / 255.0
+            mask = img.getchannel('A')
+            mask = np.expand_dims(np.array(mask), -1).astype(float) / 255.0
 
-        img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
-        img_empty = np.array(img_empty).astype(float)
+            img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
+            img_empty = np.array(img_empty).astype(float)
 
-        img = (1.0 - mask) * img_empty + mask*img_rgb
+            img = (1.0 - mask) * img_empty + mask*img_rgb
 
-        img = Image.fromarray(img.astype('uint8'))
+            img = Image.fromarray(img.astype('uint8'))
 
-        # img.save('test.jpeg', "JPEG")
+            # img.save('test.jpeg', "JPEG")
 
-        # img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
-        # img = Image.composite(img_rgb, img_empty, mask=mask)
+            # img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
+            # img = Image.composite(img_rgb, img_empty, mask=mask)
 
-        img.save('test.jpeg', "JPEG")
+            img.save('test.jpeg', "JPEG")
+        except ValueError:
+            pass
     else:
         raise BadRequest()
 

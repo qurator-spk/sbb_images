@@ -12,6 +12,8 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    import ipdb;ipdb.set_trace()
+
     model_extr = None
     if vit_model is not None and vst_model is not None:
 
