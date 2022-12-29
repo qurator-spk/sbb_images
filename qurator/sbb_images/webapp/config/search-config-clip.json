@@ -3,7 +3,7 @@
     "AUTH_REALM": "search",
     "SQLITE_FILE": "stabi-illustrations-with-detections.sqlite",
     "MAX_IMG_SIZE": 250,
-    "INDEX_FILE": "stabi-illustrations-with-detections-clip-large-v1.ann",
+    "INDEX_FILE": "stabi-illustrations-with-detections-clip-VIT-B32.ann",
     "DIST_MEASURE": "angular",
-    "CLIP_MODEL": "ViT-L/14"
+    "CLIP_MODEL": "ViT-B/32"
 }

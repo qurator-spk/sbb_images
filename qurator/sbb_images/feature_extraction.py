@@ -28,7 +28,6 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
         model_extr.eval()
 
         # load model (multi-gpu)
-        # model_path = args.save_model_dir + 'RGB_VST.pth'
         state_dict = torch.load(vst_model)
         from collections import OrderedDict
 
@@ -52,7 +51,6 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
     elif clip_model is not None:
         import clip
 
-        # "ViT-B/32"
         model, extract_transform = clip.load(clip_model, device=device)
 
         def model_extr(inputs):

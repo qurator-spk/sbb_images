@@ -229,8 +229,10 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
 
     img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
 
-    full_img = ImageOps.autocontrast(img)
-    full_img = full_img.filter(ImageFilter.UnsharpMask(radius=2))
+    # full_img = ImageOps.autocontrast(img)
+    # full_img = full_img.filter(ImageFilter.UnsharpMask(radius=2))
+
+    full_img = img
 
     predict_saliency, predict_transform = thread_store.get_saliency_model()
 

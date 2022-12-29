@@ -85,6 +85,7 @@ def load_saliency_model(vit_model, vst_model):
 
 
 def process_region(predict_saliency, predict_transform, full_img, rx, ry, rwidth, rheight):
+
     img = full_img
 
     if rx >= 0 and ry >= 0 and rwidth > 0 and rheight > 0:

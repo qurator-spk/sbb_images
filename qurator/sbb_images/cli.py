@@ -610,13 +610,14 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
                     transforms.CenterCrop(target_size),
                     transforms.ToTensor()])
 
-            img = ImageOps.autocontrast(img_orig)
-            img = img.filter(ImageFilter.UnsharpMask(radius=2))
+            # img = ImageOps.autocontrast(img_orig)
+            # img = img.filter(ImageFilter.UnsharpMask(radius=2))
+            img = img_orig
 
             img_mean = ImageStat.Stat(img).mean
             img_empty = Image.new('RGB', size=(target_size, target_size), color=tuple([int(c) for c in img_mean]))
 
-            return resize_transform(img), predict_saliency_transform(img), resize_transform(img_empty)
+            return resize_transform(img_orig), predict_saliency_transform(img), resize_transform(img_empty)
 
         transform = image_transform
 
@@ -632,10 +633,10 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
     else:
         def default_image_transform(img_orig):
 
-            img = ImageOps.autocontrast(img_orig)
-            img = img.filter(ImageFilter.UnsharpMask(radius=2))
+            # img = ImageOps.autocontrast(img_orig)
+            # img = img.filter(ImageFilter.UnsharpMask(radius=2))
 
-            return (extract_transform(img),)
+            return (extract_transform(img_orig),)
 
         transform = default_image_transform
 
@@ -651,8 +652,8 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     index = None
 
-    for batch, _, pos in \
-            tqdm(data_loader, total=len(data_loader), desc="Extract features"):
+    for batch, _, pos in tqdm(data_loader, total=len(data_loader), desc="Extract features"):
+
         pos = pos.cpu().numpy()
 
         fe = extract_features(*batch)
