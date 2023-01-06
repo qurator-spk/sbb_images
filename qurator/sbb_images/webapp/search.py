@@ -119,8 +119,13 @@ class ThreadStore:
         if "CLIP_MODEL" in app.config:
             clip_model = app.config["CLIP_MODEL"]
 
+        ms_clip_model_config = None
+        if "MS_CLIP_MODEL_CONFIG" in app.config:
+            ms_clip_model_config = app.config["MS_CLIP_MODEL_CONFIG"]
+
         self._extract_features, self._extract_transform, _ = load_extraction_model(model_name=model_name,
-                                                                                   clip_model=clip_model)
+                                                                                   clip_model=clip_model,
+                                                                                   ms_clip_model=ms_clip_model_config)
 
         return self._extract_features, self._extract_transform
 

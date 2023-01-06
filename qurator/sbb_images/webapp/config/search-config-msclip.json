@@ -1,0 +1,9 @@
+{
+    "PASSWD_FILE": "",
+    "AUTH_REALM": "search",
+    "SQLITE_FILE": "stabi-illustrations-with-detections.sqlite",
+    "MAX_IMG_SIZE": 250,
+    "INDEX_FILE": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-VIT-L14.ann",
+    "DIST_MEASURE": "angular",
+    "MS_CLIP_MODEL_CONFIG": ""
+}
