@@ -2,8 +2,8 @@
 # cadaver https://qurator-data.de --proxy=proxy.sbb.spk-berlin.de:3128
 #
 
-NUM_WORKERS=20
-N_TREES=100
+NUM_WORKERS?=20
+N_TREES?=100
 
 DATA_DIR=..
 IMAGE_DATA_BASE=stabi-illustrations-with-detections.sqlite
@@ -45,13 +45,13 @@ stabi-illustrations-saliency:
 
 ##############
 
-%-clip-index-VIT-B16.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
+%-clip-index-VIT-B16.ann:
 	create-search-index $< $@ --clip-model="ViT-B/16" --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
-%-clip-index-VIT-B32.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
+%-clip-index-VIT-B32.ann:   $(DATA_DIR)/$(IMAGE_DATA_BASE)
 	create-search-index $< $@ --clip-model="ViT-B/32" --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
-%-clip-index-VIT-L14.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
+%-clip-index-VIT-L14.ann:  # $(DATA_DIR)/$(IMAGE_DATA_BASE)
 	create-search-index $< $@ --clip-model="ViT-L/14" --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
 ##
@@ -78,6 +78,19 @@ clip-vit-indices: $(INDEX_PREFIX)-clip-index-VIT-L14.ann $(INDEX_PREFIX)-clip-in
 clip-rn-indices: $(INDEX_PREFIX)-clip-index-RN50.ann $(INDEX_PREFIX)-clip-index-RN101.ann $(INDEX_PREFIX)-clip-index-RN50x4.ann $(INDEX_PREFIX)-clip-index-RN50x16.ann $(INDEX_PREFIX)-clip-index-RN50x64.ann
 
 clip-indices: clip-vit-indices clip-rn-indices
+
+##################################################################
+
+%-msclip-index-b16-yfcc.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
+	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b16-yfcc-msclips.yaml --batch-size 32 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+
+%-msclip-index-b32-laion.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
+	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b32-laion-msclips.yaml --batch-size 32 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+
+%-msclip-index-b32-yfcc.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
+	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b32-yfcc-msclips.yaml --batch-size 32 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+
+msclip-indices: $(INDEX_PREFIX)-msclip-index-b32-yfcc.ann $(INDEX_PREFIX)-msclip-index-b16-yfcc.ann $(INDEX_PREFIX)-msclip-index-b32-laion.ann
 
 ##################################################################
 

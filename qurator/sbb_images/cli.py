@@ -563,14 +563,15 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
               help='Vision transformer pytorch model file.')
 @click.option('--vst-model', type=click.Path(exists=True), default=None,
               help='Visual saliency transformer pytorch model file.')
-@click.option('--clip-model', type=str, default=None,
-              help='CLIP model.')
+@click.option('--clip-model', type=str, default=None, help='CLIP model.')
+@click.option('--ms-clip-model', type=str, default=None, help='MSCLIP model configuration file.')
 @click.option('--layer-name', type=str, default='fc', help="Name of feature layer. default: fc")
 @click.option('--layer-output', is_flag=True, help="User output of layer rather than its input.")
 @click.option('--use-saliency-mask', is_flag=True, help="Mask images by saliency before feature computation.")
 @click.option('--vst-features', is_flag=True, help="")
-def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers,
-                        vit_model, vst_model, clip_model, layer_name, layer_output, use_saliency_mask, vst_features):
+def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers, vit_model,
+                        vst_model, clip_model, ms_clip_model, layer_name, layer_output, use_saliency_mask,
+                        vst_features):
     """
 
     Creates a CNN-features based similarity search index.
@@ -588,7 +589,7 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
         load_extraction_model(model_name, layer_name, layer_output,
                               vit_model=None if not vst_features else vit_model,
                               vst_model=None if not vst_features else vst_model,
-                              clip_model=clip_model)
+                              clip_model=clip_model, ms_clip_model=ms_clip_model)
 
     if use_saliency_mask:
 

@@ -6,9 +6,11 @@ from torchvision import models, transforms
 # noinspection PyUnresolvedReferences
 from annoy import AnnoyIndex
 
+from PIL import Image
+
 
 def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_model=None, vst_model=None,
-                          clip_model=None):
+                          clip_model=None, ms_clip_model=None):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -63,6 +65,47 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
         return model_extr, extract_transform, normalization
 
+    elif ms_clip_model is not None:
+        from msclip.config import config, update_config
+        import msclip.models.clip_openai_pe_res_v1 as clip_openai_pe_res_v1
+
+        args = argparse.Namespace()
+
+        args.opts = []
+        args.cfg = ms_clip_model
+        update_config(config, args)
+        config.defrost()
+        config.NAME = ""
+        config.freeze()
+
+        model = clip_openai_pe_res_v1.get_clip_model(config)
+
+        model_file = config.MODEL.PRETRAINED_MODEL
+        # logging.info('=> load model file: {}'.format(model_file))
+        state_dict = torch.load(model_file, map_location="cpu")
+        model.load_state_dict(state_dict)
+        model.to(device)
+
+        # logging.info('=> switch to eval mode')
+        model_without_ddp = model.module if hasattr(model, 'module') else model
+        model_without_ddp.eval()
+
+        extract_transform = transforms.Compose([
+            transforms.Resize(224, interpolation=Image.BICUBIC),
+            transforms.CenterCrop(size=(224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=config.INPUT.MEAN, std=config.INPUT.STD),
+        ])
+
+        normalization = transforms.Normalize(mean=config.INPUT.MEAN, std=config.INPUT.STD)
+
+        def model_extr(inputs):
+
+            inputs = inputs.to(device)
+
+            return model.encode_image(inputs).detach().to('cpu').numpy()
+
+        return model_extr, extract_transform, normalization
     else:
         input_size = {'inception_v3': 299}
 

@@ -220,14 +220,14 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
     if x < 0 and y < 0 and width < 0 and height < 0:
         x, y, width, height = 0.0, 0.0, 1.0, 1.0
 
-    max_size = float(max(img.size[0], img.size[1]))
-
-    scale_factor = 1.0 if max_size <= max_img_size else max_img_size / max_size
-
-    hsize = int((float(img.size[0]) * scale_factor))
-    vsize = int((float(img.size[1]) * scale_factor))
-
-    img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+    # max_size = float(max(img.size[0], img.size[1]))
+    #
+    # scale_factor = 1.0 if max_size <= max_img_size else max_img_size / max_size
+    #
+    # hsize = int((float(img.size[0]) * scale_factor))
+    # vsize = int((float(img.size[1]) * scale_factor))
+    #
+    # img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
 
     # full_img = ImageOps.autocontrast(img)
     # full_img = full_img.filter(ImageFilter.UnsharpMask(radius=2))
@@ -364,6 +364,8 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
                              full_img.size[1]*y + height*full_img.size[1]))
 
     extract_features, extract_transform = thread_store.get_extraction_model()
+
+    # import ipdb;ipdb.set_trace()
 
     img = extract_transform(img)
 
