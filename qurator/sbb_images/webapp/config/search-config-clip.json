@@ -3,7 +3,28 @@
     "AUTH_REALM": "search",
     "SQLITE_FILE": "stabi-illustrations-with-detections.sqlite",
     "MAX_IMG_SIZE": 250,
-    "INDEX_FILE": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-VIT-L14.ann",
     "DIST_MEASURE": "angular",
-    "CLIP_MODEL": "ViT-L/14"
+
+    "CLIP_MODEL1": "RN101",
+    "INDEX_FILE1": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-RN101ann",
+
+    "CLIP_MODEL2": "RN50",
+    "INDEX_FILE2": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-RN50.ann",
+
+    "CLIP_MODEL3": "RN50x16",
+    "INDEX_FILE3": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-RN50x16.ann",
+
+    "CLIP_MODEL4": "RN50x4",
+    "INDEX_FILE4": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-RN50x4.ann",
+
+    "CLIP_MODEL5": "VIT-B/16",
+    "INDEX_FILE5": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-VIT-B16.ann",
+    "CLIP_MODEL6": "ViT-B/32",
+    "INDEX_FILE6": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-VIT-B32.ann",
+
+    "CLIP_MODEL7": "ViT-L/14",
+    "INDEX_FILE7": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-VIT-L14.ann",
+
+    "CLIP_MODEL": "ViT-L/14",
+    "INDEX_FILE": "search-indices/stabi-illustrations-with-detections-NT100-clip-index-VIT-L14.ann"
 }

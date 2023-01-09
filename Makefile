@@ -82,13 +82,13 @@ clip-indices: clip-vit-indices clip-rn-indices
 ##################################################################
 
 %-msclip-index-b16-yfcc.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
-	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b16-yfcc-msclips.yaml --batch-size 32 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+	ovecreate-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
 %-msclip-index-b32-laion.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
-	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b32-laion-msclips.yaml --batch-size 32 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b32-laion-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
 %-msclip-index-b32-yfcc.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
-	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b32-yfcc-msclips.yaml --batch-size 32 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b32-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
 msclip-indices: $(INDEX_PREFIX)-msclip-index-b32-yfcc.ann $(INDEX_PREFIX)-msclip-index-b16-yfcc.ann $(INDEX_PREFIX)-msclip-index-b32-laion.ann
 

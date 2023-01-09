@@ -103,7 +103,7 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
             inputs = inputs.to(device)
 
-            return model.encode_image(inputs).detach().to('cpu').numpy()
+            return model_without_ddp.encode_image(inputs).detach().to('cpu').numpy()
 
         return model_extr, extract_transform, normalization
     else:
