@@ -59,7 +59,8 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
             inputs = inputs.to(device)
 
-            return model.encode_image(inputs).detach().to('cpu').numpy()
+            with torch.set_grad_enabled(False):
+                return model.encode_image(inputs).detach().to('cpu').numpy()
 
         normalization = transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
 
@@ -103,7 +104,8 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
             inputs = inputs.to(device)
 
-            return model_without_ddp.encode_image(inputs).detach().to('cpu').numpy()
+            with torch.set_grad_enabled(False):
+                return model_without_ddp.encode_image(inputs).detach().to('cpu').numpy()
 
         return model_extr, extract_transform, normalization
     else:

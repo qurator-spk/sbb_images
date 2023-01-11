@@ -41,6 +41,7 @@ stabi-illustrations-saliency:
 ##########################################################
 
 %-saliency.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
+
 	create-search-index  $< $@ --model-name googlenet --use-saliency-mask  --vit-model /home/kai.labusch/MMK/VST/pretrained/80.7_T2T_ViT_t_14.pth --vst-model /home/kai.labusch/MMK/VST/pretrained/RGB_VST.pth --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
 ##############
