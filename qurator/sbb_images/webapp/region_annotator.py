@@ -364,6 +364,7 @@ def add_url_pattern(user):
         raise Unauthorized()
 
     url = request.json['url_pattern']
+    url = url.strip()
     description = request.json['description']
 
     new_entry = pd.DataFrame({'url_pattern': url, 'description': description, 'user': user}, index=[0])
