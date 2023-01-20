@@ -33,7 +33,9 @@ app = flask.Flask(__name__)
 # flask_cache_control = FlaskCacheControl()
 # flask_cache_control.init_app(app)
 
-app.config.from_json('search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
+# app.config.from_json('search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
+app.config.from_file('search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'),
+                     load=json.load)
 
 logging.basicConfig(level=logging.INFO)
 

@@ -40,6 +40,7 @@ from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageStat
 from torchvision import transforms
 import multiprocessing as mp
 
+
 @click.command()
 @click.argument('directory', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=False))

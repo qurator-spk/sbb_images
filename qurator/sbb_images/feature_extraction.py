@@ -79,7 +79,7 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
         config.NAME = ""
         config.freeze()
 
-        model = clip_openai_pe_res_v1.get_clip_model(config)
+        model,_,_ = clip_openai_pe_res_v1.get_clip_model(config)
 
         model_file = config.MODEL.PRETRAINED_MODEL
         # logging.info('=> load model file: {}'.format(model_file))

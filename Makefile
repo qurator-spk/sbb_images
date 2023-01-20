@@ -83,7 +83,7 @@ clip-indices: clip-vit-indices clip-rn-indices
 ##################################################################
 
 %-msclip-index-b16-yfcc.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
-	ovecreate-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
 %-msclip-index-b32-laion.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
 	create-search-index $< $@ --ms-clip-model=/home/kai.labusch/MMK/MSCLIP/experiments/model/b32-laion-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
@@ -94,4 +94,19 @@ clip-indices: clip-vit-indices clip-rn-indices
 msclip-indices: $(INDEX_PREFIX)-msclip-index-b32-yfcc.ann $(INDEX_PREFIX)-msclip-index-b16-yfcc.ann $(INDEX_PREFIX)-msclip-index-b32-laion.ann
 
 ##################################################################
+#ln-iconclass:
+#    ln -s /home/kai.labusch/MMK/iconclass/data/iconclass.sqlite iconclass.sqlite
+
+EPOCHS=10
+ACCU_STEPS=1
+START_LR=10e-4
+LR_SCHEDULER=CosineAnnealingWarmRestarts
+DEBUG=
+
+FPARAMS=epochs$(EPOCHS)_as$(ACCU_STEPS)_start-lr$(START_LR)_lr-sched$(LR_SCHEDULER)
+
+iconclass-b16-yfcc-msclips:
+	iconclass-train --batch-size=64 --num-workers=$(NUM_WORKERS) --epochs=$(EPOCHS) --accu-steps=$(ACCU_STEPS) --lr-scheduler=$(LR_SCHEDULER) /home/kai.labusch/MMK/MSCLIP/experiments/model/b16-yfcc-msclips.yaml /home/kai.labusch/MMK/MSCLIP/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz /home/kai.labusch/MMK/iconclass/testset/data.json /home/kai.labusch/MMK/iconclass/testset ./iconclass-b16-yfcc-msclips_$(FPARAMS).pth ./iconclass-b16-yfcc-msclips_$(FPARAMS).pkl $(DEBUG)
+
+
 
