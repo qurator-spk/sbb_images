@@ -140,7 +140,7 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
     update_counter = 0
 
-    start = timeit.timeit()
+    start = timeit.time()
 
     save_interval = 100
 
@@ -190,7 +190,7 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
                 log_entry['update_counter'] = update_counter
 
-                log_entry['elapsed'] = timeit.timeit() - start
+                log_entry['elapsed'] = (timeit.time() - start).minutes
 
                 train_log.append(log_entry)
 
