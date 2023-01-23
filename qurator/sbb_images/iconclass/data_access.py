@@ -12,7 +12,7 @@ import os.path
 
 class IconClassDataset(Dataset):
 
-    def __init__(self, json_file, test_set_path, loader=default_loader, lang='de', transform=None):
+    def __init__(self, json_file, test_set_path, loader=default_loader, lang='de', transform=None, subset=None):
 
         super(Dataset, self).__init__()
 

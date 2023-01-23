@@ -29,6 +29,22 @@ class DebugNet(nn.Module):
         return self.output(torch.tanh(self.hidden(x)))
 
 
+def find_layer(path, model):
+
+    found = []
+
+    try:
+        for n, c in model.named_children():
+
+            found.append((n, c))
+
+            found = found + find_layer(path, c)
+    except TypeError:
+        pass
+
+    return found
+
+
 def load_pretrained_model(ms_clip_model, device, save_gradient=False):
     from msclip.config import config, update_config
     import msclip.models.clip_openai_pe_res_v1 as clip_openai_pe_res_v1
