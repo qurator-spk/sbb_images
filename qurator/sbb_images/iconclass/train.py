@@ -22,11 +22,11 @@ class DebugNet(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.hidden = nn.Linear(2, 5)
-        self.output = nn.Linear(5, 2)
+        self.transformer = nn.Linear(2, 5)
+        self.visual = nn.Linear(5, 2)
 
     def forward(self, x):
-        return self.output(torch.tanh(self.hidden(x)))
+        return self.visual(torch.tanh(self.transformer(x)))
 
 
 def find_layer(path, model):
@@ -99,15 +99,14 @@ def load_pretrained_model(ms_clip_model, device, save_gradient=False):
               default='StepLR')
 @click.option('--num-workers', type=int, default=8, help="Number of parallel workers during index creation."
                                                          "Default 8.")
-@click.option('--debug', type=bool, is_flag=True, default=False, help="Replace the entire image table if specified.")
+@click.option('--debug', type=bool, is_flag=True, default=False, help="")
+@click.option('--save-gradient', type=bool, is_flag=True, default=False, help="")
 def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, log_file,
-          batch_size, epochs, accu_steps, start_lr, lr_scheduler, num_workers, debug):
+          batch_size, epochs, accu_steps, start_lr, lr_scheduler, num_workers, debug, save_gradient=False):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     tokenizer = SimpleTokenizer(bpe_path=tokenizer_file)
-
-    save_gradient = False
 
     if not debug:
         model, transform, normalization = load_pretrained_model(ms_clip_model, device, save_gradient=save_gradient)
@@ -129,24 +128,60 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
     num_update_steps = int(total_steps/accu_steps)
 
-    optimizer = AdamW(model.parameters(), lr=start_lr)
-
     # total_iterations = total_steps*epochs
 
-    resets_per_epoch = 1.0
-    T_0 = int(resets_per_epoch*num_update_steps)
-    if lr_scheduler == 'CosineAnnealingWarmRestarts':
-        sched = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=T_0)
-    else:
+    if save_gradient:
+        optimizer = None
+        optimizer_text = AdamW(model.transformer.parameters(), lr=start_lr)
+        optimizer_image = AdamW(model.visual.parameters(), lr=start_lr)
+
         sched = None
-
-    decrease_epochs = 1
-    decrease_factor = 34/55
-
-    if lr_scheduler == 'StepLR':
-        sched_epoch = torch.optim.lr_scheduler.StepLR(optimizer, step_size=decrease_epochs, gamma=decrease_factor)
-    else:
         sched_epoch = None
+
+        resets_per_epoch = 1.0
+        T_0 = int(resets_per_epoch * num_update_steps)
+        if lr_scheduler == 'CosineAnnealingWarmRestarts':
+            sched_text = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer_text, T_0=T_0)
+            sched_image = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer_image, T_0=T_0)
+        else:
+            sched_text = None
+            sched_image = None
+
+        decrease_epochs = 1
+        decrease_factor = 34 / 55
+
+        if lr_scheduler == 'StepLR':
+            sched_epoch_text = torch.optim.lr_scheduler.StepLR(optimizer_text, step_size=decrease_epochs,
+                                                               gamma=decrease_factor)
+            sched_epoch_image = torch.optim.lr_scheduler.StepLR(optimizer_image, step_size=decrease_epochs,
+                                                                gamma=decrease_factor)
+        else:
+            sched_epoch_text = None
+            sched_epoch_image = None
+    else:
+        optimizer = AdamW(model.parameters(), lr=start_lr)
+        optimizer_text = None
+        optimizer_image = None
+
+        resets_per_epoch = 1.0
+        T_0 = int(resets_per_epoch * num_update_steps)
+        if lr_scheduler == 'CosineAnnealingWarmRestarts':
+            sched = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=T_0)
+        else:
+            sched = None
+
+        decrease_epochs = 1
+        decrease_factor = 34 / 55
+
+        if lr_scheduler == 'StepLR':
+            sched_epoch = torch.optim.lr_scheduler.StepLR(optimizer, step_size=decrease_epochs, gamma=decrease_factor)
+        else:
+            sched_epoch = None
+
+        sched_text = None
+        sched_image = None
+        sched_epoch_text = None
+        sched_epoch_image = None
 
     cross_entropy_loss = torch.nn.CrossEntropyLoss()
 
@@ -166,8 +201,6 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
         for step, (images, texts) in train_seq:
 
-            optimizer.zero_grad()
-
             if debug:
                 tokens = None
             else:
@@ -179,30 +212,80 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
                 if debug:
                     trloss = 0.0
+                    trloss_te = 0.0
+                    trloss_im = 0.0
+
+                    if save_gradient:
+
+                        te_lr_str = ""
+                        for param_group in optimizer_text.param_groups:
+                            te_lr_str += "{:3.8f}".format(param_group['lr'])
+
+                        im_lr_str = ""
+                        for param_group in optimizer_image.param_groups:
+                            im_lr_str += "{:3.8f}".format(param_group['lr'])
+
+                        lr_str = "[te: {}|im: {}]".format(te_lr_str, im_lr_str)
+                    else:
+                        lr_str = ""
+                        for param_group in optimizer.param_groups:
+                            lr_str += "{:3.8f}".format(param_group['lr'])
                 else:
                     if save_gradient:
                         logits_image_text, logits_image_text_fiximage, logits_image_text_fixtext = \
                             model(images, tokens)
+
+                        loss_text = cross_entropy_loss(logits_image_text_fiximage.T, labels)
+                        loss_image = cross_entropy_loss(logits_image_text_fixtext, labels)
+
+                        loss_text.backward()
+                        loss_image.backward()
+
+                        trloss_te = loss_text.item()
+                        trloss_im = loss_image.item()
+
+                        trloss = (trloss_te + trloss_im) / 2
+
+                        te_lr_str = ""
+                        for param_group in optimizer_text.param_groups:
+                            te_lr_str += "{:3.8f}".format(param_group['lr'])
+
+                        im_lr_str = ""
+                        for param_group in optimizer_image.param_groups:
+                            im_lr_str += "{:3.8f}".format(param_group['lr'])
+
+                        lr_str = "[te: {}|im: {}]".format(te_lr_str, im_lr_str)
                     else:
                         logits_image_text = model(images, tokens)
 
-                    loss = (cross_entropy_loss(logits_image_text, labels) +
-                            cross_entropy_loss(logits_image_text.T, labels)) / 2
+                        loss = (cross_entropy_loss(logits_image_text, labels) +
+                                cross_entropy_loss(logits_image_text.T, labels)) / 2
 
-                    loss.backward()
+                        loss.backward()
 
-                    trloss = loss.item()
+                        trloss = loss.item()
+                        trloss_te = None
+                        trloss_im = None
 
-                lr_str = ""
-                for param_group in optimizer.param_groups:
-                    lr_str += "{:3.8f}".format(param_group['lr'])
+                        lr_str = ""
+                        for param_group in optimizer.param_groups:
+                            lr_str += "{:3.8f}".format(param_group['lr'])
 
                 train_seq.set_description("{:3.3} TLoss: {:.4f} LR: {}".
                                           format(epoch + step / total_steps, trloss, lr_str))
 
-                log_entry = {'lr{}'.format(i): pg['lr'] for i, pg in enumerate(optimizer.param_groups)}
+                if save_gradient:
+                    log_entry = {'telr{}'.format(i): pg['lr'] for i, pg in enumerate(optimizer_text.param_groups)}
+                    log_entry.update({'imlr{}'.format(i):
+                                          pg['lr'] for i, pg in enumerate(optimizer_image.param_groups)})
+                else:
+                    log_entry = {'lr{}'.format(i): pg['lr'] for i, pg in enumerate(optimizer.param_groups)}
 
                 log_entry['trloss'] = trloss
+
+                if save_gradient:
+                    log_entry['trloss_te'] = trloss_te
+                    log_entry['trloss_im'] = trloss_im
 
                 log_entry['update_counter'] = update_counter
 
@@ -212,10 +295,24 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
                 if (step+1) % accu_steps == 0 or step == total_steps - 1:
 
-                    optimizer.step()
+                    if save_gradient:
+                        optimizer_text.step()
+                        optimizer_image.step()
+
+                        optimizer_text.zero_grad()
+                        optimizer_image.zero_grad()
+                    else:
+                        optimizer.step()
+                        optimizer.zero_grad()
 
                     if sched is not None:
                         sched.step(update_counter)
+
+                    if sched_text is not None:
+                        sched_text.step(update_counter)
+
+                    if sched_image is not None:
+                        sched_image.step(update_counter)
 
                     update_counter += 1
 
@@ -224,6 +321,12 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
         if sched_epoch is not None:
             sched_epoch.step()
+
+        if sched_epoch_text is not None:
+            sched_epoch_text.step()
+
+        if sched_epoch_image is not None:
+            sched_epoch_image.step()
 
     pd.DataFrame.from_records(train_log).to_pickle(log_file)
 

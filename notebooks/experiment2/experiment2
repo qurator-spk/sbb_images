@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+ln -s /home/kai.labusch/qurator/qurator-data data
+ln -s /home/kai.labusch/MMK/iconclass/data/iconclass.sqlite iconclass.sqlite
+
+for lr_sched in CosineAnnealingWarmRestarts StepLR ; do
+	for accu_steps in 1 2 4 8 16 ; do 
+		make -f ../../Makefile iconclass-b16-yfcc-msclips ACCU_STEPS=$accu_steps LR_SCHEDULER=$lr_sched START_LR=5e-4 DEBUG= ;
+	done
+done
