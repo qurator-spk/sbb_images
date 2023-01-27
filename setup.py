@@ -30,7 +30,8 @@ setup(
         "filter-detections=qurator.sbb_images.cli:filter_detections",
         "image-info=qurator.sbb_images.image_info:cli",
 
-        "iconclass-train=qurator.sbb_images.iconclass.train:train"
+        "iconclass-train=qurator.sbb_images.iconclass.train:train",
+        "iconclass-traintestsplit=qurator.sbb_images.iconclass.train:traintestsplit"
         ]
     },
     python_requires='>=3.6.0',

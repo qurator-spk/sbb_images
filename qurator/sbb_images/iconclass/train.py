@@ -15,7 +15,10 @@ from .data_access import IconClassDataset
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
-import timeit
+import json
+
+import sklearn
+from sklearn.model_selection import train_test_split
 
 
 class DebugNet(nn.Module):
@@ -85,12 +88,81 @@ def load_pretrained_model(ms_clip_model, device, save_gradient=False):
 
 
 @click.command()
+@click.argument('data-json', type=click.Path(exists=True))
+@click.argument('train-data-json', type=click.Path(exists=False))
+@click.argument('test-data-json', type=click.Path(exists=False))
+@click.option('--train-fraction', type=float, default=0.9, help="")
+def traintestsplit(data_json, train_data_json, test_data_json, train_fraction):
+
+    with open(data_json) as f:
+        df_json = json.load(f)
+
+    df = pd.DataFrame.from_dict(df_json, orient='index')
+
+    df = df.replace('', None).dropna(how='all')
+
+    df_train, df_test = train_test_split(df, train_size=int(len(df)*train_fraction))
+
+    df_json_train = {k: df_json[k] for k in df_train.index.to_list()}
+
+    df_json_test = {k: df_json[k] for k in df_test.index.to_list()}
+
+    with open(train_data_json, 'w') as f:
+        f.write(json.dumps(df_json_train, indent=3))
+
+    with open(test_data_json, 'w') as f:
+        f.write(json.dumps(df_json_test, indent=3))
+
+
+def test(device, model, transform, tokenizer, data_json, test_set_path, batch_size, num_workers):
+
+    dataset = IconClassDataset(json_file=data_json, lang="en", transform=transform, test_set_path=test_set_path)
+
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True)
+
+    total_steps = len(data_loader)
+
+    cross_entropy_loss = torch.nn.CrossEntropyLoss()
+
+    labels = torch.tensor(np.arange(batch_size)).to(device)
+
+    teloss_te = 0.0
+    teloss_im = 0.0
+
+    test_seq = tqdm(enumerate(data_loader), total=total_steps, desc="test")
+
+    for step, (images, texts) in test_seq:
+
+        images = images.to(device)
+        tokens = tokenizer.tokenize(texts).to(device)
+
+        with torch.set_grad_enabled(False):
+
+            logits_image_text, _, _ = model(images, tokens)
+
+            lossim = cross_entropy_loss(logits_image_text, labels)
+            losste = cross_entropy_loss(logits_image_text.T, labels)
+
+            teloss_im += lossim.item()
+            teloss_te += losste.item()
+
+            test_seq.set_description("Test Loss: {:3.8f}".format((teloss_te+teloss_im)/2/(step+1)))
+
+    teloss_te /= total_steps
+    teloss_im /= total_steps
+
+    return (teloss_te + teloss_im)/2, teloss_te, teloss_im
+
+
+@click.command()
 @click.argument('ms-clip-model', type=click.Path(exists=True))
 @click.argument('tokenizer-file', type=click.Path(exists=True))
-@click.argument('data-json', type=click.Path(exists=True))
+@click.argument('train-data-json', type=click.Path(exists=True))
 @click.argument('test-set-path', type=click.Path(exists=True))
 @click.argument('model-file', type=click.Path())
 @click.argument('log-file', type=click.Path())
+@click.option('--test-data-json', type=click.Path(exists=True), default=None, help="")
+@click.option('--test-interval', type=int, default=None, help="")
 @click.option('--batch-size', type=int, default=32, help="Batch-size. default: 32.")
 @click.option('--epochs', type=int, default=32, help="Batch-size. default: 32.")
 @click.option('--accu-steps', type=int, default=1, help="Gradient accumulation steps. Default 1.")
@@ -101,17 +173,20 @@ def load_pretrained_model(ms_clip_model, device, save_gradient=False):
                                                          "Default 8.")
 @click.option('--debug', type=bool, is_flag=True, default=False, help="")
 @click.option('--save-gradient', type=bool, is_flag=True, default=False, help="")
-def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, log_file,
-          batch_size, epochs, accu_steps, start_lr, lr_scheduler, num_workers, debug, save_gradient=False):
+def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_file, log_file, test_data_json,
+          test_interval, batch_size, epochs, accu_steps, start_lr, lr_scheduler, num_workers, debug,
+          save_gradient=False):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    start_lr *= np.sqrt(accu_steps)
 
     tokenizer = SimpleTokenizer(bpe_path=tokenizer_file)
 
     if not debug:
         model, transform, normalization = load_pretrained_model(ms_clip_model, device, save_gradient=save_gradient)
 
-        dataset = IconClassDataset(json_file=data_json, lang="en", transform=transform, test_set_path=test_set_path)
+        dataset = IconClassDataset(json_file=train_data_json, lang="en", transform=transform, test_set_path=test_set_path)
 
         data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True)
         total_steps = len(data_loader)
@@ -120,6 +195,7 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
             return tqdm(enumerate(data_loader), total=total_steps, desc="train")
     else:
         model = DebugNet()
+        transform = None
 
         total_steps = 100
 
@@ -195,6 +271,8 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
     save_interval = 100
 
+    teloss_prev = np.inf
+
     for epoch in range(epochs):
 
         train_seq = get_train_seq()
@@ -235,14 +313,14 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
                         logits_image_text, logits_image_text_fiximage, logits_image_text_fixtext = \
                             model(images, tokens)
 
-                        loss_text = cross_entropy_loss(logits_image_text_fiximage.T, labels)
-                        loss_image = cross_entropy_loss(logits_image_text_fixtext, labels)
+                        loss_text = cross_entropy_loss(logits_image_text_fiximage.T, labels)/accu_steps
+                        loss_image = cross_entropy_loss(logits_image_text_fixtext, labels)/accu_steps
 
                         loss_text.backward()
                         loss_image.backward()
 
-                        trloss_te = loss_text.item()
-                        trloss_im = loss_image.item()
+                        trloss_te = loss_text.item()*accu_steps
+                        trloss_im = loss_image.item()*accu_steps
 
                         trloss = (trloss_te + trloss_im) / 2
 
@@ -258,12 +336,12 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
                     else:
                         logits_image_text = model(images, tokens)
 
-                        loss = (cross_entropy_loss(logits_image_text, labels) +
-                                cross_entropy_loss(logits_image_text.T, labels)) / 2
+                        loss = ((cross_entropy_loss(logits_image_text, labels) +
+                                cross_entropy_loss(logits_image_text.T, labels)) / 2) / accu_steps
 
                         loss.backward()
 
-                        trloss = loss.item()
+                        trloss = loss.item()*accu_steps
                         trloss_te = None
                         trloss_im = None
 
@@ -316,6 +394,21 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
                     update_counter += 1
 
+                if not debug and test_interval is not None and test_data_json is not None \
+                        and (step+1) % test_interval == 0:
+
+                    teloss, teloss_te, teloss_im = test(device, model, transform, tokenizer, test_data_json,
+                                                        test_set_path, batch_size, num_workers)
+
+                    log_entry['teloss'] = teloss
+                    log_entry['teloss_te'] = teloss_te
+                    log_entry['teloss_im'] = teloss_im
+
+                    if teloss < teloss_prev:
+
+                        torch.save(model.state_dict(), model_file)
+                        teloss_prev = teloss
+
                 if (len(train_log) + 1) % save_interval == 0:
                     pd.DataFrame.from_records(train_log).to_pickle(log_file)
 
@@ -330,7 +423,7 @@ def train(ms_clip_model, tokenizer_file, data_json, test_set_path, model_file, l
 
     pd.DataFrame.from_records(train_log).to_pickle(log_file)
 
-    if not debug:
-        torch.save(model.state_dict(), model_file)
+    #if not debug:
+    #    torch.save(model.state_dict(), model_file)
 
 
