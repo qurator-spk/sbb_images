@@ -11,7 +11,7 @@ from torch.optim.adamw import AdamW
 from torchvision import transforms
 
 from msclip.dataset.languages import SimpleTokenizer
-from .data_access import IconClassDataset
+from .data_access import IconClassDataset, IconClassSampler
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
@@ -188,7 +188,10 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
 
         dataset = IconClassDataset(json_file=train_data_json, lang="en", transform=transform, test_set_path=test_set_path)
 
-        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True)
+        sampler = IconClassSampler(samples=dataset.samples)
+
+        data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers,
+                                 drop_last=True)
         total_steps = len(data_loader)
 
         def get_train_seq():
