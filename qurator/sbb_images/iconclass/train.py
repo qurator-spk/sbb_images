@@ -114,11 +114,10 @@ def traintestsplit(data_json, train_data_json, test_data_json, train_fraction):
         f.write(json.dumps(df_json_test, indent=3))
 
 
-def test(device, model, transform, tokenizer, data_json, test_set_path, batch_size, num_workers):
+def test(device, model, test_dataset, test_sampler, tokenizer, batch_size, num_workers):
 
-    dataset = IconClassDataset(json_file=data_json, lang="en", transform=transform, test_set_path=test_set_path)
-
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True)
+    data_loader = DataLoader(test_dataset, batch_size=batch_size, sampler=test_sampler, num_workers=num_workers,
+                             drop_last=True)
 
     total_steps = len(data_loader)
 
@@ -147,6 +146,8 @@ def test(device, model, transform, tokenizer, data_json, test_set_path, batch_si
             teloss_te += losste.item()
 
             test_seq.set_description("Test Loss: {:3.8f}".format((teloss_te+teloss_im)/2/(step+1)))
+
+        test_sampler.reset()
 
     teloss_te /= total_steps
     teloss_im /= total_steps
@@ -184,13 +185,20 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
     tokenizer = SimpleTokenizer(bpe_path=tokenizer_file)
 
     if not debug:
+
         model, transform, normalization = load_pretrained_model(ms_clip_model, device, save_gradient=save_gradient)
 
-        dataset = IconClassDataset(json_file=train_data_json, lang="en", transform=transform, test_set_path=test_set_path)
+        train_sampler = IconClassSampler(json_file=train_data_json)
 
-        sampler = IconClassSampler(samples=dataset.samples)
+        test_sampler = IconClassSampler(json_file=test_data_json)
 
-        data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers,
+        train_dataset = IconClassDataset(samples=train_sampler.samples, lang="en", transform=transform,
+                                         test_set_path=test_set_path)
+
+        test_dataset = IconClassDataset(samples=test_sampler.samples, lang="en", transform=transform,
+                                        test_set_path=test_set_path)
+
+        data_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_sampler, num_workers=num_workers,
                                  drop_last=True)
         total_steps = len(data_loader)
 
@@ -199,6 +207,10 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
     else:
         model = DebugNet()
         transform = None
+        sampler = None
+        test_dataset = None
+        train_sampler = None
+        test_sampler = None
 
         total_steps = 100
 
@@ -376,6 +388,8 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
 
                 if (step+1) % accu_steps == 0 or step == total_steps - 1:
 
+                    train_sampler.reset()
+
                     if save_gradient:
                         optimizer_text.step()
                         optimizer_image.step()
@@ -400,8 +414,8 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
                 if not debug and test_interval is not None and test_data_json is not None \
                         and (step+1) % test_interval == 0:
 
-                    teloss, teloss_te, teloss_im = test(device, model, transform, tokenizer, test_data_json,
-                                                        test_set_path, batch_size, num_workers)
+                    teloss, teloss_te, teloss_im = test(device, model, test_dataset, test_sampler, tokenizer,
+                                                        batch_size, num_workers)
 
                     log_entry['teloss'] = teloss
                     log_entry['teloss_te'] = teloss_te

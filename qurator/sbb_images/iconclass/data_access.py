@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, Sampler
 
 from PIL import Image
 
+import re
 import json
 import pandas as pd
 import iconclass
@@ -14,7 +15,7 @@ from tqdm import tqdm
 
 class IconClassDataset(Dataset):
 
-    def __init__(self, json_file, test_set_path, loader=default_loader, lang='de', transform=None):
+    def __init__(self, samples, test_set_path, loader=default_loader, lang='de', transform=None):
 
         super(Dataset, self).__init__()
 
@@ -22,56 +23,16 @@ class IconClassDataset(Dataset):
 
         self.loader = loader
         self._lang = lang
-
-        with open(json_file) as f:
-            df = json.load(f)
-
-        df = pd.DataFrame.from_dict(df, orient='index')
         self._test_set_path = test_set_path
 
-        self.samples = df
-        self.samples = self.samples.replace('', None).dropna(how='all')
+        self.samples = samples
 
     def __getitem__(self, index):
 
         sample = self.samples.iloc[index]
 
-        file = sample.name
-
-        targets = []
-        sam = None
-        for sam in sample.dropna().to_list():
-
-            tmp = iconclass.get(sam)
-            if tmp is not None:
-                targets.append(tmp)
-                continue
-
-            for colon_section in sam.split(':'):
-                tmp = iconclass.get(colon_section)
-
-                if tmp is not None:
-                    targets.append(tmp)
-                    continue
-
-                parts = iconclass.get_parts(colon_section)
-                for i in range(1, len(parts)):
-                    tmp = iconclass.get(parts[-i])
-
-                    if tmp is not None:
-                        break
-                else:
-                    continue
-                    # import ipdb;ipdb.set_trace()
-
-                targets.append(tmp)
-
-        if len(targets) == 0:
-            print("ICONCLASS ERROR: >{}<".format(sam))
-            targets = ['Unkown']
-            # import ipdb;ipdb.set_trace()
-        else:
-            targets = [t['txt'][self._lang] for t in targets]
+        file = sample.file
+        target = sample.target
 
         try:
             img = self.loader(os.path.join(self._test_set_path, file))
@@ -83,7 +44,7 @@ class IconClassDataset(Dataset):
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, random.choice(targets)
+        return img, target
 
     def __len__(self):
         return len(self.samples)
@@ -91,11 +52,17 @@ class IconClassDataset(Dataset):
 
 class IconClassSampler(Sampler):
 
-    def __init__(self, samples, total_batch_size):
+    def __init__(self, json_file):
         super(Sampler, self).__init__()
 
-        self.samples = samples
-        self.total_batch_size = total_batch_size
+        with open(json_file) as f:
+            df = json.load(f)
+
+        df = pd.DataFrame.from_dict(df, orient='index')
+
+        self.samples = df
+        self.samples = self.samples.replace('', None).dropna(how='all')
+
         self.blocked = set()
 
         self.tree = self.make_tree()
@@ -140,10 +107,34 @@ class IconClassSampler(Sampler):
             yield rand_leaf
 
     def __len__(self):
-        return 0
+        return len(self.samples)
 
     def reset(self):
         self.blocked = set()
+
+    @staticmethod
+    def fix_classlabel(label):
+
+        if label.endswith('()') or label.endswith('[]'):
+            label = label[:-2]
+
+        if label.endswith('(') or label.endswith('['):
+            label = label[:-1]
+
+        if re.match('.+\([^)]*$', label):
+            label = label + ")"
+
+        m = re.match('>(.*)<', label)
+
+        if m:
+            label = m.group(1)
+
+        label = label.strip()
+
+        label = label.replace(' (', '(')
+        label = label.replace(') ', ')')
+
+        return label
 
     def make_tree(self):
 
@@ -162,22 +153,39 @@ class IconClassSampler(Sampler):
 
         root_of_tree = {'children': dict()}
 
-        for index in tqdm(self.samples.index, total=len(self.samples), desc="Building tree..."):
+        tree_samples = []
 
-            sample = self.samples.iloc[index]
+        for pos in tqdm(range(0, len(self.samples)), total=len(self.samples), desc="Building tree..."):
+
+            sample = self.samples.iloc[pos]
 
             for sam in sample.dropna().to_list():
+
+                sam = IconClassSampler.fix_classlabel(sam)
 
                 sam_parts = iconclass.get_parts(sam)
 
                 if len(sam_parts) > 0:
-                    add_leaf(sam_parts, sample.name, root_of_tree)
+
+                    add_leaf(sam_parts, len(tree_samples), root_of_tree)
+
+                    tree_samples.append({'file': sample.name, 'target': sam})
                     continue
 
                 for colon_section in sam.split(':'):
+                    colon_section = IconClassSampler.fix_classlabel(colon_section)
+
                     col_parts = iconclass.get(colon_section)
 
                     if len(sam_parts) > 0:
-                        add_leaf(col_parts, sample.name, root_of_tree)
+                        add_leaf(col_parts, len(tree_samples), root_of_tree)
+                        tree_samples.append({'file': sample.name, 'target': sam})
+
+        root_of_tree['children'] = \
+            {k: root_of_tree['children'][k] for k in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']}
+
+        tree_samples = pd.DataFrame(tree_samples)
+
+        self.samples = tree_samples
 
         return root_of_tree

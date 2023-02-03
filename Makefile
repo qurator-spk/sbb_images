@@ -2,7 +2,7 @@
 # cadaver https://qurator-data.de --proxy=proxy.sbb.spk-berlin.de:3128
 #
 
-NUM_WORKERS?=20
+NUM_WORKERS?=16
 N_TREES?=100
 
 DATA_DIR=..
