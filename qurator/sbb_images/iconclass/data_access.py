@@ -7,10 +7,10 @@ import re
 import json
 import pandas as pd
 import iconclass
-import random
 import os.path
 import random
 from tqdm import tqdm
+from copy import deepcopy
 
 
 class IconClassDataset(Dataset):
@@ -49,6 +49,25 @@ class IconClassDataset(Dataset):
     def __len__(self):
         return len(self.samples)
 
+    @staticmethod
+    def get_text(target):
+        target_text = ""
+
+        for part in target.split(":"):
+            res = iconclass.get(part)
+
+            if res is None:
+                return None
+
+            text = res["txt"]["en"]
+
+            if len(target_text) > 0:
+                target_text += " : "
+
+            target_text += " " + text
+
+        return target_text
+
 
 class IconClassSampler(Sampler):
 
@@ -61,60 +80,141 @@ class IconClassSampler(Sampler):
         df = pd.DataFrame.from_dict(df, orient='index')
 
         self.samples = df
+        self._length = 0
         self.samples = self.samples.replace('', None).dropna(how='all')
 
-        self.blocked = set()
+        self.full_tree = self.make_tree()
+        self.tree = deepcopy(self.full_tree)
 
-        self.tree = self.make_tree()
+        self.blocked_files = set()
+        self.reset()
 
     def __iter__(self):
 
-        def find_random_path(tree):
+        def find_random_path(tree, level=0):
 
-            if len(tree['children']) == 0:
-                return dict()
+            if len(tree['active']) == 0:
+                tree['active'] = list(tree['children'].keys())
 
-            rand_child = random.choice(tuple(tree['children'].keys()))
+            if len(tree['active']) == 0:
+                return list(), list()
 
-            rand_path = find_random_path(tree['children'][rand_child])
+            rand_child = random.choice(tree['active'])
 
-            if len(tree['children'][rand_child]['leaves']) > 0:
-                rand_path[rand_child] = tree['children'][rand_child]['leaves']
+            bol, rand_path = find_random_path(tree['children'][rand_child], level=level + 1)
 
-            return rand_path
+            for le in tree['children'][rand_child]['leaves']:
+                bol.append((le, level))
 
-        while True:
+            return bol, [rand_child] + rand_path
 
-            candidates = set()
-            next_rand_path = dict()
+        def lock_random_path(tree, path):
 
-            while len(candidates) == 0:
-                next_rand_path = find_random_path(self.tree)
+            if len(path) == 0:
+                return
 
-                candidates = set(next_rand_path.keys()).difference(self.blocked)
+            lock_random_path(tree['children'][path[0]], path[1:])
 
-                if len(candidates) == 0:
-                    continue
+            assert (path[0] in tree['active'])
+            tree['active'].remove(path[0])
+            assert (path[0] in tree['children'])
 
-            selection = random.choice(tuple(candidates))
+            if len(tree['active']) == 0:
+                tree['active'] = list(tree['children'].keys())
 
-            selected_leaves = next_rand_path[selection]
+        def remove_leaf(parts, file, tree):
 
-            rand_leaf = random.choice(selected_leaves)
+            if len(parts) == 1:
+                assert (file in tree['children'][parts[0]]['leaves'])
 
-            self.blocked.add(rand_leaf)
+                tree['children'][parts[0]]['leaves'].remove(file)
 
-            yield rand_leaf
+                if len(tree['children'][parts[0]]['leaves']) == 0 and len(tree['children'][parts[0]]['children']) == 0:
+                    del tree['children'][parts[0]]
+
+                    if parts[0] in tree['active']:
+                        tree['active'].remove(parts[0])
+
+                        if len(tree['active']) == 0:
+                            tree['active'] = list(tree['children'].keys())
+            else:
+                delete_subtree = remove_leaf(parts[1:], file, tree['children'][parts[0]])
+
+                if delete_subtree:
+                    del tree['children'][parts[0]]
+
+                    if parts[0] in tree['active']:
+                        tree['active'].remove(parts[0])
+
+                        if len(tree['active']) == 0:
+                            tree['active'] = list(tree['children'].keys())
+
+            return len(tree['children']) == 0 and len(tree['leaves']) == 0
+
+        def next_leaf():
+
+            rindex = plevel = rand_path = None
+
+            for trial in range(0, 3000):
+                bag_of_leaves, rand_path = find_random_path(self.tree)
+
+                rindex, plevel = random.choice(bag_of_leaves)
+
+                rand_file = self.samples.iloc[rindex].file
+
+                if rand_file not in self.blocked_files:
+                    self.blocked_files.add(rand_file)
+
+                    return rindex, plevel, rand_path
+
+                if (trial+1) % 50 == 0:
+                    self.reset_active(self.tree)
+
+            return rindex, plevel, rand_path
+
+        self.tree = deepcopy(self.full_tree)
+        self.reset()
+
+        for _ in range(0, len(self.samples)):
+            try:
+                rand_index, path_level, next_rand_path = next_leaf()
+            except IndexError:
+                break
+
+            lock_random_path(self.tree, next_rand_path[0:path_level + 1])
+
+            remove_leaf(next_rand_path[0:path_level + 1], rand_index, self.tree)
+
+            yield rand_index
 
     def __len__(self):
-        return len(self.samples)
+        return self._length
+
+    @staticmethod
+    def reset_active(tree, level=0):
+
+        assert (len(tree['leaves']) > 0 or len(tree['children']) > 0)
+
+        if len(tree['leaves']) == 0:
+            assert (len(tree['children']) > 0)
+
+        if len(tree['children']) == 0:
+            assert (len(tree['leaves']) > 0)
+
+        tree['active'] = list(tree['children'].keys())
+
+        for ch in tree['children'].keys():
+            IconClassSampler.reset_active(tree['children'][ch], level=level + 1)
 
     def reset(self):
-        self.blocked = set()
+        if len(self.tree['children']) == 0:
+            return
+
+        self.blocked_files = set()
+        self.reset_active(self.tree)
 
     @staticmethod
     def fix_classlabel(label):
-
         if label.endswith('()') or label.endswith('[]'):
             label = label[:-2]
 
@@ -124,11 +224,6 @@ class IconClassSampler(Sampler):
         if re.match('.+\([^)]*$', label):
             label = label + ")"
 
-        m = re.match('>(.*)<', label)
-
-        if m:
-            label = m.group(1)
-
         label = label.strip()
 
         label = label.replace(' (', '(')
@@ -137,7 +232,6 @@ class IconClassSampler(Sampler):
         return label
 
     def make_tree(self):
-
         def add_leaf(parts, file, tree):
 
             if parts[0] not in tree['children']:
@@ -151,7 +245,7 @@ class IconClassSampler(Sampler):
 
             return
 
-        root_of_tree = {'children': dict()}
+        root_of_tree = {'children': dict(), 'leaves': list()}
 
         tree_samples = []
 
@@ -163,28 +257,34 @@ class IconClassSampler(Sampler):
 
                 sam = IconClassSampler.fix_classlabel(sam)
 
+                target = IconClassDataset.get_text(sam)
+
+                if target is None:
+                    continue
+
                 sam_parts = iconclass.get_parts(sam)
 
                 if len(sam_parts) > 0:
-
                     add_leaf(sam_parts, len(tree_samples), root_of_tree)
 
-                    tree_samples.append({'file': sample.name, 'target': sam})
+                    tree_samples.append({'file': sample.name, 'target': target})
                     continue
 
-                for colon_section in sam.split(':'):
-                    colon_section = IconClassSampler.fix_classlabel(colon_section)
+        iconclass_toplevel = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
-                    col_parts = iconclass.get(colon_section)
+        root_of_tree['children'] = {k: root_of_tree['children'][k] for k in iconclass_toplevel}
 
-                    if len(sam_parts) > 0:
-                        add_leaf(col_parts, len(tree_samples), root_of_tree)
-                        tree_samples.append({'file': sample.name, 'target': sam})
+        def check_for_reachability(tree):
 
-        root_of_tree['children'] = \
-            {k: root_of_tree['children'][k] for k in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']}
+            reach = list()
+            for ch in tree['children'].keys():
+                reach += check_for_reachability(tree['children'][ch])
+
+            return tree['leaves'] + reach
 
         tree_samples = pd.DataFrame(tree_samples)
+
+        self._length = len(check_for_reachability(root_of_tree))
 
         self.samples = tree_samples
 

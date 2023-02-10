@@ -2,7 +2,7 @@
 # cadaver https://qurator-data.de --proxy=proxy.sbb.spk-berlin.de:3128
 #
 
-NUM_WORKERS?=16
+NUM_WORKERS?=0
 N_TREES?=100
 
 DATA_DIR=..
@@ -100,6 +100,7 @@ msclip-indices: $(INDEX_PREFIX)-msclip-index-b32-yfcc.ann $(INDEX_PREFIX)-msclip
 EPOCHS=10
 ACCU_STEPS=1
 START_LR=10e-4
+TEST_INTERVAL=500
 LR_SCHEDULER=CosineAnnealingWarmRestarts
 DEBUG=
 TRFLAGS=
@@ -113,7 +114,7 @@ iconclass-traintestsplit:
 	iconclass-traintestsplit  $(ICONCLASS_PATH)/testset/data.json ./train.json ./test.json --train-fraction=0.9
 
 iconclass-b16-yfcc-msclips:
-	iconclass-train --test-data-json=./test.json --test-interval=100 --batch-size=64 --num-workers=$(NUM_WORKERS) --epochs=$(EPOCHS) --accu-steps=$(ACCU_STEPS) --start-lr=$(START_LR) --lr-scheduler=$(LR_SCHEDULER) $(MSCLIP_PATH)/experiments/model/b16-yfcc-msclips.yaml $(MSCLIP_PATH)/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz ./train.json $(ICONCLASS_PATH)/testset ./iconclass-b16-yfcc-msclips_$(FPARAMS).pth ./iconclass-b16-yfcc-msclips_$(FPARAMS).pkl $(DEBUG) $(TRFLAGS)
+	iconclass-train --test-data-json=./test.json --test-interval=$(TEST_INTERVAL) --batch-size=64 --num-workers=$(NUM_WORKERS) --epochs=$(EPOCHS) --accu-steps=$(ACCU_STEPS) --start-lr=$(START_LR) --lr-scheduler=$(LR_SCHEDULER) $(MSCLIP_PATH)/experiments/model/b16-yfcc-msclips.yaml $(MSCLIP_PATH)/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz ./train.json $(ICONCLASS_PATH)/testset ./iconclass-b16-yfcc-msclips_$(FPARAMS).pth ./iconclass-b16-yfcc-msclips_$(FPARAMS).pkl $(DEBUG) $(TRFLAGS)
 
 
 

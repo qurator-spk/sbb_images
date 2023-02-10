@@ -114,12 +114,15 @@ def traintestsplit(data_json, train_data_json, test_data_json, train_fraction):
         f.write(json.dumps(df_json_test, indent=3))
 
 
+# test(device, model, test_dataset, test_sampler, tokenizer, batch_size, num_workers)
 def test(device, model, test_dataset, test_sampler, tokenizer, batch_size, num_workers):
 
     data_loader = DataLoader(test_dataset, batch_size=batch_size, sampler=test_sampler, num_workers=num_workers,
                              drop_last=True)
 
     total_steps = len(data_loader)
+
+    # import ipdb;ipdb.set_trace()
 
     cross_entropy_loss = torch.nn.CrossEntropyLoss()
 
@@ -130,7 +133,7 @@ def test(device, model, test_dataset, test_sampler, tokenizer, batch_size, num_w
 
     test_seq = tqdm(enumerate(data_loader), total=total_steps, desc="test")
 
-    for step, (images, texts) in test_seq:
+    for num, (images, texts) in test_seq:
 
         images = images.to(device)
         tokens = tokenizer.tokenize(texts).to(device)
@@ -145,12 +148,14 @@ def test(device, model, test_dataset, test_sampler, tokenizer, batch_size, num_w
             teloss_im += lossim.item()
             teloss_te += losste.item()
 
-            test_seq.set_description("Test Loss: {:3.8f}".format((teloss_te+teloss_im)/2/(step+1)))
+            test_seq.set_description("Test Loss: {:3.8f}".format((teloss_te+teloss_im)/2/(num+1)))
 
         test_sampler.reset()
 
     teloss_te /= total_steps
     teloss_im /= total_steps
+
+    # import ipdb;ipdb.set_trace()
 
     return (teloss_te + teloss_im)/2, teloss_te, teloss_im
 
@@ -200,6 +205,7 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
 
         data_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_sampler, num_workers=num_workers,
                                  drop_last=True)
+
         total_steps = len(data_loader)
 
         def get_train_seq():
@@ -287,6 +293,8 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
     save_interval = 100
 
     teloss_prev = np.inf
+
+    test(device, model, test_dataset, test_sampler, tokenizer, batch_size, num_workers)
 
     for epoch in range(epochs):
 
