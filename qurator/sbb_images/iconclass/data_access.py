@@ -71,13 +71,20 @@ class IconClassDataset(Dataset):
 
 class IconClassSampler(Sampler):
 
-    def __init__(self, json_file):
+    def __init__(self, json_file, auto_reset=None):
         super(Sampler, self).__init__()
 
         with open(json_file) as f:
             df = json.load(f)
 
         df = pd.DataFrame.from_dict(df, orient='index')
+
+        self.max_trials = 3000
+
+        if auto_reset is None:
+            self.auto_reset = self.max_trials + 1
+        else:
+            self.auto_reset = auto_reset
 
         self.samples = df
         self._length = 0
@@ -153,9 +160,7 @@ class IconClassSampler(Sampler):
 
         def next_leaf():
 
-            rindex = plevel = rand_path = None
-
-            for trial in range(0, 3000):
+            for trial in range(0, self.max_trials):
                 bag_of_leaves, rand_path = find_random_path(self.tree)
 
                 rindex, plevel = random.choice(bag_of_leaves)
@@ -167,10 +172,10 @@ class IconClassSampler(Sampler):
 
                     return rindex, plevel, rand_path
 
-                if (trial+1) % 50 == 0:
+                if (trial+1) % self.auto_reset == 0:
                     self.reset_active(self.tree)
 
-            return rindex, plevel, rand_path
+            raise IndexError()
 
         self.tree = deepcopy(self.full_tree)
         self.reset()
@@ -289,3 +294,46 @@ class IconClassSampler(Sampler):
         self.samples = tree_samples
 
         return root_of_tree
+
+
+class IconClassBatchSampler(Sampler):
+
+    def __init__(self, sampler, batch_size, accu_steps=1, coverage_ratio=0.5):
+        super(Sampler, self).__init__()
+
+        self.sampler = sampler
+        self.batch_size = batch_size
+        self.accu_steps = accu_steps
+        self.coverage_ratio = coverage_ratio
+        self.resets = 0
+
+    def __iter__(self):
+        iterations = 0
+        self.resets = 0
+        while iterations < len(self):
+
+            self.sampler.reset()
+            seq = iter(self.sampler)
+
+            for b in range(iterations, len(self)):
+                batch = list()
+                for i in seq:
+                    batch.append(i)
+
+                    if len(batch) >= self.batch_size:
+                        break
+
+                if len(batch) < self.batch_size:
+                    break
+
+                if (b+1) % self.accu_steps == 0:
+                    self.sampler.reset()
+
+                iterations += 1
+                yield batch
+
+            self.resets += 1
+
+    def __len__(self):
+
+        return int(self.coverage_ratio*len(self.sampler) / self.batch_size)
