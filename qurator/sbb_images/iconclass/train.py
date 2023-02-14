@@ -11,7 +11,7 @@ from torch.optim.adamw import AdamW
 from torchvision import transforms
 
 from msclip.dataset.languages import SimpleTokenizer
-from .data_access import IconClassDataset, IconClassSampler, IconClassBatchSampler
+from .data_access import IconClassDataset, IconClassTreeSampler, IconClassBatchSampler, IconClassRandomSampler
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
@@ -166,12 +166,14 @@ def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
 @click.option('--start-lr', type=float, default=10e-4, help="Start learning rate. default: 10e-4.")
 @click.option('--lr-scheduler', type=click.Choice(['None', 'StepLR', 'CosineAnnealingWarmRestarts'], case_sensitive=False),
               default='StepLR')
+@click.option('--sampler', type=click.Choice(['IconClassTreeSampler', 'IconClassRandomSampler'], case_sensitive=False),
+              default='IconClassRandomSampler')
 @click.option('--num-workers', type=int, default=8, help="Number of parallel workers during index creation."
                                                          "Default 8.")
 @click.option('--debug', type=bool, is_flag=True, default=False, help="")
 @click.option('--save-gradient', type=bool, is_flag=True, default=False, help="")
 def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_file, log_file, test_data_json,
-          test_interval, batch_size, epochs, accu_steps, start_lr, lr_scheduler, num_workers, debug,
+          test_interval, batch_size, epochs, accu_steps, start_lr, lr_scheduler, sampler, num_workers, debug,
           save_gradient=False):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -184,9 +186,14 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
 
         model, transform, normalization = load_pretrained_model(ms_clip_model, device, save_gradient=save_gradient)
 
-        train_sampler = IconClassSampler(json_file=train_data_json)
+        if sampler == "IconClassTreeSampler":
+            train_sampler = IconClassTreeSampler(json_file=train_data_json)
 
-        test_sampler = IconClassSampler(json_file=test_data_json)
+            test_sampler = IconClassTreeSampler(json_file=test_data_json)
+        else:
+            train_sampler = IconClassRandomSampler(json_file=train_data_json)
+
+            test_sampler = IconClassRandomSampler(json_file=test_data_json)
 
         train_batch_sampler = IconClassBatchSampler(sampler=train_sampler, batch_size=batch_size*accu_steps, accu_steps=1)
 

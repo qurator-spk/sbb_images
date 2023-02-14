@@ -69,7 +69,101 @@ class IconClassDataset(Dataset):
         return target_text
 
 
-class IconClassSampler(Sampler):
+class IconClassRandomSampler(Sampler):
+
+    def __init__(self, json_file):
+        super(Sampler, self).__init__()
+
+        with open(json_file) as f:
+            df = json.load(f)
+
+        df = pd.DataFrame.from_dict(df, orient='index')
+
+        self.samples = df
+        self.samples = self.samples.replace('', None).dropna(how='all')
+
+        self.samples = IconClassRandomSampler.parse(self.samples)
+
+        self.lookup = self.samples
+        self.lookup['pos'] = [i for i in range(0, len(self.lookup))]
+
+        self.files = self.samples.file.unique()
+
+        self.lookup = self.lookup.set_index('file').sort_index()
+
+    def __iter__(self):
+
+        perm = [i for i in range(0, len(self.files))]
+        random.shuffle(perm)
+
+        for i in perm:
+            file = self.files[i]
+
+            labels = self.lookup.loc[[file]]
+
+            yield random.choice(labels.pos.to_list())
+
+    def __len__(self):
+
+        return len(self.files)
+
+    @staticmethod
+    def fix_classlabel(label):
+        if label.endswith('()') or label.endswith('[]'):
+            label = label[:-2]
+
+        if label.endswith('(') or label.endswith('['):
+            label = label[:-1]
+
+        if re.match('.+\([^)]*$', label):
+            label = label + ")"
+
+        label = label.strip()
+
+        label = label.replace(' (', '(')
+        label = label.replace(') ', ')')
+
+        return label
+
+    @staticmethod
+    def parse(samples):
+
+        iconclass_toplevel = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+        tree_samples = []
+
+        for pos in tqdm(range(0, len(samples)), total=len(samples), desc="Parsing data..."):
+
+            sample = samples.iloc[pos]
+
+            for label in sample.dropna().to_list():
+
+                label = IconClassRandomSampler.fix_classlabel(label)
+
+                target = IconClassDataset.get_text(label)
+
+                if target is None:
+                    continue
+
+                sam_parts = iconclass.get_parts(label)
+
+                if len(sam_parts) <= 0:
+                    continue
+
+                if sam_parts[0] not in iconclass_toplevel:
+                    continue
+
+                tree_samples.append({'file': sample.name, 'target': target, 'label': label})
+
+        tree_samples = pd.DataFrame(tree_samples)
+
+        return tree_samples
+
+    def reset(self):
+        pass
+
+
+class IconClassTreeSampler(Sampler):
 
     def __init__(self, json_file, auto_reset=None):
         super(Sampler, self).__init__()
@@ -86,11 +180,9 @@ class IconClassSampler(Sampler):
         else:
             self.auto_reset = auto_reset
 
-        self.samples = df
-        self._length = 0
-        self.samples = self.samples.replace('', None).dropna(how='all')
+        self.samples = df.replace('', None).dropna(how='all')
 
-        self.full_tree = self.make_tree()
+        self.full_tree, self.samples = IconClassTreeSampler.make_tree(self.samples)
         self.tree = deepcopy(self.full_tree)
 
         self.blocked_files = set()
@@ -193,7 +285,7 @@ class IconClassSampler(Sampler):
             yield rand_index
 
     def __len__(self):
-        return self._length
+        return len(self.samples)
 
     @staticmethod
     def reset_active(tree, level=0):
@@ -209,7 +301,7 @@ class IconClassSampler(Sampler):
         tree['active'] = list(tree['children'].keys())
 
         for ch in tree['children'].keys():
-            IconClassSampler.reset_active(tree['children'][ch], level=level + 1)
+            IconClassTreeSampler.reset_active(tree['children'][ch], level=level + 1)
 
     def reset(self):
         if len(self.tree['children']) == 0:
@@ -219,24 +311,7 @@ class IconClassSampler(Sampler):
         self.reset_active(self.tree)
 
     @staticmethod
-    def fix_classlabel(label):
-        if label.endswith('()') or label.endswith('[]'):
-            label = label[:-2]
-
-        if label.endswith('(') or label.endswith('['):
-            label = label[:-1]
-
-        if re.match('.+\([^)]*$', label):
-            label = label + ")"
-
-        label = label.strip()
-
-        label = label.replace(' (', '(')
-        label = label.replace(') ', ')')
-
-        return label
-
-    def make_tree(self):
+    def make_tree(samples):
         def add_leaf(parts, file, tree):
 
             if parts[0] not in tree['children']:
@@ -252,53 +327,24 @@ class IconClassSampler(Sampler):
 
         root_of_tree = {'children': dict(), 'leaves': list()}
 
-        tree_samples = []
+        tree_samples = IconClassRandomSampler.parse(samples)
 
-        for pos in tqdm(range(0, len(self.samples)), total=len(self.samples), desc="Building tree..."):
+        for pos in tqdm(range(0, len(tree_samples)), total=len(tree_samples), desc="Building tree..."):
 
-            sample = self.samples.iloc[pos]
+            sample = tree_samples.iloc[pos]
 
-            for sam in sample.dropna().to_list():
+            sample_parts = iconclass.get_parts(sample.label)
 
-                sam = IconClassSampler.fix_classlabel(sam)
-
-                target = IconClassDataset.get_text(sam)
-
-                if target is None:
-                    continue
-
-                sam_parts = iconclass.get_parts(sam)
-
-                if len(sam_parts) > 0:
-                    add_leaf(sam_parts, len(tree_samples), root_of_tree)
-
-                    tree_samples.append({'file': sample.name, 'target': target})
-                    continue
-
-        iconclass_toplevel = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-
-        root_of_tree['children'] = {k: root_of_tree['children'][k] for k in iconclass_toplevel}
-
-        def check_for_reachability(tree):
-
-            reach = list()
-            for ch in tree['children'].keys():
-                reach += check_for_reachability(tree['children'][ch])
-
-            return tree['leaves'] + reach
+            add_leaf(sample_parts, pos, root_of_tree)
 
         tree_samples = pd.DataFrame(tree_samples)
 
-        self._length = len(check_for_reachability(root_of_tree))
-
-        self.samples = tree_samples
-
-        return root_of_tree
+        return root_of_tree, tree_samples
 
 
 class IconClassBatchSampler(Sampler):
 
-    def __init__(self, sampler, batch_size, accu_steps=1, coverage_ratio=0.5):
+    def __init__(self, sampler, batch_size, accu_steps=1, coverage_ratio=1):
         super(Sampler, self).__init__()
 
         self.sampler = sampler
