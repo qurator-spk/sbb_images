@@ -10,7 +10,7 @@ import iconclass
 import os.path
 import random
 from tqdm import tqdm
-from copy import deepcopy
+# from copy import deepcopy
 
 
 class IconClassDataset(Dataset):
@@ -175,6 +175,7 @@ class IconClassTreeSampler(Sampler):
 
         self.max_trials = 3000
 
+        self.auto_resets = 0
         if auto_reset is None:
             self.auto_reset = self.max_trials + 1
         else:
@@ -182,30 +183,34 @@ class IconClassTreeSampler(Sampler):
 
         self.samples = df.replace('', None).dropna(how='all')
 
-        self.full_tree, self.samples = IconClassTreeSampler.make_tree(self.samples)
-        self.tree = deepcopy(self.full_tree)
+        self.tree, self.samples = IconClassTreeSampler.make_tree(self.samples)
+        self.tree_size = len(self.samples)
 
-        self.blocked_files = set()
-        self.reset()
+        self.blocked_files = dict()
+        self.active_batch = None
 
     def __iter__(self):
 
         def find_random_path(tree, level=0):
 
-            if len(tree['active']) == 0:
-                tree['active'] = list(tree['children'].keys())
+            available = list(set(tree['active'][self.active_batch]).intersection(set(tree['children'].keys())))
 
-            if len(tree['active']) == 0:
+            if len(available) == 0:
+                tree['active'][self.active_batch] = list(tree['children'].keys())
+
+                available = tree['active'][self.active_batch]
+
+            if len(available) == 0:
                 return list(), list()
 
-            rand_child = random.choice(tree['active'])
+            rand_child = random.choice(available)
 
-            bol, rand_path = find_random_path(tree['children'][rand_child], level=level + 1)
+            bol, rpath = find_random_path(tree['children'][rand_child], level=level + 1)
 
             for le in tree['children'][rand_child]['leaves']:
                 bol.append((le, level))
 
-            return bol, [rand_child] + rand_path
+            return bol, [rand_child] + rpath
 
         def lock_random_path(tree, path):
 
@@ -214,12 +219,9 @@ class IconClassTreeSampler(Sampler):
 
             lock_random_path(tree['children'][path[0]], path[1:])
 
-            assert (path[0] in tree['active'])
-            tree['active'].remove(path[0])
+            assert (path[0] in tree['active'][self.active_batch])
+            tree['active'][self.active_batch].remove(path[0])
             assert (path[0] in tree['children'])
-
-            if len(tree['active']) == 0:
-                tree['active'] = list(tree['children'].keys())
 
         def remove_leaf(parts, file, tree):
 
@@ -230,102 +232,103 @@ class IconClassTreeSampler(Sampler):
 
                 if len(tree['children'][parts[0]]['leaves']) == 0 and len(tree['children'][parts[0]]['children']) == 0:
                     del tree['children'][parts[0]]
-
-                    if parts[0] in tree['active']:
-                        tree['active'].remove(parts[0])
-
-                        if len(tree['active']) == 0:
-                            tree['active'] = list(tree['children'].keys())
             else:
                 delete_subtree = remove_leaf(parts[1:], file, tree['children'][parts[0]])
 
                 if delete_subtree:
                     del tree['children'][parts[0]]
 
-                    if parts[0] in tree['active']:
-                        tree['active'].remove(parts[0])
-
-                        if len(tree['active']) == 0:
-                            tree['active'] = list(tree['children'].keys())
-
             return len(tree['children']) == 0 and len(tree['leaves']) == 0
 
-        def next_leaf():
-
+        while self.tree_size > 0:
             for trial in range(0, self.max_trials):
                 bag_of_leaves, rand_path = find_random_path(self.tree)
 
-                rindex, plevel = random.choice(bag_of_leaves)
+                rand_index, path_level = random.choice(bag_of_leaves)
 
-                rand_file = self.samples.iloc[rindex].file
+                rand_file = self.samples.iloc[rand_index].file
 
-                if rand_file not in self.blocked_files:
-                    self.blocked_files.add(rand_file)
-
-                    return rindex, plevel, rand_path
+                if rand_file not in self.blocked_files[self.active_batch]:
+                    break
 
                 if (trial+1) % self.auto_reset == 0:
-                    self.reset_active(self.tree)
-
-            raise IndexError()
-
-        self.tree = deepcopy(self.full_tree)
-        self.reset()
-
-        for _ in range(0, len(self.samples)):
-            try:
-                rand_index, path_level, next_rand_path = next_leaf()
-            except IndexError:
+                    self.reset_tree_active(self.tree, self.active_batch)
+                    self.auto_resets += 1
+            else:
                 break
 
-            lock_random_path(self.tree, next_rand_path[0:path_level + 1])
+            self.blocked_files[self.active_batch].add(rand_file)
 
-            remove_leaf(next_rand_path[0:path_level + 1], rand_index, self.tree)
+            lock_random_path(self.tree, rand_path[0:path_level + 1])
+
+            remove_leaf(rand_path[0:path_level + 1], rand_index, self.tree)
+
+            self.tree_size -= 1
 
             yield rand_index
 
     def __len__(self):
-        return len(self.samples)
+        return self.tree_size
 
     @staticmethod
-    def reset_active(tree, level=0):
+    def reset_tree_active(tree, batch_id, level=0):
 
-        assert (len(tree['leaves']) > 0 or len(tree['children']) > 0)
+        assert(len(tree['leaves']) > 0 or len(tree['children']) > 0)
 
         if len(tree['leaves']) == 0:
-            assert (len(tree['children']) > 0)
+            assert(len(tree['children']) > 0)
 
         if len(tree['children']) == 0:
-            assert (len(tree['leaves']) > 0)
+            assert(len(tree['leaves']) > 0)
 
-        tree['active'] = list(tree['children'].keys())
+        tree['active'][batch_id] = list()
 
         for ch in tree['children'].keys():
-            IconClassTreeSampler.reset_active(tree['children'][ch], level=level + 1)
+            IconClassTreeSampler.reset_tree_active(tree['children'][ch], batch_id, level=level + 1)
 
-    def reset(self):
+    def set_active_batch(self, batch_id):
+        self.active_batch = batch_id
+
+        if batch_id not in self.blocked_files:
+            self.reset_active_batch()
+
+    def reset_active_batch(self):
         if len(self.tree['children']) == 0:
             return
 
-        self.blocked_files = set()
-        self.reset_active(self.tree)
+        self.blocked_files[self.active_batch] = set()
+        self.reset_tree_active(self.tree, self.active_batch)
+
+    @staticmethod
+    def regrow_tree(tree):
+        tree['children'] = tree['full_children']
+        tree['leaves'] = tree['full_leaves']
+        tree['active'] = dict()
+
+        for ch in tree['children'].keys():
+            IconClassTreeSampler.regrow_tree(tree['children'][ch])
+
+    def regrow(self):
+        self.blocked_files = dict()
+        self.tree_size = len(self.samples)
+        self.regrow_tree(self.tree)
 
     @staticmethod
     def make_tree(samples):
         def add_leaf(parts, file, tree):
 
-            if parts[0] not in tree['children']:
-                tree['children'][parts[0]] = {'children': dict(), 'leaves': list()}
+            if parts[0] not in tree['full_children']:
+                tree['full_children'][parts[0]] = {'full_children': dict(), 'full_leaves': list() , 'acitve': dict()}
 
             if len(parts) == 1:
-                tree['children'][parts[0]]['leaves'].append(file)
+                tree['full_children'][parts[0]]['full_leaves'].append(file)
                 return
 
-            add_leaf(parts[1:], file, tree['children'][parts[0]])
+            add_leaf(parts[1:], file, tree['full_children'][parts[0]])
 
             return
 
-        root_of_tree = {'children': dict(), 'leaves': list()}
+        root_of_tree = {'full_children': dict(), 'full_leaves': list(), 'active': dict()}
 
         tree_samples = IconClassRandomSampler.parse(samples)
 
@@ -342,7 +345,7 @@ class IconClassTreeSampler(Sampler):
         return root_of_tree, tree_samples
 
 
-class IconClassBatchSampler(Sampler):
+class IconClassTreeBatchSampler(Sampler):
 
     def __init__(self, sampler, batch_size, accu_steps=1, coverage_ratio=1):
         super(Sampler, self).__init__()
@@ -351,35 +354,80 @@ class IconClassBatchSampler(Sampler):
         self.batch_size = batch_size
         self.accu_steps = accu_steps
         self.coverage_ratio = coverage_ratio
-        self.resets = 0
+        self.regrows = 0
+        self.length = int(self.coverage_ratio * len(self.sampler) / self.batch_size)
+        self.batches = None
+
+    def breadth_first_batches(self):
+        batches = {batch_num: list() for batch_num in range(0, len(self))}
+
+        self.regrows = 0
+
+        def make_seq():
+            self.sampler.regrow()
+            self.regrows += 1
+            new_seq = iter(self.sampler)
+
+            return new_seq
+
+        completed_batches = 0
+        added = 0
+
+        def print_status(the_batch_seq):
+            the_batch_seq.set_description("#Added: {} ; #Complete batches: {} ; #Regrows: {} ; "
+                                          "#auto_resets: {}".
+                                          format(added, completed_batches, self.regrows,
+                                                 self.sampler.auto_resets))
+        seq = make_seq()
+        while completed_batches < len(self):
+            progress = 0
+
+            keys = list(batches.keys())
+            perm = [i for i in range(0, len(keys))]
+            random.shuffle(perm)
+
+            batch_seq = tqdm(perm)
+
+            for p in batch_seq:
+                batch_num = keys[p]
+
+                if len(batches[batch_num]) >= self.batch_size * self.accu_steps:
+                    continue
+
+                self.sampler.set_active_batch(batch_num)
+
+                sample = next(seq, None)
+                if sample is not None:
+                    batches[batch_num].append(sample)
+                    progress += 1
+                    added += 1
+                    print_status(batch_seq)
+
+                    if len(batches[batch_num]) >= self.batch_size*self.accu_steps:
+                        completed_batches += 1
+                        print_status(batch_seq)
+                else:
+                    seq = make_seq()
+                    print_status(batch_seq)
+
+            if progress <= 0:
+                seq = make_seq()
+                print_status(batch_seq)
+
+        return batches
 
     def __iter__(self):
-        iterations = 0
-        self.resets = 0
-        while iterations < len(self):
 
-            self.sampler.reset()
-            seq = iter(self.sampler)
+        self.batches = self.breadth_first_batches()
 
-            for b in range(iterations, len(self)):
-                batch = list()
-                for i in seq:
-                    batch.append(i)
+        for k in self.batches.keys():
 
-                    if len(batch) >= self.batch_size:
-                        break
+            batch = self.batches[k]
 
-                if len(batch) < self.batch_size:
-                    break
+            for accu_step in range(0, self.accu_steps):
 
-                if (b+1) % self.accu_steps == 0:
-                    self.sampler.reset()
-
-                iterations += 1
-                yield batch
-
-            self.resets += 1
+                yield batch[accu_step*self.batch_size:(accu_step+1)*self.batch_size]
 
     def __len__(self):
 
-        return int(self.coverage_ratio*len(self.sampler) / self.batch_size)
+        return self.length

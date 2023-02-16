@@ -102,7 +102,7 @@ ACCU_STEPS=1
 START_LR=10e-4
 TEST_INTERVAL=500
 LR_SCHEDULER=CosineAnnealingWarmRestarts
-SAMPLER=IconClassRandomSampler
+SAMPLER=IconClassTreeSampler
 DEBUG=
 TRFLAGS=
 

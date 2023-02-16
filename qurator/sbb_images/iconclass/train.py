@@ -11,7 +11,7 @@ from torch.optim.adamw import AdamW
 from torchvision import transforms
 
 from msclip.dataset.languages import SimpleTokenizer
-from .data_access import IconClassDataset, IconClassTreeSampler, IconClassBatchSampler, IconClassRandomSampler
+from .data_access import IconClassDataset, IconClassTreeSampler, IconClassTreeBatchSampler, IconClassRandomSampler
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
@@ -143,8 +143,8 @@ def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
             teloss_im += lossim.item()
             teloss_te += losste.item()
 
-            test_seq.set_description("Test Loss: {:3.8f} RESETS: {}".format((teloss_te+teloss_im)/2/(num+1),
-                                                                            test_batch_sampler.resets))
+            test_seq.set_description("Test Loss: {:3.8f} REGROWS: {}".format((teloss_te+teloss_im)/2/(num+1),
+                                                                            test_batch_sampler.regrows))
     teloss_te /= total_steps
     teloss_im /= total_steps
 
@@ -187,17 +187,23 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
         model, transform, normalization = load_pretrained_model(ms_clip_model, device, save_gradient=save_gradient)
 
         if sampler == "IconClassTreeSampler":
-            train_sampler = IconClassTreeSampler(json_file=train_data_json)
 
             test_sampler = IconClassTreeSampler(json_file=test_data_json)
+
+            test_batch_sampler = IconClassTreeBatchSampler(sampler=test_sampler, batch_size=batch_size)
+
+            train_sampler = IconClassTreeSampler(json_file=train_data_json)
+
+            train_batch_sampler = IconClassTreeBatchSampler(sampler=train_sampler, batch_size=batch_size * accu_steps,
+                                                            accu_steps=1)
         else:
             train_sampler = IconClassRandomSampler(json_file=train_data_json)
 
             test_sampler = IconClassRandomSampler(json_file=test_data_json)
 
-        train_batch_sampler = IconClassBatchSampler(sampler=train_sampler, batch_size=batch_size*accu_steps, accu_steps=1)
+            test_batch_sampler = None
 
-        test_batch_sampler = IconClassBatchSampler(sampler=test_sampler, batch_size=batch_size)
+            train_batch_sampler = None
 
         train_dataset = IconClassDataset(samples=train_sampler.samples, lang="en", transform=transform,
                                          test_set_path=test_set_path)
@@ -376,9 +382,9 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
                             for param_group in optimizer.param_groups:
                                 lr_str += "{:3.8f}".format(param_group['lr'])
 
-                    train_seq.set_description("{:3.3} TLoss: {:.4f} LR: {}, RESETS: {}".
+                    train_seq.set_description("{:3.3} TLoss: {:.4f} LR: {}, REGROWS: {}".
                                               format(epoch + step / total_steps, trloss, lr_str,
-                                                     train_batch_sampler.resets))
+                                                     train_batch_sampler.regrows))
 
                     if save_gradient:
                         log_entry = {'telr{}'.format(i): pg['lr'] for i, pg in enumerate(optimizer_text.param_groups)}
