@@ -301,6 +301,7 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
     teloss_prev = np.inf
 
     test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers)
+    test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers)
 
     for epoch in range(epochs):
 

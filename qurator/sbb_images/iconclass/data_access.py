@@ -10,7 +10,7 @@ import iconclass
 import os.path
 import random
 from tqdm import tqdm
-# from copy import deepcopy
+from copy import deepcopy
 
 
 class IconClassDataset(Dataset):
@@ -301,8 +301,8 @@ class IconClassTreeSampler(Sampler):
 
     @staticmethod
     def regrow_tree(tree):
-        tree['children'] = tree['full_children']
-        tree['leaves'] = tree['full_leaves']
+        tree['children'] = deepcopy(tree['full_children'])
+        tree['leaves'] = deepcopy(tree['full_leaves'])
         tree['active'] = dict()
 
         for ch in tree['children'].keys():
@@ -318,7 +318,7 @@ class IconClassTreeSampler(Sampler):
         def add_leaf(parts, file, tree):
 
             if parts[0] not in tree['full_children']:
-                tree['full_children'][parts[0]] = {'full_children': dict(), 'full_leaves': list() , 'acitve': dict()}
+                tree['full_children'][parts[0]] = {'full_children': dict(), 'full_leaves': list(), 'active': dict()}
 
             if len(parts) == 1:
                 tree['full_children'][parts[0]]['full_leaves'].append(file)
@@ -374,12 +374,12 @@ class IconClassTreeBatchSampler(Sampler):
         added = 0
 
         def print_status(the_batch_seq):
-            the_batch_seq.set_description("#Added: {} ; #Complete batches: {} ; #Regrows: {} ; "
-                                          "#auto_resets: {}".
-                                          format(added, completed_batches, self.regrows,
-                                                 self.sampler.auto_resets))
+            the_batch_seq.set_description("#Added: {} ; #Complete batches: {} ; #Regrows: {} ; #auto_resets: {}".
+                                          format(added, completed_batches, self.regrows, self.sampler.auto_resets))
         seq = make_seq()
+
         while completed_batches < len(self):
+
             progress = 0
 
             keys = list(batches.keys())
@@ -423,6 +423,10 @@ class IconClassTreeBatchSampler(Sampler):
         for k in self.batches.keys():
 
             batch = self.batches[k]
+
+            perm = [i for i in range(0, len(batch))]
+            random.shuffle(perm)
+            batch = [batch[p] for p in perm]
 
             for accu_step in range(0, self.accu_steps):
 
