@@ -1,5 +1,5 @@
 import time
-
+import os
 import numpy as np
 import pandas as pd
 import click
@@ -113,18 +113,26 @@ def traintestsplit(data_json, train_data_json, test_data_json, train_fraction):
         f.write(json.dumps(df_json_test, indent=3))
 
 
-def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers):
+def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers, best, model_file):
 
     data_loader = DataLoader(test_dataset, batch_sampler=test_batch_sampler, num_workers=num_workers)
 
     total_steps = len(data_loader)
 
-    cross_entropy_loss = torch.nn.CrossEntropyLoss()
+    cross_entropy_loss = torch.nn.CrossEntropyLoss(reduction='none')
 
     labels = torch.tensor(np.arange(batch_size)).to(device)
 
-    teloss_te = 0.0
-    teloss_im = 0.0
+    quantiles = torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]).to(device)
+
+    teloss_im_mean = 0.0
+    teloss_te_mean = 0.0
+
+    teloss_im_median = 0.0
+    teloss_te_median = 0.0
+
+    quantile_loss_im = torch.zeros(len(quantiles)).to(device)
+    quantile_loss_te = torch.zeros(len(quantiles)).to(device)
 
     test_seq = tqdm(enumerate(data_loader), total=total_steps, desc="test")
 
@@ -137,18 +145,69 @@ def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
 
             logits_image_text, _, _ = model(images, tokens)
 
-            lossim = cross_entropy_loss(logits_image_text, labels)
-            losste = cross_entropy_loss(logits_image_text.T, labels)
+            lossim_vals = cross_entropy_loss(logits_image_text, labels)
+            losste_vals = cross_entropy_loss(logits_image_text.T, labels)
 
-            teloss_im += lossim.item()
-            teloss_te += losste.item()
+            teloss_im_mean += torch.mean(lossim_vals).item()
+            teloss_te_mean += torch.mean(losste_vals).item()
 
-            test_seq.set_description("Test Loss: {:3.8f} REGROWS: {}".format((teloss_te+teloss_im)/2/(num+1),
-                                                                            test_batch_sampler.regrows))
-    teloss_te /= total_steps
-    teloss_im /= total_steps
+            teloss_im_median += torch.median(lossim_vals).item()
+            teloss_te_median += torch.median(losste_vals).item()
 
-    return (teloss_te + teloss_im)/2, teloss_te, teloss_im
+            quantile_loss_im = torch.add(quantile_loss_im, torch.quantile(lossim_vals, quantiles))
+            quantile_loss_te = torch.add(quantile_loss_te, torch.quantile(losste_vals, quantiles))
+
+            tmp_mean_loss = (teloss_te_mean + teloss_im_mean) / (2.0*(num+1))
+            tmp_median_loss = (teloss_te_median + teloss_im_median) / (2.0*(num+1))
+            tmp_quantile_loss = torch.div(torch.add(quantile_loss_im, quantile_loss_te), 2.0*(num+1))
+
+            quant_str = [ "{:1.1f}: {:3.3f}".format(quantiles[i].item(), tmp_quantile_loss[i].item())
+                          for i in range(0, len(quantiles))]
+
+            test_seq.set_description("Test Mean Loss: {:3.8f} ; "
+                                     "Test Median Loss: {:3.8f} ; "
+                                     "Quantiles: {}".format(tmp_mean_loss, tmp_median_loss, quant_str))
+    teloss_im_mean /= total_steps
+    teloss_te_mean /= total_steps
+
+    teloss_im_median /= total_steps
+    teloss_te_median /= total_steps
+
+    teloss_mean = (teloss_te_mean + teloss_im_mean) / 2
+    teloss_median = (teloss_te_median + teloss_im_median) / 2
+
+    tequantile_loss_im = torch.div(quantile_loss_im, total_steps)
+    tequantile_loss_te = torch.div(quantile_loss_te, total_steps)
+    tequantile_loss = torch.div(torch.add(tequantile_loss_im, tequantile_loss_te), 2.0)
+
+    log_entry = dict()
+
+    log_entry['teloss_mean'] = teloss_mean
+    log_entry['teloss_te_mean'] = teloss_te_mean
+    log_entry['teloss_im_mean'] = teloss_im_mean
+
+    log_entry['teloss_median'] = teloss_median
+    log_entry['teloss_te_median'] = teloss_te_median
+    log_entry['teloss_im_median'] = teloss_im_median
+
+    for p in range(0, len(quantiles)):
+
+        log_entry["tequantile_loss_im_{:1.1f}".format(quantiles[p].item())] = tequantile_loss_im[p].item()
+        log_entry["tequantile_loss_te_{:1.1f}".format(quantiles[p].item())] = tequantile_loss_te[p].item()
+        log_entry["tequantile_loss_{:1.1f}".format(quantiles[p].item())] = tequantile_loss[p].item()
+
+    if best is None:
+        best = {k: np.inf for k in log_entry.keys()}
+
+    save_dir = os.path.dirname(model_file)
+    model_name, model_extension = os.path.splitext(os.path.basename(model_file))
+
+    for k in log_entry.keys():
+
+        if log_entry[k] < best[k]:
+            torch.save(model.state_dict(), "{}/{}_{}.{}".format(save_dir, model_name, k, model_extension))
+
+    return log_entry
 
 
 @click.command()
@@ -298,10 +357,9 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
     test_interval /= accu_steps
     save_interval = 100/accu_steps
 
-    teloss_prev = np.inf
+    best = None
 
-    test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers)
-    test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers)
+    test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers, best, model_file)
 
     for epoch in range(epochs):
 
@@ -404,8 +462,6 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
 
                     log_entry['elapsed'] = time.time() - start
 
-                    train_log.append(log_entry)
-
             if save_gradient:
                 optimizer_text.step()
                 optimizer_image.step()
@@ -430,17 +486,12 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
             if not debug and test_interval is not None and test_data_json is not None \
                     and (step+1) % test_interval == 0:
 
-                teloss, teloss_te, teloss_im = test(device, model, test_dataset, test_batch_sampler, tokenizer,
-                                                    batch_size, num_workers)
+                test_log_entry = test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
+                                      num_workers, best, model_file)
 
-                log_entry['teloss'] = teloss
-                log_entry['teloss_te'] = teloss_te
-                log_entry['teloss_im'] = teloss_im
+                log_entry.update(test_log_entry)
 
-                if teloss < teloss_prev:
-
-                    torch.save(model.state_dict(), model_file)
-                    teloss_prev = teloss
+            train_log.append(log_entry)
 
             if (len(train_log) + 1) % save_interval == 0:
                 pd.DataFrame.from_records(train_log).to_pickle(log_file)

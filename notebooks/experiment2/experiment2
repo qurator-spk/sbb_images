@@ -1,7 +1,6 @@
 #!/usr/bin/bash
 
 ln -s /home/kai.labusch/qurator/qurator-data data
-ln -s /home/kai.labusch/MMK/iconclass/data/iconclass.sqlite iconclass.sqlite
 
 for lr_sched in CosineAnnealingWarmRestarts StepLR ; do
 	for accu_steps in 1 2 4 8 16 ; do 

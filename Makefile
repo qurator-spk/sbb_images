@@ -94,8 +94,6 @@ clip-indices: clip-vit-indices clip-rn-indices
 msclip-indices: $(INDEX_PREFIX)-msclip-index-b32-yfcc.ann $(INDEX_PREFIX)-msclip-index-b16-yfcc.ann $(INDEX_PREFIX)-msclip-index-b32-laion.ann
 
 ##################################################################
-#ln-iconclass:
-#    ln -s /home/kai.labusch/MMK/iconclass/data/iconclass.sqlite iconclass.sqlite
 
 EPOCHS=10
 ACCU_STEPS=1
@@ -106,6 +104,7 @@ SAMPLER=IconClassTreeSampler
 DEBUG=
 TRFLAGS=
 
+
 FPARAMS=epochs$(EPOCHS)_as$(ACCU_STEPS)_start-lr$(START_LR)_lr-sched$(LR_SCHEDULER)-sampler$(SAMPLER)
 
 MSCLIP_PATH=/home/kai.labusch/MMK/MSCLIP
@@ -114,6 +113,7 @@ ICONCLASS_PATH=/home/kai.labusch/MMK/iconclass
 iconclass-traintestsplit:
 	iconclass-traintestsplit  $(ICONCLASS_PATH)/testset/data.json ./train.json ./test.json --train-fraction=0.9
 
+iconclass-b16-yfcc-msclips: export ICONCLASS_DB_LOCATION = $(ICONCLASS_PATH)/data/iconclass.sqlite
 iconclass-b16-yfcc-msclips:
 	iconclass-train --test-data-json=./test.json --sampler=$(SAMPLER) --test-interval=$(TEST_INTERVAL) --batch-size=64 --num-workers=$(NUM_WORKERS) --epochs=$(EPOCHS) --accu-steps=$(ACCU_STEPS) --start-lr=$(START_LR) --lr-scheduler=$(LR_SCHEDULER) $(MSCLIP_PATH)/experiments/model/b16-yfcc-msclips.yaml $(MSCLIP_PATH)/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz ./train.json $(ICONCLASS_PATH)/testset ./iconclass-b16-yfcc-msclips_$(FPARAMS).pth ./iconclass-b16-yfcc-msclips_$(FPARAMS).pkl $(DEBUG) $(TRFLAGS)
 
