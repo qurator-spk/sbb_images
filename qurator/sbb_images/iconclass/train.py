@@ -11,7 +11,8 @@ from torch.optim.adamw import AdamW
 from torchvision import transforms
 
 from msclip.dataset.languages import SimpleTokenizer
-from .data_access import IconClassDataset, IconClassTreeSampler, IconClassTreeBatchSampler, IconClassRandomSampler
+from .data_access import IconClassDataset, IconClassTreeSampler, IconClassTreeBatchSampler, IconClassRandomSampler, \
+    IconClassRandomBatchSampler
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
@@ -161,7 +162,7 @@ def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
             tmp_median_loss = (teloss_te_median + teloss_im_median) / (2.0*(num+1))
             tmp_quantile_loss = torch.div(torch.add(quantile_loss_im, quantile_loss_te), 2.0*(num+1))
 
-            quant_str = [ "{:1.1f}: {:3.3f}".format(quantiles[i].item(), tmp_quantile_loss[i].item())
+            quant_str = ["{:1.1f}: {:3.3f}".format(quantiles[i].item(), tmp_quantile_loss[i].item())
                           for i in range(0, len(quantiles))]
 
             test_seq.set_description("Test Mean Loss: {:3.8f} ; "
@@ -206,8 +207,9 @@ def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
 
         if log_entry[k] < best[k]:
             torch.save(model.state_dict(), "{}/{}_{}.{}".format(save_dir, model_name, k, model_extension))
+            best[k] = log_entry[k]
 
-    return log_entry
+    return log_entry, best
 
 
 @click.command()
@@ -260,9 +262,9 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
 
             test_sampler = IconClassRandomSampler(json_file=test_data_json)
 
-            test_batch_sampler = None
+            test_batch_sampler = IconClassRandomBatchSampler(sampler=test_sampler, batch_size=batch_size)
 
-            train_batch_sampler = None
+            train_batch_sampler = IconClassRandomBatchSampler(sampler=train_sampler, batch_size=batch_size)
 
         train_dataset = IconClassDataset(samples=train_sampler.samples, lang="en", transform=transform,
                                          test_set_path=test_set_path)
@@ -365,7 +367,7 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
 
         train_seq = get_train_seq()
 
-        for step, (step_images, step_texts) in train_seq:
+        for step, (step_images, step_texts, indices) in train_seq:
 
             for astep in range(0, accu_steps):
 
@@ -486,8 +488,8 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
             if not debug and test_interval is not None and test_data_json is not None \
                     and (step+1) % test_interval == 0:
 
-                test_log_entry = test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
-                                      num_workers, best, model_file)
+                test_log_entry, best = test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
+                                            num_workers, best, model_file)
 
                 log_entry.update(test_log_entry)
 

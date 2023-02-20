@@ -44,7 +44,7 @@ class IconClassDataset(Dataset):
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, target
+        return img, target, index
 
     def __len__(self):
         return len(self.samples)
@@ -161,6 +161,28 @@ class IconClassRandomSampler(Sampler):
 
     def reset(self):
         pass
+
+
+class IconClassRandomBatchSampler(Sampler):
+
+    def __init__(self, sampler, batch_size):
+        super(Sampler, self).__init__()
+
+        self.batch_size = batch_size
+        self.sampler = sampler
+
+    def __iter__(self):
+
+        perm = [i for i in range(0, len(self.sampler.samples))]
+        random.shuffle(perm)
+
+        for b in range(0, len(self)):
+
+            yield perm[b*self.batch_size:(b+1)*self.batch_size]
+
+    def __len__(self):
+
+        return int(len(self.sampler)/self.batch_size)
 
 
 class IconClassTreeSampler(Sampler):
