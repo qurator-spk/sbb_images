@@ -184,7 +184,10 @@ def test(test_index, device, model, test_dataset, test_batch_sampler, tokenizer,
                          ('loss_imvals', test_index): sum(loss_imvals, []),
                          ('loss_tevals', test_index): sum(loss_tevals, [])}).set_index('indices').sort_index()
 
-    loss_seq.append(loss)
+    if loss_seq is None:
+        loss_seq = loss
+    else:
+        loss_seq = loss_seq.merge(loss, left_index=True, right_index=True, how='outer')
 
     teloss_im_mean /= total_steps
     teloss_te_mean /= total_steps
@@ -227,9 +230,9 @@ def test(test_index, device, model, test_dataset, test_batch_sampler, tokenizer,
             torch.save(model.state_dict(), "{}/{}_{}.{}".format(save_dir, model_name, k, model_extension))
             best[k] = log_entry[k]
 
-    pd.concat(loss_seq, axis=1).to_pickle("{}/{}_loss.pkl".format(save_dir, model_name))
+    loss_seq.to_pickle("{}/{}_loss.pkl".format(save_dir, model_name))
 
-    return log_entry, best, test_index + 1, loss_seq
+    return log_entry, best, test_index+1, loss_seq
 
 
 @click.command()
@@ -382,11 +385,10 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
     best = None
 
     test_index = 0
-    loss_seq = []
+    loss_seq = None
+
     test(test_index, device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers, best,
          model_file, loss_seq)
-
-    # import ipdb;ipdb.set_trace()
 
     for epoch in range(epochs):
 
@@ -513,7 +515,7 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
             if not debug and test_interval is not None and test_data_json is not None \
                     and (step+1) % test_interval == 0:
 
-                test_log_entry, best, text_index, loss_seq = \
+                test_log_entry, best, test_index, loss_seq = \
                     test(test_index, device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
                          num_workers, best, model_file, loss_seq)
 
