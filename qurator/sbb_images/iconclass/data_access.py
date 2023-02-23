@@ -170,6 +170,7 @@ class IconClassRandomBatchSampler(Sampler):
 
         self.batch_size = batch_size
         self.sampler = sampler
+        self.regrows = -1
 
     def __iter__(self):
 
@@ -182,7 +183,7 @@ class IconClassRandomBatchSampler(Sampler):
 
     def __len__(self):
 
-        return int(len(self.sampler)/self.batch_size)
+        return int(len(self.sampler.samples)/self.batch_size)
 
 
 class IconClassTreeSampler(Sampler):

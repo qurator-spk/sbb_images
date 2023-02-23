@@ -114,7 +114,8 @@ def traintestsplit(data_json, train_data_json, test_data_json, train_fraction):
         f.write(json.dumps(df_json_test, indent=3))
 
 
-def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers, best, model_file):
+def test(test_index, device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers, best,
+         model_file, loss_seq):
 
     data_loader = DataLoader(test_dataset, batch_sampler=test_batch_sampler, num_workers=num_workers)
 
@@ -137,7 +138,14 @@ def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
 
     test_seq = tqdm(enumerate(data_loader), total=total_steps, desc="test")
 
-    for num, (images, texts) in test_seq:
+    indices = []
+
+    loss_imvals = []
+    loss_tevals = []
+
+    for num, (images, texts, batch_index) in test_seq:
+
+        indices.append(batch_index.tolist())
 
         images = images.to(device)
         tokens = tokenizer.tokenize(texts).to(device)
@@ -146,28 +154,38 @@ def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
 
             logits_image_text, _, _ = model(images, tokens)
 
-            lossim_vals = cross_entropy_loss(logits_image_text, labels)
-            losste_vals = cross_entropy_loss(logits_image_text.T, labels)
+            batch_lossim_vals = cross_entropy_loss(logits_image_text, labels)
+            batch_losste_vals = cross_entropy_loss(logits_image_text.T, labels)
 
-            teloss_im_mean += torch.mean(lossim_vals).item()
-            teloss_te_mean += torch.mean(losste_vals).item()
+            loss_imvals.append(batch_lossim_vals.tolist())
+            loss_tevals.append(batch_losste_vals.tolist())
 
-            teloss_im_median += torch.median(lossim_vals).item()
-            teloss_te_median += torch.median(losste_vals).item()
+            teloss_im_mean += torch.mean(batch_lossim_vals).item()
+            teloss_te_mean += torch.mean(batch_losste_vals).item()
 
-            quantile_loss_im = torch.add(quantile_loss_im, torch.quantile(lossim_vals, quantiles))
-            quantile_loss_te = torch.add(quantile_loss_te, torch.quantile(losste_vals, quantiles))
+            teloss_im_median += torch.median(batch_lossim_vals).item()
+            teloss_te_median += torch.median(batch_losste_vals).item()
+
+            quantile_loss_im = torch.add(quantile_loss_im, torch.quantile(batch_lossim_vals, quantiles))
+            quantile_loss_te = torch.add(quantile_loss_te, torch.quantile(batch_losste_vals, quantiles))
 
             tmp_mean_loss = (teloss_te_mean + teloss_im_mean) / (2.0*(num+1))
             tmp_median_loss = (teloss_te_median + teloss_im_median) / (2.0*(num+1))
             tmp_quantile_loss = torch.div(torch.add(quantile_loss_im, quantile_loss_te), 2.0*(num+1))
 
             quant_str = ["{:1.1f}: {:3.3f}".format(quantiles[i].item(), tmp_quantile_loss[i].item())
-                          for i in range(0, len(quantiles))]
+                         for i in range(0, len(quantiles))]
 
             test_seq.set_description("Test Mean Loss: {:3.8f} ; "
                                      "Test Median Loss: {:3.8f} ; "
                                      "Quantiles: {}".format(tmp_mean_loss, tmp_median_loss, quant_str))
+
+    loss = pd.DataFrame({'indices': sum(indices, []),
+                         ('loss_imvals', test_index): sum(loss_imvals, []),
+                         ('loss_tevals', test_index): sum(loss_tevals, [])}).set_index('indices').sort_index()
+
+    loss_seq.append(loss)
+
     teloss_im_mean /= total_steps
     teloss_te_mean /= total_steps
 
@@ -209,7 +227,9 @@ def test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
             torch.save(model.state_dict(), "{}/{}_{}.{}".format(save_dir, model_name, k, model_extension))
             best[k] = log_entry[k]
 
-    return log_entry, best
+    pd.concat(loss_seq, axis=1).to_pickle("{}/{}_loss.pkl".format(save_dir, model_name))
+
+    return log_entry, best, test_index + 1, loss_seq
 
 
 @click.command()
@@ -361,7 +381,12 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
 
     best = None
 
-    test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers, best, model_file)
+    test_index = 0
+    loss_seq = []
+    test(test_index, device, model, test_dataset, test_batch_sampler, tokenizer, batch_size, num_workers, best,
+         model_file, loss_seq)
+
+    # import ipdb;ipdb.set_trace()
 
     for epoch in range(epochs):
 
@@ -488,8 +513,9 @@ def train(ms_clip_model, tokenizer_file, train_data_json, test_set_path, model_f
             if not debug and test_interval is not None and test_data_json is not None \
                     and (step+1) % test_interval == 0:
 
-                test_log_entry, best = test(device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
-                                            num_workers, best, model_file)
+                test_log_entry, best, text_index, loss_seq = \
+                    test(test_index, device, model, test_dataset, test_batch_sampler, tokenizer, batch_size,
+                         num_workers, best, model_file, loss_seq)
 
                 log_entry.update(test_log_entry)
 
