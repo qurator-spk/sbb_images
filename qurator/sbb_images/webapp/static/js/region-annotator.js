@@ -24,6 +24,7 @@ function makeAnnotator() {
 
     let is_active=true; // Browser-Tab active or not
     let anno=null;
+    let zoom_anno=null;
 
     let access_manager=null;
 
@@ -81,7 +82,8 @@ function makeAnnotator() {
           image: 'image-view',
           locale: 'auto',
           allowEmpty: true,
-          readyOnly: true
+          readyOnly: true,
+          widgets: [ 'COMMENT' ]
         });
 
         Annotorious.BetterPolygon(anno);
@@ -142,6 +144,13 @@ function makeAnnotator() {
             }
         );
 
+        /*anno.on('startSelection',
+            function(e) {
+                console.log('startSelection',e);
+
+            }
+        );*/
+
         anno.on('selectAnnotation',
             function(annotation, element) {
                 get_write_permit(annotation);
@@ -183,6 +192,30 @@ function makeAnnotator() {
             };
 
         interval_update();
+
+        let zoom_region = $("#zoom")[0]
+
+        zoom_anno = Panzoom(zoom_region,
+            {
+                noBind: true,
+                step: 0.1,
+            });
+
+        zoom_region.addEventListener('pointerdown',
+            function(e) {
+
+                if (e.ctrlKey) {
+                    console.log(event);
+                    zoom_anno.handleDown(e);
+
+                    e.preventDefault();
+                }
+            });
+
+        zoom_region.parentElement.addEventListener('wheel', zoom_anno.zoomWithWheel)
+
+        document.addEventListener('pointermove', zoom_anno.handleMove)
+        document.addEventListener('pointerup', zoom_anno.handleUp)
     }
 
     function get_write_permit(annotation) {

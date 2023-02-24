@@ -16,6 +16,8 @@
     <script src="annotorious/annotorious-toolbar.min.js"></script>
     <script src="annotorious/annotorious-better-polygon.js"></script>
 
+    <!--<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>-->
+
     <style>
         @media screen {
             .fit-image{
@@ -29,6 +31,7 @@
                 width: auto;
             }
         }
+
     </style>
 </head>
 
@@ -61,11 +64,15 @@
     </div>
 
     <div class="row d-none" id="editor">
-        <div class="col-lg-9 col-md mt-1 mb-1">
+        <div class="col-lg-9 col-md mt-1 mb-1" style="height: 80vh;">
             <div class="card mt-2 mb-1 h-100">
-                <div class="card-body align-self-center d-flex flex-row">
+                <div class="card-body align-self-center d-flex flex-row" >
                     <div id="toolbar"></div>
-                    <img id="image-view" class="img-fluid fit-image" src=""/>
+                    <div style="woverflow-x: scroll;overflow-y: scroll;">
+                        <div id="zoom">
+                            <img id="image-view" class="img-fluid fit-image" src=""/>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -144,4 +151,6 @@
     </div>
     <script src="js/basic-auth.js"></script>
     <script src="js/region-annotator.js"></script>
+    <script src="js/panzoom.min.js"></script>
+    <!--<script src="js/annotorious-widgets.js" type="text/babel" data-type="module"></script>-->
 </body>
