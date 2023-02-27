@@ -500,6 +500,20 @@ def get_image_ppn(user, rowid=None):
     return jsonify(json.loads(link.iloc[0].to_json()))
 
 
+@app.route('/image-file/<rowid>')
+@htpasswd.required
+@cache_for(minutes=10)
+def get_image_ppn(user, rowid=None):
+    del user
+
+    img = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(rowid,))
+
+    if img is None or len(img) == 0:
+        return jsonify("")
+
+    return jsonify(json.loads(img.iloc[0].to_json()))
+
+
 @app.route('/image')
 @app.route('/image/<image_id>')
 @app.route('/image/<image_id>/<version>')

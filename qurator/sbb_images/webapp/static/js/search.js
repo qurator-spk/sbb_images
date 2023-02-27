@@ -70,7 +70,17 @@ $(document).ready(
                             $.get("image-ppn/" + image_id,
                                 function(result) {
 
-                                    if (result['ppn'] === undefined) return;
+                                    if (result['ppn'] === undefined) {
+
+                                        $.get("image-file/" + image_id,
+                                            function(result) {
+                                                if (result['file'] === undefined) return;
+
+                                                $("#card-"+ image_id).attr('title', result['file']);
+                                            }
+
+                                        return;
+                                    }
 
                                     $("#card-"+ image_id).attr('title', result['ppn']);
 
