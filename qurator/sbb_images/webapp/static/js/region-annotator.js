@@ -24,6 +24,7 @@ function makeAnnotator() {
 
     let is_active=true; // Browser-Tab active or not
     let anno=null;
+    let viewer=null;
     let zoom_anno=null;
 
     let access_manager=null;
@@ -32,9 +33,12 @@ function makeAnnotator() {
     let write_permit_id="";
     let write_permit="";
     let renew_permit_timeout=null;
+    let img_url = null;
+
+
 
     function add_annotation(annotation, onSuccess) {
-        postit("add-annotation", { "annotation": annotation, "url" : $("#image-view").attr("src") }, onSuccess);
+        postit("add-annotation", { "annotation": annotation, "url" : img_url }, onSuccess);
     }
 
     function update_annotation(annotation, onSuccess) {
@@ -67,23 +71,40 @@ function makeAnnotator() {
             $('#toolbar').html("");
         }
 
+        if (viewer != null) {
+            viewer.destroy();
+            viewer = null;
+            $("#zoom").html("");
+        }
+
         $("#configuration").addClass("d-none");
         $("#data-export").addClass("d-none");
         $("#editor").addClass("d-none");
         $("#search-result-list-collapse").collapse('hide');
      }
 
-    function annotation_setup(img_url) {
-        clear_editor();
+    let current_scale=1.0;
+    $("#editor")[0].style.setProperty("--scale-factor", 1.0/current_scale);
+//    function annotation_formatter(annotation) {
+////        let style = ";transform: scale(" + 1.0/current_scale + ");"
+////        console.log(style);
+////
+//         if ($(".r6o-editor").length > 0) {
+//                    console.log($(".r6o-editor").attr('style'));
+//         }
+////
+////        return style;
+//          return "noscale"
+//    }
 
+    function annotation_setup(img_url) {
         $("#editor").removeClass("d-none");
 
-        anno = Annotorious.init({
-          image: 'image-view',
+        anno = OpenSeadragon.Annotorious(viewer,
+        {
           locale: 'auto',
           allowEmpty: true,
-          readyOnly: true,
-          widgets: [ 'COMMENT' ]
+          readyOnly: true
         });
 
         Annotorious.BetterPolygon(anno);
@@ -160,8 +181,9 @@ function makeAnnotator() {
 
         anno.on('cancelSelected',
             function(selection) {
+                console.log(selection);
+
                 release_write_permit();
-                //console.log('cancelSelected', selection);
             }
         );
 
@@ -193,29 +215,7 @@ function makeAnnotator() {
 
         interval_update();
 
-        let zoom_region = $("#zoom")[0]
-
-        zoom_anno = Panzoom(zoom_region,
-            {
-                noBind: true,
-                step: 0.1,
-            });
-
-        zoom_region.addEventListener('pointerdown',
-            function(e) {
-
-                if (e.ctrlKey) {
-                    console.log(event);
-                    zoom_anno.handleDown(e);
-
-                    e.preventDefault();
-                }
-            });
-
-        zoom_region.parentElement.addEventListener('wheel', zoom_anno.zoomWithWheel)
-
-        document.addEventListener('pointermove', zoom_anno.handleMove)
-        document.addEventListener('pointerup', zoom_anno.handleUp)
+        update_annotation_list();
     }
 
     function get_write_permit(annotation) {
@@ -256,11 +256,21 @@ function makeAnnotator() {
     }
 
     function release_write_permit() {
+
             access_manager.restoreReadOnlyState();
 
             if (write_permit === "") return;
 
-            postit('release-write-permit', { 'write_permit': write_permit},function() {});
+            $(".a9s-annotation").addClass("d-none");
+
+            postit('release-write-permit', { 'write_permit': write_permit},
+                function() {
+                    $(".a9s-annotation").removeClass("d-none");
+                },
+                function() {
+                    $(".a9s-annotation").removeClass("d-none");
+                }
+            );
 
             write_permit = "";
             write_permit_id = "";
@@ -268,9 +278,21 @@ function makeAnnotator() {
 
     function annotation_url_submit() {
 
-        let img_url = $("#annotation-url").val();
+        img_url = $("#annotation-url").val();
 
         $("#search-result-list-collapse").collapse('hide');
+
+        clear_editor();
+
+        viewer = OpenSeadragon({
+          id: "zoom",
+          prefixUrl: "openseadragon/images/",
+          tileSources: {
+            type: "image",
+            url: img_url,
+          }
+        });
+
         $("#image-view").attr("src", img_url);
     }
 
@@ -302,7 +324,7 @@ function makeAnnotator() {
             last_read_time="";
         }
         else {
-            let post_data =  { "url" : $("#image-view").attr("src") };
+            let post_data =  { "url" : img_url };
 
             if (last_read_time.length > 0) post_data['last_read_time'] = last_read_time;
 
@@ -326,16 +348,19 @@ function makeAnnotator() {
         $('#editor').addClass('d-none');
         $('#url-selection').addClass('d-none');
         $('#configuration').addClass('d-none');
-
         $('#data-export').removeClass('d-none');
     }
 
     function showEditor() {
         $('#url-selection').removeClass('d-none');
-        if ($("#image-view").attr('src').length > 0) $('#editor').removeClass('d-none');
+        if ($("#image-view").attr('src').length > 0)
+        //$('#editor').removeClass('d-none');
 
         $('#configuration').addClass('d-none');
         $('#data-export').addClass('d-none');
+
+        clear_editor();
+        annotation_url_submit();
     }
 
     function render_target_list() {

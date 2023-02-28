@@ -6,17 +6,18 @@
 
     <title>Annotator</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="annotorious/annotorious.min.css">
+    <link rel="stylesheet" href="annotorious-openseadragon/annotorious.min.css">
 
     <script src="js/jquery-3.4.1.js"></script>
     <script src="js/popper.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
 
-    <script src="annotorious/annotorious.min.js"></script>
+    <!--<script src="annotorious/annotorious.min.js"></script>-->
     <script src="annotorious/annotorious-toolbar.min.js"></script>
     <script src="annotorious/annotorious-better-polygon.js"></script>
 
-    <!--<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>-->
+    <script src="openseadragon/openseadragon.min.js"></script>
+    <script src="annotorious-openseadragon/openseadragon-annotorious.min.js"></script>
 
     <style>
         @media screen {
@@ -32,6 +33,9 @@
             }
         }
 
+        .r6o-widget {
+            display: inline-block !important;
+        }
     </style>
 </head>
 
@@ -64,14 +68,12 @@
     </div>
 
     <div class="row d-none" id="editor">
-        <div class="col-lg-9 col-md mt-1 mb-1" style="height: 80vh;">
+        <div class="col-lg-9 col-md mt-1 mb-1" style="height: 90vh;">
             <div class="card mt-2 mb-1 h-100">
-                <div class="card-body align-self-center d-flex flex-row" >
+                <div class="card-body align-self-center d-flex flex-row w-100 h-100">
                     <div id="toolbar"></div>
-                    <div style="woverflow-x: scroll;overflow-y: scroll;">
-                        <div id="zoom">
-                            <img id="image-view" class="img-fluid fit-image" src=""/>
-                        </div>
+                    <div id="zoom" style="width: 100%; height: 100%;">
+                        <!--<img id="image-view" class="img-fluid fit-image" src=""/>-->
                     </div>
                 </div>
             </div>
@@ -82,6 +84,7 @@
                 </div>
             </div>
         </div>
+        <img id="image-view" class="d-none" src=""/>
     </div>
 
     <div class="row d-none" id="configuration">
@@ -151,6 +154,5 @@
     </div>
     <script src="js/basic-auth.js"></script>
     <script src="js/region-annotator.js"></script>
-    <script src="js/panzoom.min.js"></script>
-    <!--<script src="js/annotorious-widgets.js" type="text/babel" data-type="module"></script>-->
+</div>
 </body>
