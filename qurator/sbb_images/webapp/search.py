@@ -316,20 +316,35 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     del user
     start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
 
-    # search_id = request.args.get('search_id', default=None, type=int)
+    search_id = request.args.get('search_id', default=None, type=int)
 
-    # if request.method == 'GET' and search_id is not None:
-    #
-    #     img, x, y, width, height, _ = load_image_from_database(search_id, x, y, width, height)
+    if request.method == 'GET' and search_id is not None:
 
-    if request.method == 'POST':
-        # check if the post request has the file part
-        # if 'file' not in request.files:
-        #    raise BadRequest()
+        sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(search_id,))
 
-        #  file = request.files['file']
+        if sample is None or len(sample) == 0:
+            return "NOT FOUND", 404
 
-        # img_base64 = request.
+        filename = sample.file.iloc[0]
+
+        if not os.path.exists(filename):
+            return "NOT FOUND", 404
+
+        img = Image.open(filename).convert('RGB')
+
+        if x < 0 and y < 0 and width < 0 and height < 0:
+            x, y, width, height = float(sample.x.iloc[0]), float(sample.y.iloc[0]), \
+                                  float(sample.width.iloc[0]), float(sample.height.iloc[0])
+
+            x, y, width, height = x / img.size[0], y / img.size[1], width / img.size[0], height / img.size[1]
+            
+    elif request.method == 'POST' and 'file' in request.json:
+
+        file = request.files['file']
+
+        img = Image.open(file).convert('RGB')
+
+    elif request.method == 'POST' and 'image' in request.json:
 
         img_base64 = request.json['image']
         img_bytes = io.BytesIO(base64.b64decode(img_base64[len('data:image/png;base64,'):]))
@@ -356,7 +371,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
             # img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
             # img = Image.composite(img_rgb, img_empty, mask=mask)
 
-            img.save('test.jpeg', "JPEG")
+            # img.save('test.jpeg', "JPEG")
         except ValueError:
             pass
     else:
