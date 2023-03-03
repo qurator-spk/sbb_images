@@ -1,4 +1,11 @@
-function() searchSetup{
+function searchSetup (){
+
+    let spinner_html =
+        `<div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border align-center mt-5" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+         </div>`;
 
     let request_counter = 0;
 
@@ -122,15 +129,17 @@ function() searchSetup{
 
     function create_cropper(img_src, crop_box=null) {
 
+
         if (cropper != null) {
 
-            if (img_src === cropper.url)
-                return;
+            if ($('#img-upload').attr('src') === img_src) return;
+
+            if (img_src === cropper.url) return;
 
             cropper.replace(img_src, true);
         }
         else {
-            $('#img-upload').attr('src', img_src);
+            if ($('#img-upload').attr('src') !== img_src) $('#img-upload').attr('src', img_src);
 
             cropper =
                new Cropper($('#img-upload')[0],
@@ -169,69 +178,83 @@ function() searchSetup{
     }
 
     let update_counter=0;
-    let post_data = null;
+    let form_data = null;
     let has_saliency_model = false;
 
     function update_results(x, y, width, height) {
         update_counter++;
 
         (function(counter_at_request) {
-            console.log("update_results", x, y, width, height);
 
-            function find_similar(x,y, width, height, onSuccess) {
+            function find_similar(x,y, width, height, onSuccess, post_data=null) {
 
-                let url = "";
-                let request_type = "";
-                if (formData != null) {
-                    url = "similar/0/100/"+x+"/"+y+"/"+width+"/"+height;
-                    post_data = formData;
-                    request_type = "POST";
-                }
-                else if (url_params.has('search_id')) {
-                     url = "similar/0/100/"+x+"/"+y+"/"+width+"/"+height+"?search_id=" + url_params.get('search_id')
-                     post_data = null;
-                     request_type = "GET";
-                }
-
-                $.ajax(
+                let request =
                     {
-                        url:  url,
-                        contentType: 'application/json',
-                        data: post_data,
-                        type: request_type,
                         processData: false,
                         cache: false,
                         success: onSuccess,
                         error: function(error) { console.log(error); }
-                    }
-                );
-            };
+                    };
 
-            function get_saliency(x,y, width, height, onSuccess) {
-
-                let url = "";
-                let request_type = "";
-                if (formData != null) {
-                    url = "saliency/"+x+"/"+y+"/"+width+"/"+height+;
-                    post_data = formData;
-                    request_type = "POST";
+                if (post_data != null) {
+                    request['data'] = post_data;
+                    request['url'] = "similar/0/100/"+x+"/"+y+"/"+width+"/"+height;
+                    request['type'] = "POST";
+                    request['contentType'] = "application/json"
+                }
+                else if (form_data != null) {
+                    request['data'] = form_data;
+                    request['url'] = "similar/0/100/"+x+"/"+y+"/"+width+"/"+height;
+                    request['type'] = "POST";
+                    request['contentType'] = false;
+                    request['enctype'] = "multipart/form-data";
                 }
                 else if (url_params.has('search_id')) {
-                     url = "saliency/"+x+"/"+y+"/"+width+"/"+height+"?search_id=" + url_params.get('search_id')
-                     post_data = null;
-                     request_type = "GET";
+                     request['url'] = "similar/0/100/"+x+"/"+y+"/"+width+"/"+height +
+                                            "?search_id=" + url_params.get('search_id');
+                     request['type'] = "GET";
+                }
+                else {
+                    console.log("find_similar: Do not know what to do!!!");
+                    return;
                 }
 
-                $.ajax(
+                $.ajax(request);
+            };
+
+            function get_saliency(x,y, width, height, onSuccess, post_data=null) {
+
+                let request =
                     {
-                        url:  url,
-                        type: request_type,
-                        enctype: "multipart/form-data",
                         cache: false,
                         success: onSuccess,
                         error: function(error) { console.log(error); }
-                    }
-                );
+                    };
+
+                if (post_data != null) {
+                    request['data'] = post_data;
+                    request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height;
+                    request['type'] = "POST";
+                    request['contentType'] = "application/json";
+                }
+                else if (form_data != null) {
+                    request['data'] = form_data;
+                    request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height;
+                    request['type'] = "POST";
+                    request['contentType'] = false;
+                    request['enctype'] = "multipart/form-data";
+                }
+                else if (url_params.has('search_id')) {
+                    request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height +
+                                            "?search_id=" + url_params.get('search_id')
+                    request['type'] = "GET";
+                }
+                else {
+                    console.log("get_saliency: Do not know what to do!!!");
+                    return;
+                }
+
+                $.ajax(request);
             };
 
             if (!has_saliency_model) {
@@ -246,11 +269,7 @@ function() searchSetup{
             else {
                 get_saliency(x,y,width, height,
                     function(saliency_result) {
-                        post_data = saliency_result;
-
                         if (update_counter > counter_at_request) return;
-
-                        //console.log("UPDATE",saliency_result.x,saliency_result.y,saliency_result.width,saliency_result.height);
 
                         create_cropper(saliency_result.image,
                                        { x : saliency_result.x, y : saliency_result.y,
@@ -258,12 +277,14 @@ function() searchSetup{
 
                         if (update_counter > counter_at_request) return;
 
-                        find_similar(saliency_result.x, saliency_result.y, saliency_result.width, saliency_result.height,
+                        find_similar(saliency_result.x, saliency_result.y,
+                                     saliency_result.width, saliency_result.height,
                             function(result) {
                                 if (update_counter > counter_at_request) return;
 
                                 makeResultList(result['ids']);
-                            }
+                            },
+                            JSON.stringify(saliency_result)
                         );
 
                     }
@@ -271,6 +292,22 @@ function() searchSetup{
             }
          })(update_counter);
     };
+
+    function reset_image() {
+
+        $("#cropper").html(`<img style="img-fluid fit-image mt-3; max-width: 100%"  id='img-upload' src=""/>`);
+
+        $('#img-upload').on('load',
+                function() {
+                    create_cropper($('#img-upload').attr('src'));
+                });
+
+        $('#img-upload').on('ready',
+            function() {
+                if (this.cropper === cropper) cropper_update();
+            }
+        );
+    }
 
     if (url_params.has('search_id')) {
 
@@ -285,6 +322,10 @@ function() searchSetup{
             </div>
         `
         $("#search-rgn").html(upload_html);
+
+        reset_image();
+
+        $('#img-upload').attr('src', "image/" + url_params.get('search_id')+ "/full/nomarker");
 
         update_results(-1,-1,-1,-1);
     }
@@ -306,7 +347,6 @@ function() searchSetup{
             <div class="card mt-2 mb-1">
                 <div class="card-body">
                     <div id="cropper">
-                        <img style="img-fluid fit-image mt-3; max-width: 100%"  id='img-upload' src=""/>
                     </div>
                     <form action="similar" method="post" enctype="multipart/form-data">
                         <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
@@ -318,13 +358,15 @@ function() searchSetup{
 
         $("#search-rgn").html(upload_html);
 
+        reset_image();
+
         $("#the-image").change(function(){
 
             if (cropper != null) {
                 cropper.destroy();
                 cropper = null;
 
-                $("#cropper").html(`<img style="img-fluid fit-image mt-3; max-width: 100%"  id='img-upload' src=""/>`);
+                reset_image();
             }
 
             let fileInput = $('#the-image')[0]
@@ -332,11 +374,15 @@ function() searchSetup{
 
             let reader = new FileReader();
 
-            post_data = new FormData();
-            post_data.append('file', file);
+            form_data = new FormData();
+            form_data.append('file', file);
+
+            $("#search-results").html(spinner_html);
 
             reader.onload =
                 function (e) {
+                     $('#img-upload').attr('src', e.target.result);
+
                     update_results(-1,-1,-1,-1);
                 };
 

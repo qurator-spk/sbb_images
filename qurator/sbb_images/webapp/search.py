@@ -306,9 +306,9 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
          'x': x, 'y': y, 'width': width, 'height': height})
 
 
-@app.route('/similar', methods=['POST'])
-@app.route('/similar/<start>/<count>', methods=['POST'])
-@app.route('/similar/<start>/<count>/<x>/<y>/<width>/<height>', methods=['POST'])
+@app.route('/similar', methods=['GET', 'POST'])
+@app.route('/similar/<start>/<count>', methods=['GET', 'POST'])
+@app.route('/similar/<start>/<count>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
 @htpasswd.required
 @cache_for(minutes=10)
 def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
@@ -317,6 +317,8 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
 
     search_id = request.args.get('search_id', default=None, type=int)
+
+    # import ipdb;ipdb.set_trace();
 
     if request.method == 'GET' and search_id is not None:
 
@@ -338,7 +340,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
             x, y, width, height = x / img.size[0], y / img.size[1], width / img.size[0], height / img.size[1]
             
-    elif request.method == 'POST' and 'file' in request.json:
+    elif request.method == 'POST' and 'file' in request.files:
 
         file = request.files['file']
 
@@ -518,7 +520,7 @@ def get_image_ppn(user, rowid=None):
 @app.route('/image-file/<rowid>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_image_ppn(user, rowid=None):
+def get_image_file(user, rowid=None):
     del user
 
     img = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(rowid,))
