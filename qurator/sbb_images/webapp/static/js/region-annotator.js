@@ -35,8 +35,6 @@ function makeAnnotator() {
     let renew_permit_timeout=null;
     let img_url = null;
 
-
-
     function add_annotation(annotation, onSuccess) {
         postit("add-annotation", { "annotation": annotation, "url" : img_url }, onSuccess);
     }
@@ -83,20 +81,6 @@ function makeAnnotator() {
         $("#search-result-list-collapse").collapse('hide');
      }
 
-//    let current_scale=1.0;
-//    $("#editor")[0].style.setProperty("--scale-factor", 1.0/current_scale);
-//    function annotation_formatter(annotation) {
-////        let style = ";transform: scale(" + 1.0/current_scale + ");"
-////        console.log(style);
-////
-//         if ($(".r6o-editor").length > 0) {
-//                    console.log($(".r6o-editor").attr('style'));
-//         }
-////
-////        return style;
-//          return "noscale"
-//    }
-
     function annotation_setup(img_url) {
         $("#editor").removeClass("d-none");
 
@@ -104,7 +88,8 @@ function makeAnnotator() {
         {
           locale: 'auto',
           allowEmpty: true,
-          readyOnly: true
+          readyOnly: true,
+          drawOnSingleClick: true
         });
 
         Annotorious.BetterPolygon(anno);
