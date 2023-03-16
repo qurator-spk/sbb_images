@@ -35,6 +35,8 @@ function makeAnnotator() {
     let renew_permit_timeout=null;
     let img_url = null;
 
+
+
     function add_annotation(annotation, onSuccess) {
         postit("add-annotation", { "annotation": annotation, "url" : img_url }, onSuccess);
     }
@@ -261,9 +263,19 @@ function makeAnnotator() {
             write_permit_id = "";
         }
 
-    function annotation_url_submit() {
+    function annotation_url_submit(new_state=true) {
+
+        let url_params = new URLSearchParams(window.location.search);
 
         img_url = $("#annotation-url").val();
+
+        if ((img_url !== url_params.get('image', "")) && (new_state)){
+            url_params.set('image', encodeURIComponent(img_url));
+
+            let url = window.location.href.split('?')[0]
+
+            history.pushState({'img_url': img_url},  "", url + "?" + url_params.toString());
+        }
 
         $("#search-result-list-collapse").collapse('hide');
 
@@ -807,6 +819,29 @@ function makeAnnotator() {
                 );
             }
          );
+
+        let url_params = new URLSearchParams(window.location.search);
+
+        if (url_params.has('image')) {
+            postit('match-url', {'url': decodeURIComponent(url_params.get('image'))},
+                function() {
+                    $("#annotation-url").val(decodeURIComponent(url_params.get('image')));
+
+                    annotation_url_submit();
+                });
+        }
+
+        window.addEventListener('popstate',
+            function(event) {
+
+                postit('match-url', {'url': decodeURIComponent(url_params.get('image'))},
+                    function() {
+                        $("#annotation-url").val(event.state.img_url);
+
+                        annotation_url_submit(false);
+                    });
+            }
+        );
     }
 
     function openSaveFileDialog (data, filename, mimetype) {
@@ -851,6 +886,7 @@ function makeAnnotator() {
 
 $(document).ready(
     function() {
+
         let annotator = makeAnnotator();
 
         annotator.init();
