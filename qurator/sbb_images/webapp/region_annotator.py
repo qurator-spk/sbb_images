@@ -17,11 +17,14 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urlmatch import urlmatch
 from urlmatch import BadMatchPattern
-from dicttoxml import dicttoxml
+
+import dicttoxml
 from xml.dom.minidom import parseString
 
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
+
+dicttoxml.LOG.setLevel(logging.ERROR)
 
 app = flask.Flask(__name__)
 
@@ -549,7 +552,7 @@ def data_export(user):
 
         data = [json.loads(df_anno.iloc[i].anno_json) for i in range(len(df_anno))]
 
-        xml = dicttoxml(data, return_bytes=False)
+        xml = dicttoxml.dicttoxml(data, return_bytes=False)
 
         dom = parseString(xml)
         xml = dom.toprettyxml()
