@@ -117,5 +117,21 @@ iconclass-b16-yfcc-msclips: export ICONCLASS_DB_LOCATION = $(ICONCLASS_PATH)/dat
 iconclass-b16-yfcc-msclips:
 	iconclass-train --test-data-json=./test.json --sampler=$(SAMPLER) --test-interval=$(TEST_INTERVAL) --batch-size=64 --num-workers=$(NUM_WORKERS) --epochs=$(EPOCHS) --accu-steps=$(ACCU_STEPS) --start-lr=$(START_LR) --lr-scheduler=$(LR_SCHEDULER) $(MSCLIP_PATH)/experiments/model/b16-yfcc-msclips.yaml $(MSCLIP_PATH)/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz ./train.json $(ICONCLASS_PATH)/testset ./iconclass-b16-yfcc-msclips_$(FPARAMS).pth ./iconclass-b16-yfcc-msclips_$(FPARAMS).pkl $(DEBUG) $(TRFLAGS)
 
+iconlass-database:
+	create-database iconclass-testset iconclass-test.sqlite --subset-json=notebooks/experiment10/test.json
+	iconclass-add-table iconclass-testset/data.json iconclass-test.sqlite
+	create-database iconclass-testset iconclass-train.sqlite --subset-json=notebooks/experiment10/train.json
+	iconclass-add-table iconclass-testset/data.json iconclass-train.sqlite
+
+iconclass-msclip-retrained-search-index-test:
+	create-search-index iconclass-test.sqlite iconclass-test-msclip-retrained-search-index.ann --ms-clip-model=notebooks/experiment10/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+
+iconclass-msclip-retrained-search-index-train:
+	create-search-index iconclass-train.sqlite iconclass-train-msclip-retrained-search-index.ann --ms-clip-model=notebooks/experiment10/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
 
 
+iconclass-msclip-search-index-test:
+	create-search-index iconclass-test.sqlite iconclass-test-msclip-search-index.ann --ms-clip-model=$(MSCLIP_PATH)/experiments/model/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+
+iconclass-msclip-search-index-train:
+	create-search-index iconclass-train.sqlite iconclass-train-msclip-search-index.ann --ms-clip-model=$(MSCLIP_PATH)/experiments/model/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)

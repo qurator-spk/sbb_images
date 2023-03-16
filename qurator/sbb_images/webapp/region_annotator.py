@@ -17,6 +17,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urlmatch import urlmatch
 from urlmatch import BadMatchPattern
+from dicttoxml import dicttoxml
+from xml.dom.minidom import parseString
 
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
@@ -539,6 +541,27 @@ def data_export(user):
         data = [json.loads(df_anno.iloc[i].anno_json) for i in range(len(df_anno))]
 
         return jsonify({'data': data, 'mimetype': 'application/json', 'filename': filename + '.json'})
+
+    elif export_type == "xml":
+        df_anno = pd.read_sql("SELECT * FROM annotations", con=get_db())
+
+        df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
+
+        data = [json.loads(df_anno.iloc[i].anno_json) for i in range(len(df_anno))]
+
+        xml = dicttoxml(data, return_bytes=False)
+
+        dom = parseString(xml)
+        xml = dom.toprettyxml()
+
+        buffer = io.BytesIO()
+        buffer.write(bytes(xml, 'utf8'))
+        buffer.seek(0)
+
+        response = send_file(buffer, attachment_filename=filename + '.xml', mimetype='application/octet-stream',
+                             as_attachment=True)
+
+        return response
 
     elif export_type == "sqlite":
 

@@ -83,8 +83,8 @@ function makeAnnotator() {
         $("#search-result-list-collapse").collapse('hide');
      }
 
-    let current_scale=1.0;
-    $("#editor")[0].style.setProperty("--scale-factor", 1.0/current_scale);
+//    let current_scale=1.0;
+//    $("#editor")[0].style.setProperty("--scale-factor", 1.0/current_scale);
 //    function annotation_formatter(annotation) {
 ////        let style = ";transform: scale(" + 1.0/current_scale + ");"
 ////        console.log(style);
@@ -117,7 +117,7 @@ function makeAnnotator() {
 
         anno.on('createAnnotation',
             function(annotation, overrideId) {
-                //console.log('createAnnotation',annotation);
+                console.log('createAnnotation',annotation);
                 add_annotation(annotation,
                     function() {
                         update_annotation_list();
@@ -129,7 +129,7 @@ function makeAnnotator() {
 
         anno.on('deleteAnnotation',
             function(annotation) {
-                //console.log('deleteAnnotation',annotation);
+                console.log('deleteAnnotation',annotation);
                 delete_annotation(annotation['id'],
                     function() {
                         write_permit="";
@@ -160,7 +160,7 @@ function makeAnnotator() {
 
         anno.on('clickAnnotation',
             function(annotation, element) {
-                //console.log('clickAnnotation',annotation);
+                console.log('clickAnnotation',annotation);
                 get_write_permit(annotation);
             }
         );
@@ -175,13 +175,13 @@ function makeAnnotator() {
         anno.on('selectAnnotation',
             function(annotation, element) {
                 get_write_permit(annotation);
-                //console.log('selectAnnotation',annotation);
+                console.log('selectAnnotation',annotation);
             }
         );
 
         anno.on('cancelSelected',
             function(selection) {
-                console.log(selection);
+                console.log('cancelSelected', selection);
 
                 release_write_permit();
             }
@@ -796,6 +796,17 @@ function makeAnnotator() {
                     function(result) {
                         openSaveFileDialog(
                             JSON.stringify(result['data'], null, 2), result['filename'], 'text/plain');
+                    }
+                );
+            }
+         );
+
+         $("#xml-export").click(
+            function() {
+                postit('data-export',{'export_type': 'xml'},
+                    function(response, status, xhr) {
+                        content_disp = xhr.getResponseHeader('Content-Disposition');
+                        openSaveFileDialog(response, content_disp.match(/.*filename=(.*)$/)[1]);
                     }
                 );
             }

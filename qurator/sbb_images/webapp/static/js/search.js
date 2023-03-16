@@ -9,6 +9,45 @@ function searchSetup (){
 
     let request_counter = 0;
 
+    function add_ppn_info(image_id) {
+        $.get("image-ppn/" + image_id,
+            function(result) {
+                $("#card-"+ image_id).attr('title', result['ppn']);
+
+                $.get("../meta_data/" + result['ppn'],
+                    function(meta) {
+                        $("#card-"+ image_id).attr('title', meta.title + "; " + meta.author + "; " + meta.date);
+                    }
+                );
+            }
+        );
+    };
+
+    function add_file_info (image_id) {
+        $.get("image-file/" + image_id,
+            function(result) {
+                if (result['file'] === undefined) return;
+
+                $("#card-"+ image_id).attr('title', result['file']);
+            }
+        );
+    };
+
+    function add_iconclass_info (image_id) {
+        $.get("image-iconclass/" + image_id,
+            function(results) {
+
+                let text = "";
+                $.each(results,
+                    function(index, result) {
+                        text += result.label + " : " + result.text + "\n"
+                    }
+                );
+                $("#card-"+ image_id).attr('title', text);
+            }
+        );
+    };
+
     function makeResultList(results) {
         request_counter += 1;
 
@@ -41,63 +80,37 @@ function searchSetup (){
 
             $('#search-results').html(result_html);
 
-            let triggerNextImage = function() {};
+            function triggerNextImage () {
 
-            triggerNextImage =
-                function (){
+                if (results.length <= 0) return;
+                if (counter_at_request < request_counter) return;
 
-                    if (results.length <= 0) return;
-                    if (counter_at_request < request_counter) return;
+                let next_one = results.shift();
 
-                    let next_one = results.shift();
+                (function(result_id) {
+                    $('#img-'+ next_one).on('load',
+                        function() {
+                            $.get("link/" + result_id).done(
+                                function(result) {
+                                    if (result.length <= 0) return;
 
-                    (function(result_id) {
-                        $('#img-'+ next_one).on('load',
-                            function() {
-                                $.get("link/" + result_id).done(
-                                    function(result) {
-                                        if (result.length <= 0) return;
-
-                                        $("#lnk-" + result_id).attr('href', result);
-                                    }
-                                );
-
-                                triggerNextImage();
-                            }
-                         );
-                    })(next_one);
-
-                    $('#img-'+ next_one).attr("src", "image/"+next_one+"/resize/regionmarker");
-
-                    $("#card-"+ next_one).removeClass('invisible');
-
-                    (function(image_id) {
-                        $.get("image-ppn/" + image_id,
-                            function(result) {
-
-                                if (result['ppn'] === undefined) {
-
-                                    $.get("image-file/" + image_id,
-                                        function(result) {
-                                            if (result['file'] === undefined) return;
-
-                                            $("#card-"+ image_id).attr('title', result['file']);
-                                        });
-
-                                    return;
+                                    $("#lnk-" + result_id).attr('href', result);
                                 }
+                            );
 
-                                $("#card-"+ image_id).attr('title', result['ppn']);
+                            triggerNextImage();
+                        }
+                     );
+                })(next_one);
 
-                                $.get("../meta_data/" + result['ppn'],
-                                    function(meta) {
-                                        $("#card-"+ image_id).attr('title', meta.title + "; " + meta.author + "; " + meta.date);
-                                    }
-                                );
-                            }
-                        );
-                    })(next_one);
-                };
+                $('#img-'+ next_one).attr("src", "image/"+next_one+"/resize/regionmarker");
+
+                $("#card-"+ next_one).removeClass('invisible');
+
+                //add_file_info(next_one);
+                //add_ppn_info(next_one);
+                add_iconclass_info(next_one);
+            };
 
             triggerNextImage();
 

@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import click
 import re
@@ -46,7 +47,8 @@ import multiprocessing as mp
 @click.argument('sqlite-file', type=click.Path(exists=False))
 @click.option('--pattern', type=str, default="*.jpg", help="File pattern to search for. Default: *.jpg")
 @click.option('--follow-symlinks', type=bool, is_flag=True, default=False)
-def create_database(directory, sqlite_file, pattern, follow_symlinks):
+@click.option('--subset-json', type=click.Path(exists=True), default=None)
+def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_json):
     """
     DIRECTORY: Recursively enlist all the image files in this directory.
     Write the file list into the images table of SQLITE_FILE that is a sqlite3 database file.
@@ -69,9 +71,19 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks):
 
     _file_it = tqdm(file_it(directory))
 
+    subset = None
+    if subset_json is not None:
+        with open(subset_json, 'r') as f:
+            subset = json.load(f)
+
     print("Scanning for {} files ...".format(pattern))
     images = []
     for p in _file_it:
+
+        if subset is not None:
+            if os.path.basename(p) not in subset:
+                continue
+
         images.append((p, 0))
         _file_it.set_description("[{}]".format(len(images)))
 

@@ -442,11 +442,10 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height})
 
 
-@cache_for(minutes=10)
-def has_links():
+def has_table(table_name):
     return \
         thread_store.get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
-                                      ('links',)).fetchone()\
+                                      (table_name,)).fetchone()\
         is not None
 
 
@@ -455,7 +454,15 @@ def has_links():
 @cache_for(minutes=10)
 def get_has_links(user):
     del user
-    return jsonify(has_links())
+    return jsonify(has_table('links'))
+
+
+@app.route('/hasiconclass')
+@htpasswd.required
+@cache_for(minutes=10)
+def get_has_iconclass(user):
+    del user
+    return jsonify(has_table('iconclass'))
 
 
 @app.route('/link/<image_id>')
@@ -464,7 +471,7 @@ def get_has_links(user):
 def get_link(user, image_id=None):
     del user
 
-    if not has_links():
+    if not has_table('links'):
 
         return jsonify("")
 
@@ -484,7 +491,7 @@ def get_link(user, image_id=None):
 def get_ppn_images(user, ppn=None):
     del user
 
-    if not has_links():
+    if not has_table('links'):
 
         return jsonify("")
 
@@ -505,9 +512,9 @@ def get_ppn_images(user, ppn=None):
 def get_image_ppn(user, rowid=None):
     del user
 
-    if not has_links():
+    if not has_table('links'):
 
-        return jsonify("")
+        return "NOT FOUND", 404
 
     link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(), params=(rowid,))
 
@@ -515,6 +522,34 @@ def get_image_ppn(user, rowid=None):
         return jsonify("")
 
     return jsonify(json.loads(link.iloc[0].to_json()))
+
+
+@app.route('/image-iconclass/<rowid>')
+@htpasswd.required
+@cache_for(minutes=10)
+def get_image_iconclass(user, rowid=None):
+    del user
+
+    if not has_table('iconclass'):
+
+        return "NOT FOUND", 404
+
+    img = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(rowid,))
+
+    file = os.path.basename(img.iloc[0].file)
+
+    iconclass_info = pd.read_sql('select * from iconclass where file=?', con=thread_store.get_db(), params=(file,))
+
+    # import ipdb;ipdb.set_trace()
+
+    result = []
+    for _, (index, file, target, label) in iconclass_info.iterrows():
+        result.append({'text': target, 'label': label})
+
+    # if link is None or len(link) == 0:
+    #    return jsonify("")
+
+    return jsonify(result)
 
 
 @app.route('/image-file/<rowid>')
