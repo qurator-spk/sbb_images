@@ -8,6 +8,7 @@
     <!-- Bootstrap CSS -->
     <script src="js/popper.min.js"></script>
     <script src="js/jquery-3.4.1.js"></script>
+    <script src="js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="css/cropper.min.css" crossorigin="anonymous">
     <style>
@@ -18,7 +19,7 @@
 
         @media screen {
             .fit-image{
-                max-height: 35vh;
+                max-height: 20vh;
                 width: auto;
             }
         }
@@ -28,35 +29,160 @@
                 width: auto;
             }
         }
-
     </style>
     <title>Image Search</title>
 </head>
 <body>
 <div class="container-fluid">
-    <div class="container">
-        <div class="row mt-5">
-            <div class="col-12">
-                <div class="row">
-                    <div class="col text-center">
+    <div class="row mt-5">
+        <div class="col-3 text-center">
+            <div id="settings-accordion">
+                <div class="card" id="search-card">
+                    <div class="card-header" id="settings-heading">
                         <h3>Image Search</h3>
-                        <a href="search.html">Upload search image</a> |
-                        <a href="https://github.com/qurator-spk/sbb_images"
-                            target="_blank" tabindex="-1">Github</a>
-                        <hr>
+                        <a class="btn btn-link" href="https://github.com/qurator-spk/sbb_images" target="_blank"
+                           tabindex="-1">Github</a>
+                        <button id="settings-button" class="btn btn-link" data-toggle="collapse"
+                                data-target="#settingsCollapse" aria-expanded="true" aria-controls="settingsCollapse">
+                            Settings
+                        </button>
+                    </div>
+                </div>
+                <div id="settingsCollapse" class="collapse" aria-labelledby="settings-heading"
+                     data-parent="#settings-accordion">
+                    <div class="card-body text-left" id="search-settings">
+                        <div class="form">
+                            <div class="from-group row">
+                                <label class="col-6 col-form-label">Dataset:</label>
+                                <div class="col-6">
+                                    <select class="form-control">
+                                        <option>Dataset A</option>
+                                        <option>Dataset B</option>
+                                        <option>Dataset C</option>
+                                        <option>Dataset D</option>
+                                    </select></div>
+                            </div>
+                            <div class="from-group row">
+                                <label class="col-6 col-form-label">Model:</label>
+                                <div class="col-6">
+                                    <select class="form-control">
+                                        <option>Model A</option>
+                                        <option>Model B</option>
+                                        <option>Model C</option>
+                                        <option>Model D</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row mt-2 text-center">
-            <div class="col-md-3"></div>
-            <div class="col-md-6" id="search-rgn">
+        <div class="col-9 text-center">
+            <div id="accordion">
+                <div class="card" id="img-card">
+                    <div class="card-header" id="img-heading">
+                        <h5 class="mb-0">
+                            <button id="img-button" class="btn btn-link" data-toggle="collapse"
+                                    data-target="#imgCollapse"
+                                    aria-expanded="true" aria-controls="imgCollapse">
+                                By image
+                            </button>
+                        </h5>
+                    </div>
+                    <div id="imgCollapse" class="collapse show" aria-labelledby="img-heading"
+                         data-parent="#accordion">
+                        <div class="card-body text-center" id="search-rgn">
+                        </div>
+                    </div>
+                </div>
+                <div class="card" id="description-card">
+                    <div class="card-header" id="desc-heading">
+                        <h5 class="mb-0">
+                            <button id="description-button" class="btn btn-link" data-toggle="collapse"
+                                    data-target="#descCollapse"
+                                    aria-expanded="true" aria-controls="descCollapse">
+                                By description | filename | iconclass | tag
+                            </button>
+                        </h5>
+                    </div>
+                    <div id="descCollapse" class="collapse" aria-labelledby="desc-heading" data-parent="#accordion">
+                        <div class="card-body text-center" id="search-desc">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Description:
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="#">Description</a>
+                                        <a class="dropdown-item" href="#">Filename</a>
+                                        <a class="dropdown-item" href="#">Iconclass</a>
+                                        <a class="dropdown-item" href="#">Tag</a>
+                                    </div>
+                                </div>
+                                <input type="text" list="suggestions" class="from-control" style="flex: auto"
+                                       id="search-for" autocomplete="off"/>
+                                <datalist id="suggestions">
+                                </datalist>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col-md-3">
-        </div>
     </div>
-    <div class="row mt-2 text-center" id="search-results">
+    <div class="row mt-2 text-center">
+        <div class="col-10" style="height: 80vh;overflow-y: scroll;">
+            <div class="row mt-2 text-center" id="search-results">
+            </div>
+        </div>
+        <div class="col-2" style="height: 80vh;overflow-y: scroll;">
+            <div id="tag-accordion">
+                <div class="card" id="search-tag-card">
+                    <div class="card-header" id="search-tag-heading">
+                        <button id="search-tag-button" class="btn btn-link" data-toggle="collapse"
+                                data-target="#searchTagCollapse" aria-expanded="true"
+                                aria-controls="searchTagCollapse">
+                            Tag-Search
+                        </button>
+                    </div>
+
+                    <div id="searchTagCollapse" class="collapse" aria-labelledby="settings-heading"
+                         data-parent="#settings-accordion">
+                        <div class="card-body text-left" id="search-tag">
+                            <div class="form">
+                                <label>Search for:</label>
+                                <div class="form-group">
+                                    <input type="text" list="tag-suggestions" class="from-control" style="width: 100%"
+                                           id="search-for-tag" autocomplete="off"/>
+                                    <datalist id="tag-suggestions"></datalist>
+                                </div>
+                            </div>
+                            <ul>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" id="tag-pad-card">
+                    <div class="card-header" id="tag-pad-heading">
+                        <button id="tag-pad-button" class="btn btn-link" data-toggle="collapse"
+                                data-target="#tagPadCollapse" aria-expanded="true"
+                                aria-controls="tagPadCollapse">
+                            Tag-Pad
+                        </button>
+                    </div>
+
+                    <div id="tagPadCollapse" class="collapse" aria-labelledby="settings-heading"
+                         data-parent="#settings-accordion">
+                        <div class="card-body text-left" id="tag-pad">
+                            <ul id="tag-pad-list">
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 <script src="js/search.js"></script>

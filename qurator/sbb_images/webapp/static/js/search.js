@@ -308,7 +308,7 @@ function searchSetup (){
 
     function reset_image() {
 
-        $("#cropper").html(`<img style="img-fluid fit-image mt-3; max-width: 100%"  id='img-upload' src=""/>`);
+        //$("#cropper").html(`<img style="img-fluid fit-image mt-3; max-width: 100%"  id='img-upload' src=""/>`);
 
         $('#img-upload').on('load',
                 function() {
@@ -326,13 +326,11 @@ function searchSetup (){
 
         let upload_html =
         `
-            <div class="card mt-2 mb-1">
-                <div class="card-body">
-                    <div>
-                        <img class="img-fluid fit-image mt-3; max-width: 100%" id='img-upload' src=""/>
-                    </div>
-                </div>
-            </div>
+            <img class="fit-image" id='img-upload' src=""/>
+            <form action="similar" method="post" enctype="multipart/form-data">
+                        <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
+                        <input type="file" name="file" id="the-image" style="display: none;"/>
+            </form>
         `
         $("#search-rgn").html(upload_html);
 
@@ -359,8 +357,7 @@ function searchSetup (){
         `
             <div class="card mt-2 mb-1">
                 <div class="card-body">
-                    <div id="cropper">
-                    </div>
+                    <img class="fit-image" id='img-upload' src=""/>
                     <form action="similar" method="post" enctype="multipart/form-data">
                         <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
                         <input type="file" name="file" id="the-image" style="display: none;"/>
