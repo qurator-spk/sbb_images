@@ -1,0 +1,79 @@
+{
+  "PASSWD_FILE": "",
+  "AUTH_REALM": "search",
+  "MAX_IMG_SIZE": 250,
+  "MS_CLIP_MODEL_CONFIG": {
+    "B16-YFCC-ORIG" : "/home/kai.labusch/MMK/MSCLIP/experiments/model/b16-yfcc-msclips.yaml",
+    "B16-YFCC-RETRAINED": "notebooks/experiment10/b16-yfcc-msclips.yaml"
+  },
+  "MODEL_CONFIGURATION":
+    {
+      "MSCLIP-B16-YFCC-ORIG": {
+        "MS_CLIP_MODEL_CONFIG": "B16-YFCC-ORIG",
+        "FRIENDLY_NAME": "MSCLIP-b16-yfcc",
+        "DESCRIPTION": "MSCLIP-model (b16-yfcc) as published",
+        "ACCEPTS_TEXT": true
+      },
+      "MSCLIP-B16-YFCC-RETRAINED":{
+        "MS_CLIP_MODEL_CONFIG": "B16-YFCC-RETRAINED",
+        "FRIENDLY_NAME": "MSCLIP-b16-yfcc-iconclass",
+        "DESCRIPTION": "MSCLIP-model (b16-yfcc) retrained on Iconclass-AI train part",
+        "ACCEPTS_TEXT": true
+      }
+    },
+  "SQLITE_FILES": {
+    "ICONCLASS-AI-TEST": "iconclass-test.sqlite",
+    "ICONCLASS-AI-TRAIN": "iconclass-train.sqlite"
+  },
+  "DATA_CONFIGURATION": {
+    "ICONCLASS-AI-TEST": {
+          "FRIENDLY_NAME": "Iconclass AI Test Set(10% test part)",
+          "DESCRIPTION": "Etienne Posthumus, \"Iconclass AI Test Set\", Feb 2020, https://iconclass.org/testset/"
+      },
+      "ICONCLASS-AI-TRAIN": {
+          "FRIENDLY_NAME": "Iconclass AI Test Set(90% train part)",
+          "DESCRIPTION": "Etienne Posthumus, \"Iconclass AI Test Set\", Feb 2020, https://iconclass.org/testset/"
+      }
+  },
+  "INDEX_CONFIGURATION": {
+    "A": {
+      "INDEX_FILE": "iconclass-test-msclip-search-index.ann",
+      "DIST_MEASURE": "angular"
+    },
+    "B": {
+      "INDEX_FILE": "iconclass-train-msclip-search-index.ann",
+          "DIST_MEASURE": "angular"
+    },
+    "C": {
+      "INDEX_FILE": "iconclass-test-msclip-retrained-search-index.ann",
+      "DIST_MEASURE": "angular"
+    },
+    "D": {
+      "INDEX_FILE": "iconclass-train-msclip-retrained-search-index.ann",
+      "DIST_MEASURE": "angular"
+    }
+  },
+  "CONFIGURATION":
+    {
+      "A": {
+          "DATA_CONF": "ICONCLASS-AI-TEST",
+          "MODEL_CONF": "MSCLIP-B16-YFCC-ORIG",
+          "DEFAULT": false
+      },
+      "B": {
+          "DATA_CONF": "ICONCLASS-AI-TRAIN",
+          "MODEL_CONF": "MSCLIP-B16-YFCC-ORIG",
+          "DEFAULT": false
+      },
+      "C": {
+          "DATA_CONF": "ICONCLASS-AI-TEST",
+          "MODEL_CONF": "MSCLIP-B16-YFCC-RETRAINED",
+          "DEFAULT": false
+      },
+      "D": {
+          "DATA_CONF": "ICONCLASS-AI-TRAIN",
+          "MODEL_CONF": "MSCLIP-B16-YFCC-RETRAINED",
+          "DEFAULT": true
+      }
+    }
+}

@@ -1,4 +1,6 @@
-function searchSetup (){
+function searchSetup (gconf){
+
+    let configuration = null;
 
     let spinner_html =
         `<div class="d-flex justify-content-center mt-5">
@@ -10,7 +12,7 @@ function searchSetup (){
     let request_counter = 0;
 
     function add_ppn_info(image_id) {
-        $.get("image-ppn/" + image_id,
+        $.get("image-ppn/"+ configuration.getDataConf() + "/" + image_id,
             function(result) {
                 $("#card-"+ image_id).attr('title', result['ppn']);
 
@@ -24,7 +26,7 @@ function searchSetup (){
     };
 
     function add_file_info (image_id) {
-        $.get("image-file/" + image_id,
+        $.get("image-file/"+ configuration.getDataConf() + "/" + image_id,
             function(result) {
                 if (result['file'] === undefined) return;
 
@@ -34,7 +36,7 @@ function searchSetup (){
     };
 
     function add_iconclass_info (image_id) {
-        $.get("image-iconclass/" + image_id,
+        $.get("image-iconclass/"+ configuration.getDataConf() + "/"  + image_id,
             function(results) {
 
                 let text = "";
@@ -53,6 +55,8 @@ function searchSetup (){
 
         (function(counter_at_request) {
 
+            let url_params = new URLSearchParams(window.location.search);
+
             $('#search-results').html("");
 
             let result_html = "";
@@ -67,8 +71,8 @@ function searchSetup (){
                             <div class="row-fluid">
                                 <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                                     <div class="card-body">
-                                    <a href="search.html?search_id=${result_id}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
-                                    <a href="image/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
+                                    <a href="search.html?${url_params}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
+                                    <a href="image/${configuration.getDataConf()}/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
                                         <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer"/>
                                     </a>
                                     </div>
@@ -90,7 +94,7 @@ function searchSetup (){
                 (function(result_id) {
                     $('#img-'+ next_one).on('load',
                         function() {
-                            $.get("link/" + result_id).done(
+                            $.get("link/" + configuration.getDataConf() + "/" + result_id).done(
                                 function(result) {
                                     if (result.length <= 0) return;
 
@@ -103,7 +107,7 @@ function searchSetup (){
                      );
                 })(next_one);
 
-                $('#img-'+ next_one).attr("src", "image/"+next_one+"/resize/regionmarker");
+                $('#img-'+ next_one).attr("src", "image/" + configuration.getDataConf() + "/"+next_one+"/resize/regionmarker");
 
                 $("#card-"+ next_one).removeClass('invisible');
 
@@ -141,7 +145,6 @@ function searchSetup (){
     }
 
     function create_cropper(img_src, crop_box=null) {
-
 
         if (cropper != null) {
 
@@ -201,6 +204,8 @@ function searchSetup (){
 
             function find_similar(x,y, width, height, onSuccess, post_data=null) {
 
+                let url_params = new URLSearchParams(window.location.search);
+
                 let request =
                     {
                         processData: false,
@@ -211,19 +216,19 @@ function searchSetup (){
 
                 if (post_data != null) {
                     request['data'] = post_data;
-                    request['url'] = "similar/0/100/"+x+"/"+y+"/"+width+"/"+height;
+                    request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
                     request['type'] = "POST";
                     request['contentType'] = "application/json"
                 }
                 else if (form_data != null) {
                     request['data'] = form_data;
-                    request['url'] = "similar/0/100/"+x+"/"+y+"/"+width+"/"+height;
+                    request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
                     request['type'] = "POST";
                     request['contentType'] = false;
                     request['enctype'] = "multipart/form-data";
                 }
                 else if (url_params.has('search_id')) {
-                     request['url'] = "similar/0/100/"+x+"/"+y+"/"+width+"/"+height +
+                     request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height +
                                             "?search_id=" + url_params.get('search_id');
                      request['type'] = "GET";
                 }
@@ -322,21 +327,154 @@ function searchSetup (){
         );
     }
 
-    if (url_params.has('search_id')) {
+    function setupConfiguration() {
+        let that = {};
 
-        let upload_html =
+        let conf_map = {};
+        let model_map = {};
+        let active_conf = null;
+        let datasets = new Set();
+
+        $.each(gconf["CONFIGURATION"],
+            function(conf_name, conf) {
+                conf_map[[conf["DATA_CONF"], conf["MODEL_CONF"]]] = conf_name;
+                model_map[conf["DATA_CONF"]] = [];
+                datasets.add(conf["DATA_CONF"])
+            }
+        );
+
+        $.each(gconf["CONFIGURATION"],
+            function(conf_name, conf) {
+                model_map[conf["DATA_CONF"]].push(conf["MODEL_CONF"]);
+
+                if ((conf['DEFAULT']) || (active_conf === null)) {
+                    active_conf = conf_name;
+                }
+            }
+        );
+
+        let dataset_select_html="";
+        datasets.forEach(
+            function(data_conf) {
+                let friendly_name = gconf["DATA_CONFIGURATION"][data_conf]["FRIENDLY_NAME"];
+
+                dataset_select_html += `<option value="${data_conf}"> ${friendly_name} </option>`;
+                }
+        );
+
+        $("#dataset-select").html(dataset_select_html);
+
+
+        function updateModelSelect() {
+            data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
+
+            let model_select_html = "";
+
+            $.each(model_map[data_conf],
+                function(index, model_conf) {
+
+                    let friendly_name = gconf["MODEL_CONFIGURATION"][model_conf]["FRIENDLY_NAME"];
+
+                    model_select_html += `<option value="${model_conf}"> ${friendly_name} </option>`;
+                }
+            );
+
+            $("#model-select").html(model_select_html);
+
+            $("#dataset-select").val(gconf["CONFIGURATION"][active_conf]["DATA_CONF"]);
+            $("#model-select").val(gconf["CONFIGURATION"][active_conf]["MODEL_CONF"]);
+        }
+
+        $("#dataset-select").on('change',
+            function(event) {
+                let data_conf = event.target.value;
+
+                let prev_data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
+
+                if (prev_data_conf === data_conf) return;
+
+                let model_conf = $("#model-select")[0].value;
+
+                that.setActiveConf(conf_map[[data_conf, model_conf]]);
+
+                console.log(active_conf);
+            }
+        );
+
+        $("#model-select").on('change',
+            function(event) {
+                let model_conf = event.target.value;
+                let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
+
+                that.setActiveConf(conf_map[[data_conf, model_conf]]);
+
+                console.log(active_conf);
+            }
+        );
+
+        that = {
+            setActiveConf:
+                function(conf) {
+                    let url_params = new URLSearchParams(window.location.search);
+
+                    if (active_conf === null) {
+                        active_conf = conf;
+                        updateModelSelect();
+                    }
+                    else {
+                        let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
+                        let new_data_conf = gconf["CONFIGURATION"][conf]["DATA_CONF"];
+
+                        active_conf = conf;
+
+                        if (new_data_conf !== data_conf) updateModelSelect();
+                    }
+
+                    url_params.set("data_conf", gconf["CONFIGURATION"][active_conf]["DATA_CONF"]);
+                    url_params.set("model_conf", gconf["CONFIGURATION"][active_conf]["MODEL_CONF"]);
+
+                    let url = window.location.href.split('?')[0]
+
+                    history.pushState({},  "", url + "?" + url_params.toString());
+                },
+            getActive:
+                function() { return active_conf },
+            getDataConf:
+                function() { return gconf["CONFIGURATION"][active_conf]["DATA_CONF"]; },
+            getModelConf:
+                function() { return gconf["CONFIGURATION"][active_conf]["MODEL_CONF"]; }
+        };
+
+        if ((url_params.has("data_conf")) &&(url_params.has("model_conf"))) {
+            active_conf = conf_map[[url_params.get("data_conf") , url_params.get("model_conf")]];
+        }
+
+        (function(conf) {
+            active_conf = null;
+            that.setActiveConf(conf);
+         })(active_conf);
+
+        return that;
+    };
+
+    configuration = setupConfiguration();
+
+    let upload_html =
         `
             <img class="fit-image" id='img-upload' src=""/>
             <form action="similar" method="post" enctype="multipart/form-data">
                         <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
                         <input type="file" name="file" id="the-image" style="display: none;"/>
             </form>
-        `
-        $("#search-rgn").html(upload_html);
+        `;
+
+    $("#search-rgn").html(upload_html);
+
+    if (url_params.has('search_id')) {
 
         reset_image();
 
-        $('#img-upload').attr('src', "image/" + url_params.get('search_id')+ "/full/nomarker");
+        $('#img-upload').attr('src', "image/" + configuration.getDataConf() + "/" + url_params.get('search_id')+ "/full/nomarker");
 
         update_results(-1,-1,-1,-1);
     }
@@ -353,21 +491,6 @@ function searchSetup (){
         }
     }
     else {
-        let upload_html =
-        `
-            <div class="card mt-2 mb-1">
-                <div class="card-body">
-                    <img class="fit-image" id='img-upload' src=""/>
-                    <form action="similar" method="post" enctype="multipart/form-data">
-                        <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
-                        <input type="file" name="file" id="the-image" style="display: none;"/>
-                    </form>
-                </div>
-            </div>
-        `;
-
-        $("#search-rgn").html(upload_html);
-
         reset_image();
 
         $("#the-image").change(function(){
@@ -401,4 +524,11 @@ function searchSetup (){
     }
 }
 
-$(document).ready(searchSetup);
+$(document).ready(
+    function() {
+        $.get("configuration")
+            .done(
+                function (gconf) {
+                    searchSetup(gconf);
+                 });
+     });

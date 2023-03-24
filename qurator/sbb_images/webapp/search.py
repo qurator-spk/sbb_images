@@ -1,6 +1,7 @@
 import os
 # import signal
 import flask
+from PIL.Image import Image
 from werkzeug.exceptions import *
 import io
 import logging
@@ -16,7 +17,7 @@ import base64
 import numpy as np
 
 import PIL
-from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageStat
+from PIL import Image, ImageDraw, ImageStat  # ImageOps, ImageFilter
 
 from ..feature_extraction import load_extraction_model
 from ..saliency import load_saliency_model, process_region, find_all_regions
@@ -27,7 +28,7 @@ from annoy import AnnoyIndex
 from flask_cachecontrol import (
     cache_for)
 
-from torchvision import transforms
+# from torchvision import transforms
 
 app = flask.Flask(__name__)
 # flask_cache_control = FlaskCacheControl()
@@ -57,79 +58,91 @@ class ThreadStore:
     def __init__(self):
 
         self._connection_map = dict()
-
-        self._extract_features = None
-        self._extract_transform = None
+        self._model_map = dict()
+        self._index_map = dict()
 
         self._predict_saliency = None
         self._predict_transform = None
 
         self._index = None
 
-    def get_db(self):
+    def get_db(self, data_conf):
 
         thid = threading.current_thread().ident
 
-        conn = self._connection_map.get(thid)
+        conn = self._connection_map.get((data_conf, thid))
 
         if conn is None:
 
-            logger.info('Create database connection: {}'.format(app.config['SQLITE_FILE']))
+            logger.info('Create database connection: {}'.format(app.config['SQLITE_FILES'][data_conf]))
 
-            conn = sqlite3.connect(app.config['SQLITE_FILE'])
+            conn = sqlite3.connect(app.config['SQLITE_FILES'][data_conf])
 
             conn.execute('pragma journal_mode=wal')
 
-            self._connection_map[thid] = conn
+            self._connection_map[(data_conf, thid)] = conn
 
         return conn
 
-    def get_search_index(self):
+    def get_search_index(self, index_conf, model_conf):
 
-        if self._index is not None:
-            return self._index
+        if index_conf in self._index_map:
+            return self._index_map[index_conf]
+
+        if index_conf not in app.config["INDEX_CONFIGURATION"]:
+            raise RuntimeError("Unknown index")
+
+        iconfig = app.config["INDEX_CONFIGURATION"][index_conf]
+        extract_features, extract_transform = self.get_extraction_model(model_conf)
 
         mode = 'RGB'
         size = (100, 100)
         color = (128, 128, 128)
 
+        # noinspection PyTypeChecker
         img = Image.new(mode, size, color)
-
-        extract_features, extract_transform = self.get_extraction_model()
 
         img = extract_transform(img).unsqueeze(0)
 
         fe = extract_features(img)
 
-        self._index = AnnoyIndex(fe.shape[1], app.config['DIST_MEASURE'])
+        index = AnnoyIndex(fe.shape[1], iconfig['DIST_MEASURE'])
 
-        self._index.load(app.config['INDEX_FILE'])
+        index.load(iconfig['INDEX_FILE'])
 
-        return self._index
+        self._index_map[index_conf] = index
 
-    def get_extraction_model(self):
+        return self._index_map[index_conf]
 
-        if self._extract_features is not None:
+    def get_extraction_model(self, model_conf):
 
-            return self._extract_features, self._extract_transform
+        if model_conf in self._model_map:
+
+            return self._model_map[model_conf]
+
+        if model_conf not in app.config["MODEL_CONFIGURATION"]:
+            raise RuntimeError("Unknown model")
+
+        mconfig = app.config["MODEL_CONFIGURATION"][model_conf]
 
         model_name = None
-        if "MODEL_NAME" in app.config:
-            model_name = app.config["MODEL_NAME"]
+        if "MODEL_NAME" in mconfig:
+            model_name = mconfig["MODEL_NAME"]
 
         clip_model = None
-        if "CLIP_MODEL" in app.config:
-            clip_model = app.config["CLIP_MODEL"]
+        if "CLIP_MODEL" in mconfig:
+            clip_model = mconfig["CLIP_MODEL"]
 
         ms_clip_model_config = None
-        if "MS_CLIP_MODEL_CONFIG" in app.config:
-            ms_clip_model_config = app.config["MS_CLIP_MODEL_CONFIG"]
+        if "MS_CLIP_MODEL_CONFIG" in mconfig:
+            ms_clip_model_config = app.config['MS_CLIP_MODEL_CONFIG'][mconfig["MS_CLIP_MODEL_CONFIG"]]
 
-        self._extract_features, self._extract_transform, _ = load_extraction_model(model_name=model_name,
-                                                                                   clip_model=clip_model,
-                                                                                   ms_clip_model=ms_clip_model_config)
+        extract_features, extract_transform, _ = load_extraction_model(model_name=model_name, clip_model=clip_model,
+                                                                       ms_clip_model=ms_clip_model_config)
 
-        return self._extract_features, self._extract_transform
+        self._model_map[model_conf] = (extract_features, extract_transform)
+
+        return self._model_map[model_conf]
 
     def get_saliency_model(self):
 
@@ -154,10 +167,10 @@ def entry():
     return redirect("search.html", code=302)
 
 
-def load_image_from_database(search_id, x=-1, y=-1, width=-1, height=-1):
+def load_image_from_database(data_conf, search_id, x=-1, y=-1, width=-1, height=-1):
     x, y, width, height = float(x), float(y), float(width), float(height)
 
-    sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(search_id,))
+    sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(data_conf), params=(search_id,))
 
     if sample is None or len(sample) == 0:
         raise NotFound()
@@ -165,7 +178,7 @@ def load_image_from_database(search_id, x=-1, y=-1, width=-1, height=-1):
     filename = sample.file.iloc[0]
 
     detections = pd.read_sql('select x,y,width,height from images where file=?',
-                             con=thread_store.get_db(), params=(filename,))
+                             con=thread_store.get_db(data_conf), params=(filename,))
 
     if not os.path.exists(filename):
 
@@ -197,17 +210,18 @@ def load_image_from_database(search_id, x=-1, y=-1, width=-1, height=-1):
     return img, x, y, width, height, detections
 
 
-@app.route('/saliency', methods=['GET', 'POST'])
-@app.route('/saliency/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
-def get_saliency(x=-1, y=-1, width=-1, height=-1):
+@app.route('/saliency/<conf>', methods=['GET', 'POST'])
+@app.route('/saliency/<conf>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
+def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
+    data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
 
-    max_img_size = 4*app.config['MAX_IMG_SIZE']
+    # max_img_size = 4*app.config['MAX_IMG_SIZE']
 
     search_id = request.args.get('search_id', default=None, type=int)
 
     if request.method == 'GET' and search_id is not None:
 
-        img, x, y, width, height, detections = load_image_from_database(search_id, x, y, width, height)
+        img, x, y, width, height, detections = load_image_from_database(data_conf, search_id, x, y, width, height)
 
     elif request.method == 'POST':
         # check if the post request has the file part
@@ -216,6 +230,7 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
 
         file = request.files['file']
 
+        # noinspection PyTypeChecker
         img = Image.open(file).convert('RGB')
 
         detections = pd.DataFrame([])
@@ -306,12 +321,15 @@ def get_saliency(x=-1, y=-1, width=-1, height=-1):
          'x': x, 'y': y, 'width': width, 'height': height})
 
 
-@app.route('/similar', methods=['GET', 'POST'])
-@app.route('/similar/<start>/<count>', methods=['GET', 'POST'])
-@app.route('/similar/<start>/<count>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
+@app.route('/similar/<conf>', methods=['GET', 'POST'])
+@app.route('/similar/<conf>/<start>/<count>', methods=['GET', 'POST'])
+@app.route('/similar/<conf>/<start>/<count>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
 @htpasswd.required
 @cache_for(minutes=10)
-def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
+def get_similar(user, conf, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
+
+    data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
+    model_conf = app.config["CONFIGURATION"][conf]["MODEL_CONF"]
 
     del user
     start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
@@ -322,7 +340,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     if request.method == 'GET' and search_id is not None:
 
-        sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(search_id,))
+        sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(data_conf), params=(search_id,))
 
         if sample is None or len(sample) == 0:
             return "NOT FOUND", 404
@@ -344,6 +362,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
         file = request.files['file']
 
+        # noinspection PyTypeChecker
         img = Image.open(file).convert('RGB')
 
     elif request.method == 'POST' and 'image' in request.json:
@@ -354,14 +373,17 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
         img = Image.open(img_bytes)  # .convert('RGB')
 
         try:
-            img_rgb = img.convert('RGB')
+            img_rgb = img.convert("RGB")
             img_mean = ImageStat.Stat(img_rgb).mean
+            # noinspection PyTypeChecker
             img_rgb = np.array(img_rgb).astype(float)
 
             mask = img.getchannel('A')
+            # noinspection PyTypeChecker
             mask = np.expand_dims(np.array(mask), -1).astype(float) / 255.0
 
             img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
+            # noinspection PyTypeChecker
             img_empty = np.array(img_empty).astype(float)
 
             img = (1.0 - mask) * img_empty + mask*img_rgb
@@ -387,7 +409,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
                              full_img.size[0]*x + width*full_img.size[0],
                              full_img.size[1]*y + height*full_img.size[1]))
 
-    extract_features, extract_transform = thread_store.get_extraction_model()
+    extract_features, extract_transform = thread_store.get_extraction_model(model_conf)
 
     # import ipdb;ipdb.set_trace()
 
@@ -407,7 +429,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     min_result_len = count
 
-    index = thread_store.get_search_index()
+    index = thread_store.get_search_index(conf, model_conf)
 
     while len(result) < min_result_len:
 
@@ -416,7 +438,7 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
         neighbour_ids = [n + 1 for n in neighbours[start:start + count]]  # sqlite rowids are 1-based
 
         imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
-                           con=thread_store.get_db())
+                           con=thread_store.get_db(data_conf))
 
         imgs['index'] = imgs['index']+1
         imgs = imgs.reset_index(drop=True).set_index('index')
@@ -442,40 +464,53 @@ def get_similar(user, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
     return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height})
 
 
-def has_table(table_name):
+def has_table(table_name, data_conf):
     return \
-        thread_store.get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
-                                      (table_name,)).fetchone()\
+        thread_store.get_db(data_conf).execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
+                                               (table_name,)).fetchone()\
         is not None
 
 
-@app.route('/haslinks')
+@app.route('/configuration')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_has_links(user):
-    del user
-    return jsonify(has_table('links'))
+def get_configuration(user):
+    gconf = dict()
+
+    gconf['CONFIGURATION'] = app.config['CONFIGURATION']
+    gconf['MODEL_CONFIGURATION'] = app.config['MODEL_CONFIGURATION']
+    gconf['DATA_CONFIGURATION'] = app.config['DATA_CONFIGURATION']
+
+    return jsonify(gconf)
 
 
-@app.route('/hasiconclass')
+@app.route('/haslinks/<data_conf>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_has_iconclass(user):
+def get_has_links(user, data_conf):
     del user
-    return jsonify(has_table('iconclass'))
+    return jsonify(has_table('links', data_conf))
 
 
-@app.route('/link/<image_id>')
+@app.route('/hasiconclass/<data_conf>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_link(user, image_id=None):
+def get_has_iconclass(user, data_conf):
+    del user
+    return jsonify(has_table('iconclass', data_conf))
+
+
+@app.route('/link/<data_conf>/<image_id>')
+@htpasswd.required
+@cache_for(minutes=10)
+def get_link(user, data_conf, image_id=None):
     del user
 
-    if not has_table('links'):
+    if not has_table('links', data_conf):
 
         return jsonify("")
 
-    link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(), params=(image_id,))
+    link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(data_conf), params=(image_id,))
 
     if link is None or len(link) == 0:
         return jsonify("")
@@ -485,20 +520,20 @@ def get_link(user, image_id=None):
     return jsonify(url)
 
 
-@app.route('/ppn/<ppn>')
+@app.route('/ppn/<data_conf>/<ppn>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_ppn_images(user, ppn=None):
+def get_ppn_images(user, data_conf, ppn=None):
     del user
 
-    if not has_table('links'):
+    if not has_table('links', data_conf):
 
         return jsonify("")
 
     links = pd.read_sql('select links.rowid from links join predictions on predictions.rowid=links.rowid '
                         'where links.ppn=? and '
                         '(predictions.label="Abbildung" or predictions.label="Photo" or predictions.label="Karte")',
-                        con=thread_store.get_db(), params=(ppn,))
+                        con=thread_store.get_db(data_conf), params=(ppn,))
 
     if links is None or len(links) == 0:
         return jsonify("")
@@ -506,17 +541,17 @@ def get_ppn_images(user, ppn=None):
     return jsonify({'ids': links.rowid.tolist()})
 
 
-@app.route('/image-ppn/<rowid>')
+@app.route('/image-ppn/<data_conf>/<rowid>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_image_ppn(user, rowid=None):
+def get_image_ppn(user, data_conf, rowid=None):
     del user
 
-    if not has_table('links'):
+    if not has_table('links', data_conf):
 
         return "NOT FOUND", 404
 
-    link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(), params=(rowid,))
+    link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(data_conf), params=(rowid,))
 
     if link is None or len(link) == 0:
         return jsonify("")
@@ -524,41 +559,37 @@ def get_image_ppn(user, rowid=None):
     return jsonify(json.loads(link.iloc[0].to_json()))
 
 
-@app.route('/image-iconclass/<rowid>')
+@app.route('/image-iconclass/<data_conf>/<rowid>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_image_iconclass(user, rowid=None):
+def get_image_iconclass(user, data_conf, rowid=None):
     del user
 
-    if not has_table('iconclass'):
+    if not has_table('iconclass', data_conf):
 
         return "NOT FOUND", 404
 
-    img = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(rowid,))
+    img = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(data_conf), params=(rowid,))
 
     file = os.path.basename(img.iloc[0].file)
 
-    iconclass_info = pd.read_sql('select * from iconclass where file=?', con=thread_store.get_db(), params=(file,))
-
-    # import ipdb;ipdb.set_trace()
+    iconclass_info = pd.read_sql('select * from iconclass where file=?', con=thread_store.get_db(data_conf),
+                                 params=(file,))
 
     result = []
     for _, (index, file, target, label) in iconclass_info.iterrows():
         result.append({'text': target, 'label': label})
 
-    # if link is None or len(link) == 0:
-    #    return jsonify("")
-
     return jsonify(result)
 
 
-@app.route('/image-file/<rowid>')
+@app.route('/image-file/<data_conf>/<rowid>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_image_file(user, rowid=None):
+def get_image_file(user, data_conf, rowid=None):
     del user
 
-    img = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(rowid,))
+    img = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(data_conf), params=(rowid,))
 
     if img is None or len(img) == 0:
         return jsonify("")
@@ -566,19 +597,19 @@ def get_image_file(user, rowid=None):
     return jsonify(json.loads(img.iloc[0].to_json()))
 
 
-@app.route('/image')
-@app.route('/image/<image_id>')
-@app.route('/image/<image_id>/<version>')
-@app.route('/image/<image_id>/<version>/<marker>')
+@app.route('/image/<data_conf>')
+@app.route('/image/<data_conf>/<image_id>')
+@app.route('/image/<data_conf>/<image_id>/<version>')
+@app.route('/image/<data_conf>/<image_id>/<version>/<marker>')
 @htpasswd.required
 @cache_for(hours=3600)
-def get_image(user, image_id=None, version='resize', marker='regionmarker'):
+def get_image(user, data_conf, image_id=None, version='resize', marker='regionmarker'):
 
     del user
 
     max_img_size = app.config['MAX_IMG_SIZE']
 
-    sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(), params=(image_id,))
+    sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(data_conf), params=(image_id,))
 
     filename = sample.file.iloc[0]
     x = sample.x.iloc[0]
@@ -628,6 +659,7 @@ def get_image(user, image_id=None, version='resize', marker='regionmarker'):
 
             draw = ImageDraw.Draw(img, 'RGBA')
 
+            # noinspection PyTypeChecker
             draw.rectangle([(x, y), (x + width, y + height)], outline=(255, 25, 0))
     else:
         return "BAD PARAMS <marker>: regionmarker/nomarker", 400

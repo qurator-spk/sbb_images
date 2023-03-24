@@ -1,0 +1,12 @@
+{
+    "PASSWD_FILE": "",
+    "AUTH_REALM": "search",
+    "SQLITE_FILE": "iconclass-test.sqlite",
+    "SQLITE_FILE0": "iconclass-train.sqlite",
+    "MAX_IMG_SIZE": 250,
+    "DIST_MEASURE": "angular",
+
+    "MS_CLIP_MODEL_CONFIG": "notebooks/experiment10/b16-yfcc-msclips.yaml",
+    "INDEX_FILE": "iconclass-test-msclip-retrained-search-index.ann",
+    "INDEX_FILE0": "iconclass-train-msclip-retrained-search-index.ann"
+}
