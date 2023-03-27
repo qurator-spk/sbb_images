@@ -218,10 +218,11 @@ def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
     # max_img_size = 4*app.config['MAX_IMG_SIZE']
 
     search_id = request.args.get('search_id', default=None, type=int)
+    search_id_from = request.args.get('search_id_from', default=data_conf, type=str)
 
     if request.method == 'GET' and search_id is not None:
 
-        img, x, y, width, height, detections = load_image_from_database(data_conf, search_id, x, y, width, height)
+        img, x, y, width, height, detections = load_image_from_database(search_id_from, search_id, x, y, width, height)
 
     elif request.method == 'POST':
         # check if the post request has the file part
@@ -335,12 +336,14 @@ def get_similar(user, conf, start=0, count=100, x=-1, y=-1, width=-1, height=-1)
     start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
 
     search_id = request.args.get('search_id', default=None, type=int)
+    search_id_from = request.args.get('search_id_from', default=data_conf, type=str)
 
     # import ipdb;ipdb.set_trace();
 
     if request.method == 'GET' and search_id is not None:
 
-        sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(data_conf), params=(search_id,))
+        sample = pd.read_sql('select * from images where rowid=?',
+                             con=thread_store.get_db(search_id_from), params=(search_id,))
 
         if sample is None or len(sample) == 0:
             return "NOT FOUND", 404

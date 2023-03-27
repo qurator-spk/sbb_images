@@ -1,6 +1,20 @@
 function searchSetup (gconf){
 
     let configuration = null;
+    let search_image = null;
+
+    function saveState() {
+        let url_params = new URLSearchParams(window.location.search);
+        let url = window.location.href.split('?')[0];
+
+        let state = { };
+        configuration.saveState(url_params, state);
+        search_image.saveState(url_params, state);
+
+        console.log(state);
+
+        history.pushState(state,  "",url + "?" + url_params.toString());
+    };
 
     let spinner_html =
         `<div class="d-flex justify-content-center mt-5">
@@ -8,8 +22,6 @@ function searchSetup (gconf){
                 <span class="sr-only">Loading...</span>
             </div>
          </div>`;
-
-    let request_counter = 0;
 
     function add_ppn_info(image_id) {
         $.get("image-ppn/"+ configuration.getDataConf() + "/" + image_id,
@@ -50,12 +62,12 @@ function searchSetup (gconf){
         );
     };
 
+    let request_counter = 0;
+
     function makeResultList(results) {
         request_counter += 1;
 
         (function(counter_at_request) {
-
-            let url_params = new URLSearchParams(window.location.search);
 
             $('#search-results').html("");
 
@@ -71,7 +83,7 @@ function searchSetup (gconf){
                             <div class="row-fluid">
                                 <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                                     <div class="card-body">
-                                    <a href="search.html?${url_params}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
+                                    <a id="more-btn-${result_id}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
                                     <a href="image/${configuration.getDataConf()}/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
                                         <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer"/>
                                     </a>
@@ -83,6 +95,17 @@ function searchSetup (gconf){
             );
 
             $('#search-results').html(result_html);
+
+            $.each(results,
+                function(index, result_id) {
+
+                    (function(rid, dconf) {
+                      $(`#more-btn-${result_id}`).click(
+                        function() {
+                            search_image.setSearchId(rid, dconf);
+                        });
+                    })(result_id, configuration.getDataConf());
+                });
 
             function triggerNextImage () {
 
@@ -121,28 +144,8 @@ function searchSetup (gconf){
         })(request_counter);
     };
 
-    let url_params = new URLSearchParams(window.location.search);
+
     let cropper = null;
-
-    function cropper_update() {
-        canvas_data = cropper.getCanvasData();
-        crop_data = cropper.getCropBoxData();
-        image_data = cropper.getImageData();
-
-        let crop_box =
-            {
-                x : crop_data.left - canvas_data.left,
-                y : crop_data.top - canvas_data.top,
-                width : crop_data.width,
-                height : crop_data.height
-            };
-
-        image_width = image_data.width;
-        image_height = image_data.height;
-
-        update_results(crop_box.x/image_width, crop_box.y/image_height,
-                        crop_box.width/image_width, crop_box.height/image_height);
-    }
 
     function create_cropper(img_src, crop_box=null) {
 
@@ -170,7 +173,7 @@ function searchSetup (gconf){
                          ready() {
                              $('#img-upload').on('cropend',
                                  function(event) {
-                                     cropper_update();
+                                     update_results();
                                  }
                              );
 
@@ -193,90 +196,39 @@ function searchSetup (gconf){
         }
     }
 
-    let update_counter=0;
-    let form_data = null;
+
+
     let has_saliency_model = false;
 
-    function update_results(x, y, width, height) {
+    let update_counter=0;
+    function update_results() {
+         $('#search-results').html(spinner_html);
+
         update_counter++;
+
+        let x=-1;
+        let y=-1;
+        let width=-1;
+        let height=-1;
+        if (cropper !== null) {
+
+            canvas_data = cropper.getCanvasData();
+            crop_data = cropper.getCropBoxData();
+            image_data = cropper.getImageData();
+
+            let image_width = image_data.width;
+            let image_height = image_data.height;
+
+            x = (crop_data.left - canvas_data.left)/image_width;
+            y = (crop_data.top - canvas_data.top)/image_height;
+            width = crop_data.width/image_width;
+            height = crop_data.height/image_height;
+        }
 
         (function(counter_at_request) {
 
-            function find_similar(x,y, width, height, onSuccess, post_data=null) {
-
-                let url_params = new URLSearchParams(window.location.search);
-
-                let request =
-                    {
-                        processData: false,
-                        cache: false,
-                        success: onSuccess,
-                        error: function(error) { console.log(error); }
-                    };
-
-                if (post_data != null) {
-                    request['data'] = post_data;
-                    request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
-                    request['type'] = "POST";
-                    request['contentType'] = "application/json"
-                }
-                else if (form_data != null) {
-                    request['data'] = form_data;
-                    request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
-                    request['type'] = "POST";
-                    request['contentType'] = false;
-                    request['enctype'] = "multipart/form-data";
-                }
-                else if (url_params.has('search_id')) {
-                     request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height +
-                                            "?search_id=" + url_params.get('search_id');
-                     request['type'] = "GET";
-                }
-                else {
-                    console.log("find_similar: Do not know what to do!!!");
-                    return;
-                }
-
-                $.ajax(request);
-            };
-
-            function get_saliency(x,y, width, height, onSuccess, post_data=null) {
-
-                let request =
-                    {
-                        cache: false,
-                        success: onSuccess,
-                        error: function(error) { console.log(error); }
-                    };
-
-                if (post_data != null) {
-                    request['data'] = post_data;
-                    request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height;
-                    request['type'] = "POST";
-                    request['contentType'] = "application/json";
-                }
-                else if (form_data != null) {
-                    request['data'] = form_data;
-                    request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height;
-                    request['type'] = "POST";
-                    request['contentType'] = false;
-                    request['enctype'] = "multipart/form-data";
-                }
-                else if (url_params.has('search_id')) {
-                    request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height +
-                                            "?search_id=" + url_params.get('search_id')
-                    request['type'] = "GET";
-                }
-                else {
-                    console.log("get_saliency: Do not know what to do!!!");
-                    return;
-                }
-
-                $.ajax(request);
-            };
-
             if (!has_saliency_model) {
-                find_similar(x,y,width, height,
+                search_image.find_similar(x,y,width, height,
                     function(result) {
                         if (update_counter > counter_at_request) return;
 
@@ -285,7 +237,7 @@ function searchSetup (gconf){
                 );
             }
             else {
-                get_saliency(x,y,width, height,
+                search_image.get_saliency(x,y,width, height,
                     function(saliency_result) {
                         if (update_counter > counter_at_request) return;
 
@@ -295,7 +247,7 @@ function searchSetup (gconf){
 
                         if (update_counter > counter_at_request) return;
 
-                        find_similar(saliency_result.x, saliency_result.y,
+                        search_image.find_similar(saliency_result.x, saliency_result.y,
                                      saliency_result.width, saliency_result.height,
                             function(result) {
                                 if (update_counter > counter_at_request) return;
@@ -311,28 +263,13 @@ function searchSetup (gconf){
          })(update_counter);
     };
 
-    function reset_image() {
-
-        //$("#cropper").html(`<img style="img-fluid fit-image mt-3; max-width: 100%"  id='img-upload' src=""/>`);
-
-        $('#img-upload').on('load',
-                function() {
-                    create_cropper($('#img-upload').attr('src'));
-                });
-
-        $('#img-upload').on('ready',
-            function() {
-                if (this.cropper === cropper) cropper_update();
-            }
-        );
-    }
-
     function setupConfiguration() {
         let that = {};
 
         let conf_map = {};
         let model_map = {};
         let active_conf = null;
+        let default_conf = null;
         let datasets = new Set();
 
         $.each(gconf["CONFIGURATION"],
@@ -347,8 +284,8 @@ function searchSetup (gconf){
             function(conf_name, conf) {
                 model_map[conf["DATA_CONF"]].push(conf["MODEL_CONF"]);
 
-                if ((conf['DEFAULT']) || (active_conf === null)) {
-                    active_conf = conf_name;
+                if ((conf['DEFAULT']) || (default_conf === null)) {
+                    default_conf = conf_name;
                 }
             }
         );
@@ -366,13 +303,13 @@ function searchSetup (gconf){
 
 
         function updateModelSelect() {
-            data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
+            let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
+            let model_conf = gconf["CONFIGURATION"][active_conf]["MODEL_CONF"];
 
             let model_select_html = "";
 
             $.each(model_map[data_conf],
                 function(index, model_conf) {
-
                     let friendly_name = gconf["MODEL_CONFIGURATION"][model_conf]["FRIENDLY_NAME"];
 
                     model_select_html += `<option value="${model_conf}"> ${friendly_name} </option>`;
@@ -397,7 +334,7 @@ function searchSetup (gconf){
 
                 that.setActiveConf(conf_map[[data_conf, model_conf]]);
 
-                console.log(active_conf);
+                //console.log(active_conf);
             }
         );
 
@@ -408,34 +345,42 @@ function searchSetup (gconf){
 
                 that.setActiveConf(conf_map[[data_conf, model_conf]]);
 
-                console.log(active_conf);
+                //console.log(active_conf);
             }
         );
 
         that = {
-            setActiveConf:
-                function(conf) {
-                    let url_params = new URLSearchParams(window.location.search);
+            saveState:
+                function(url_params, state) {
+                    let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
+                    let model_conf = gconf["CONFIGURATION"][active_conf]["MODEL_CONF"];
 
-                    if (active_conf === null) {
+                    url_params.set("data_conf", data_conf);
+                    url_params.set("model_conf", model_conf);
+
+                    state.active_conf = active_conf;
+                },
+            setActiveConf:
+                function(conf=null, new_state=true) {
+                    if (conf !== null) {
                         active_conf = conf;
-                        updateModelSelect();
+                    }
+                    else if ((url_params.has("data_conf")) &&(url_params.has("model_conf"))) {
+                        active_conf = conf_map[[url_params.get("data_conf") , url_params.get("model_conf")]];
                     }
                     else {
-                        let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
-                        let new_data_conf = gconf["CONFIGURATION"][conf]["DATA_CONF"];
-
-                        active_conf = conf;
-
-                        if (new_data_conf !== data_conf) updateModelSelect();
+                        active_conf = default_conf;
                     }
 
-                    url_params.set("data_conf", gconf["CONFIGURATION"][active_conf]["DATA_CONF"]);
-                    url_params.set("model_conf", gconf["CONFIGURATION"][active_conf]["MODEL_CONF"]);
+                    updateModelSelect();
 
-                    let url = window.location.href.split('?')[0]
+                    let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
+                    let model_conf = gconf["CONFIGURATION"][active_conf]["MODEL_CONF"];
 
-                    history.pushState({},  "", url + "?" + url_params.toString());
+                    $("#dataset-description").html(gconf["DATA_CONFIGURATION"][data_conf]["DESCRIPTION"]);
+                    $("#model-description").html(gconf["MODEL_CONFIGURATION"][model_conf]["DESCRIPTION"]);
+
+                    if (new_state) saveState();
                 },
             getActive:
                 function() { return active_conf },
@@ -445,83 +390,244 @@ function searchSetup (gconf){
                 function() { return gconf["CONFIGURATION"][active_conf]["MODEL_CONF"]; }
         };
 
-        if ((url_params.has("data_conf")) &&(url_params.has("model_conf"))) {
-            active_conf = conf_map[[url_params.get("data_conf") , url_params.get("model_conf")]];
-        }
-
-        (function(conf) {
-            active_conf = null;
-            that.setActiveConf(conf);
-         })(active_conf);
+        let url_params = new URLSearchParams(window.location.search);
 
         return that;
     };
 
     configuration = setupConfiguration();
 
-    let upload_html =
-        `
-            <img class="fit-image" id='img-upload' src=""/>
-            <form action="similar" method="post" enctype="multipart/form-data">
-                        <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
-                        <input type="file" name="file" id="the-image" style="display: none;"/>
-            </form>
-        `;
+    configuration.setActiveConf(null,false);
 
-    $("#search-rgn").html(upload_html);
+    configuration.setActiveConf =
+        (function(setActiveConf) {
+            function setActive(conf, new_state=true) {
+                setActiveConf(conf, new_state);
+                update_results();
+            };
+            return setActive;
+        })(configuration.setActiveConf);
 
-    if (url_params.has('search_id')) {
+    function setupSearchImage() {
 
-        reset_image();
+        let form_data = null;
+        let img_file = null;
+        let search_id = null;
+        let search_id_from = null;
 
-        $('#img-upload').attr('src', "image/" + configuration.getDataConf() + "/" + url_params.get('search_id')+ "/full/nomarker");
+        let that = null;
 
-        update_results(-1,-1,-1,-1);
-    }
-    else if (url_params.has('ids')) {
+        function find_similar(x,y, width, height, onSuccess, post_data=null) {
+            let request =
+                {
+                    processData: false,
+                    cache: false,
+                    success: onSuccess,
+                    error: function(error) { console.log(error); }
+                };
 
-        var ids = url_params.get('ids');
+            if (post_data != null) {
+                request['data'] = post_data;
+                request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
+                request['type'] = "POST";
+                request['contentType'] = "application/json"
+            }
+            else if (form_data != null) {
+                request['data'] = form_data;
+                request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
+                request['type'] = "POST";
+                request['contentType'] = false;
+                request['enctype'] = "multipart/form-data";
+            }
+            else if ((search_id !== null) && (search_id_from !== null)) {
+                 request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height +
+                                        "?search_id=" + search_id + "&search_id_from=" + search_id_from;
+                 request['type'] = "GET";
+            }
+            else {
+                console.log("find_similar: Do not know what to do!!!");
+                return;
+            }
 
-        if (ids.length > 0) {
-            ids = ids.split(/\s*,\s*/).map(Number);
+            $.ajax(request);
+        };
 
-            console.log(ids.length);
+        function get_saliency(x,y, width, height, onSuccess, post_data=null) {
 
-            makeResultList(ids);
-        }
-    }
-    else {
-        reset_image();
+            let request =
+                {
+                    cache: false,
+                    success: onSuccess,
+                    error: function(error) { console.log(error); }
+                };
 
-        $("#the-image").change(function(){
+            if (post_data != null) {
+                request['data'] = post_data;
+                request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height;
+                request['type'] = "POST";
+                request['contentType'] = "application/json";
+            }
+            else if (form_data != null) {
+                request['data'] = form_data;
+                request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height;
+                request['type'] = "POST";
+                request['contentType'] = false;
+                request['enctype'] = "multipart/form-data";
+            }
+            else if ((search_id !== null) && (search_id_from !== null)) {
+                request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+ height +
+                                 "?search_id=" + search_id + "&search_id_from=" + search_id_from;
+                request['type'] = "GET";
+            }
+            else {
+                console.log("get_saliency: Do not know what to do!!!");
+                return;
+            }
+
+            $.ajax(request);
+        };
+
+        function update(event=null) {
+
+            if (event !== null) {
+                form_data = event.state.form_data;
+                img_file = event.state.img_file;
+
+                configuration.setActiveConf(event.state.active_conf, false);
+            }
 
             if (cropper != null) {
                 cropper.destroy();
                 cropper = null;
-
-                reset_image();
             }
 
-            let fileInput = $('#the-image')[0]
-            let file = fileInput.files[0];
+            $('#img-upload').on('load',
+                    function() {
+                        create_cropper($('#img-upload').attr('src'));
+                    });
 
-            let reader = new FileReader();
+            $('#img-upload').on('ready',
+                function() {
+                    if (this.cropper === cropper) update_results();
+                }
+            );
 
-            form_data = new FormData();
-            form_data.append('file', file);
+            if ((search_id !== null) && (search_id_from !== null)) {
 
-            $("#search-results").html(spinner_html);
+                console.log(search_id)
+                $('#img-upload').attr('src', "image/" + search_id_from + "/" + search_id + "/full/nomarker");
 
-            reader.onload =
-                function (e) {
-                     $('#img-upload').attr('src', e.target.result);
+                update_results();
+            }
+            else if (img_file !== null) {
+                $('#img-upload').attr('src', img_file);
 
-                    update_results(-1,-1,-1,-1);
-                };
+                update_results();
+            }
+        }
 
-            reader.readAsDataURL(file);
-        });
-    }
+        let upload_html =
+            `
+                <img class="fit-image" id='img-upload' src=""/>
+                <form action="similar" method="post" enctype="multipart/form-data">
+                            <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
+                            <input type="file" name="file" id="the-image" style="display: none;"/>
+                </form>
+            `;
+
+        $("#search-rgn").html(upload_html);
+
+        $("#the-image").change(
+            function(){
+
+                let fileInput = $('#the-image')[0]
+                let file = fileInput.files[0];
+
+                let reader = new FileReader();
+
+                form_data = new FormData();
+                form_data.append('file', file);
+
+                $("#search-results").html(spinner_html);
+
+                reader.onload =
+                    function (e) {
+                        img_file = e.target.result;
+
+                        saveState();
+
+                        that.update();
+                    };
+
+                reader.readAsDataURL(file);
+            });
+
+        let url_params = new URLSearchParams(window.location.search);
+        if (url_params.has('search_id')) {
+            search_id = url_params.get('search_id');
+            search_id_from = url_params.get('search_id_from', configuration.getDataConf());
+        }
+        else if (url_params.has('ids')) {
+
+            var ids = url_params.get('ids');
+
+            if (ids.length > 0) {
+                ids = ids.split(/\s*,\s*/).map(Number);
+
+                console.log(ids.length);
+
+                makeResultList(ids);
+            }
+        }
+
+        that = {
+            saveState:
+                function(url_params, state) {
+                    if ((form_data !== null) && (img_file !== null)) {
+                        url_params.delete('search_id');
+                        url_params.delete('search_id_from');
+                    }
+
+                    url_params.set('search_id', search_id);
+                    url_params.set('search_id_from', search_id_from);
+
+                    state.form_data = form_data;
+                    state.img_file =  img_file;
+                    state.search_id = search_id;
+                    state.search_id_from = search_id_from;
+                },
+            setSearchId :
+                function (search_id_, search_id_from_, new_state=true) {
+                    search_id = search_id_;
+                    search_id_from = search_id_from_;
+
+                    if (new_state) saveState();
+                    update();
+                },
+            update: update,
+            find_similar: find_similar,
+            get_saliency: get_saliency
+        };
+
+        return that;
+     };
+
+    search_image = setupSearchImage();
+
+
+
+    window.addEventListener('popstate',
+            function(event) {
+                //console.log(event.state);
+
+                configuration.setActiveConf(event.state.active_conf, false);
+                search_image.setSearchId(event.state.search_id, event.state.search_id_from, false);
+
+                search_image.update(event);
+            }
+        );
+
+    search_image.update();
 }
 
 $(document).ready(

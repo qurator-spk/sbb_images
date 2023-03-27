@@ -28,11 +28,11 @@
   "DATA_CONFIGURATION": {
     "ICONCLASS-AI-TEST": {
           "FRIENDLY_NAME": "Iconclass AI Test Set(10% test part)",
-          "DESCRIPTION": "Etienne Posthumus, \"Iconclass AI Test Set\", Feb 2020, https://iconclass.org/testset/"
+          "DESCRIPTION": "Etienne Posthumus, \"Iconclass AI Test Set\", Feb 2020, https://iconclass.org/testset/, 10% not used during training"
       },
       "ICONCLASS-AI-TRAIN": {
           "FRIENDLY_NAME": "Iconclass AI Test Set(90% train part)",
-          "DESCRIPTION": "Etienne Posthumus, \"Iconclass AI Test Set\", Feb 2020, https://iconclass.org/testset/"
+          "DESCRIPTION": "Etienne Posthumus, \"Iconclass AI Test Set\", Feb 2020, https://iconclass.org/testset/, 90% used for re-training of model"
       }
   },
   "INDEX_CONFIGURATION": {
