@@ -1,4 +1,4 @@
-function searchSetup (gconf){
+function search_setup (gconf){
 
     let configuration = null;
     let search_by_image = null;
@@ -22,6 +22,8 @@ function searchSetup (gconf){
 
     function update_search_results(ids) {
         search_result_list.update(ids);
+
+        $('[data-toggle="tooltip"]').tooltip();
     }
 
     function configuration_updated() {
@@ -46,9 +48,5 @@ function searchSetup (gconf){
 
 $(document).ready(
     function() {
-        $.get("configuration")
-            .done(
-                function (gconf) {
-                    searchSetup(gconf);
-                 });
+        $.get("configuration").done(search_setup);
      });

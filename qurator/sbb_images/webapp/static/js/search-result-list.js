@@ -33,16 +33,91 @@ function setup_search_result_list(configuration, search) {
     };
 
     function add_iconclass_info (image_id) {
+
+        function highlight(label_classes) {
+            console.log(label_classes);
+
+            $(".icon-badge").removeClass('selected-0');
+            $(".icon-badge").removeClass('selected-1');
+            $(".icon-badge").removeClass('selected-2');
+            $(".icon-badge").removeClass('selected-3');
+            $(".icon-badge").removeClass('selected-4');
+            $(".icon-badge").removeClass('selected-5');
+            $(".icon-badge").removeClass('selected-6');
+
+            $.each(label_classes,
+                function(index, label_class) {
+                    if (index < 1) {
+                        $(`.${label_class}`).addClass("selected-0");
+                    }
+                    else if (index < 2) {
+                        $(`.${label_class}`).addClass("selected-1");
+                    }
+                    else if (index < 3) {
+                        $(`.${label_class}`).addClass("selected-2");
+                    }
+                    else if (index < 4) {
+                        $(`.${label_class}`).addClass("selected-3");
+                    }
+                    else if (index < 5) {
+                        $(`.${label_class}`).addClass("selected-4");
+                    }
+                    else if (index < 6) {
+                        $(`.${label_class}`).addClass("selected-5");
+                    }
+                    else {
+                        $(`.${label_class}`).addClass("selected-6");
+                    }
+                }
+            );
+        }
+
         $.get("image-iconclass/"+ configuration.getDataConf() + "/"  + image_id,
             function(results) {
 
-                let text = "";
+                let info_html = "";
+                let iconclass_classes = [];
+
                 $.each(results,
                     function(index, result) {
-                        text += result.label + " : " + result.text + "\n"
+                        let label_classes_joined="icon-badge";
+                        let label_classes=[];
+                        $.each(result.parts,
+                            function(index, part){
+                                part = part.replace(/\+/,"p");
+                                part = part.replace(/\(/,"bo");
+                                part = part.replace(/\)/,"bc");
+                                part = part.replace(/:/,"col");
+
+                                label_classes_joined += " icon-" + part;
+                                label_classes.push("icon-"+part);
+                            }
+                        );
+
+                        info_html +=
+                            `
+                            <a id="icon-badge-${image_id}-${index}">
+                                <span class="badge badge-pill badge-info mr-1 ${label_classes_joined}"
+                                        data-toggle="tooltip" title="${result.text}" >
+                                    ${result.label}
+                                </span>
+                            </a>
+                            `;
+
+                        iconclass_classes.push(label_classes);
                     }
                 );
-                $("#card-"+ image_id).attr('title', text);
+                $("#card-info-"+ image_id).html(info_html);
+
+                $.each(iconclass_classes,
+                    function(index, label_classes) {
+                            $(`#icon-badge-${image_id}-${index}`).click(
+                                function() {
+                                    highlight(label_classes);
+                                }
+                            );
+                    }
+                );
             }
         );
     };
@@ -68,10 +143,15 @@ function setup_search_result_list(configuration, search) {
                             <div class="row-fluid">
                                 <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                                     <div class="card-body">
-                                    <a id="more-btn-${result_id}" class="btn-sm" target="_blank" rel="noopener noreferrer">More</a><br>
+                                    <a id="more-btn-${result_id}">
+                                        <span class="badge badge-pill badge-light badge-primary mb-1" data-toggle="tooltip" title="Click to find similar based on this image.">
+                                            More
+                                        </span>
+                                    </a><br>
                                     <a href="image/${configuration.getDataConf()}/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
                                         <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer"/>
                                     </a>
+                                    <div id="card-info-${result_id}" style="width: 100%;display: table-caption;"> </div>
                                     </div>
                                 </div>
                             </div>
@@ -119,7 +199,7 @@ function setup_search_result_list(configuration, search) {
 
                 $("#card-"+ next_one).removeClass('invisible');
 
-                //add_file_info(next_one);
+                add_file_info(next_one);
                 //add_ppn_info(next_one);
                 add_iconclass_info(next_one);
             };

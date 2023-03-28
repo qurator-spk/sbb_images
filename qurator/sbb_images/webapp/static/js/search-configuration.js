@@ -55,6 +55,9 @@ function setup_configuration(gconf, configuration_updated, save_state) {
 
         $("#dataset-select").val(gconf["CONFIGURATION"][active_conf]["DATA_CONF"]);
         $("#model-select").val(gconf["CONFIGURATION"][active_conf]["MODEL_CONF"]);
+
+        $("#dataset-description").html(gconf["DATA_CONFIGURATION"][data_conf]["DESCRIPTION"]);
+        $("#model-description").html(gconf["MODEL_CONFIGURATION"][model_conf]["DESCRIPTION"]);
     }
 
     $("#dataset-select").on('change',
@@ -104,12 +107,6 @@ function setup_configuration(gconf, configuration_updated, save_state) {
                 active_conf = conf;
 
                 updateModelSelect();
-
-                let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
-                let model_conf = gconf["CONFIGURATION"][active_conf]["MODEL_CONF"];
-
-                $("#dataset-description").html(gconf["DATA_CONFIGURATION"][data_conf]["DESCRIPTION"]);
-                $("#model-description").html(gconf["MODEL_CONFIGURATION"][model_conf]["DESCRIPTION"]);
 
                 if (new_state) save_state();
             },

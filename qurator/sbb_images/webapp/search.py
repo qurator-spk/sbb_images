@@ -28,6 +28,8 @@ from annoy import AnnoyIndex
 from flask_cachecontrol import (
     cache_for)
 
+import iconclass
+
 # from torchvision import transforms
 
 app = flask.Flask(__name__)
@@ -581,7 +583,10 @@ def get_image_iconclass(user, data_conf, rowid=None):
 
     result = []
     for _, (index, file, target, label) in iconclass_info.iterrows():
-        result.append({'text': target, 'label': label})
+
+        label_parts = iconclass.get_parts(label)
+
+        result.append({'text': target, 'label': label, 'parts': label_parts})
 
     return jsonify(result)
 
