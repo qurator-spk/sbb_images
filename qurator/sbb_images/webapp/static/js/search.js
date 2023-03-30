@@ -4,7 +4,7 @@ function setup_search_collapse (configuration, configuration_updated, save_state
 
     let search_mode = null;
 
-    let collapse_triggered_by_update=false;
+
     let collapse_state="undefined";
 
     function update() {
@@ -12,8 +12,6 @@ function setup_search_collapse (configuration, configuration_updated, save_state
         if (collapse_state === search_mode) return;
 
         collapse_state = search_mode;
-
-        collapse_triggered_by_update=true; // prevents error during popstate
 
         if (search_mode === "image") {
             if (configuration.acceptsText()) {
@@ -49,15 +47,20 @@ function setup_search_collapse (configuration, configuration_updated, save_state
         pushState:
             function(url_params, state) {
 
+                console.log("pushState");
+
                 url_params.set('search_mode', search_mode);
 
                 state.search_mode = search_mode;
             },
         popState:
-            function update(event=null) {
+            function (event=null) {
+
+                collapse_triggered_by_popstate=true;
 
                 if ((event !== null) && (event.state !== null)) {
                     search_mode = event.state.search_mode;
+
                 }
                 else {
                     let url_params = new URLSearchParams(window.location.search);
@@ -80,30 +83,29 @@ function setup_search_collapse (configuration, configuration_updated, save_state
         update: update
     };
 
-
-    $("#imgCollapse").on("shown.bs.collapse",
+    $("#img-button").click(
         function() {
             if (search_mode === "image") return;
 
-            that.setSearchMode("image", !collapse_triggered_by_update);
+            console.log("image");
+
+            that.setSearchMode("image");
 
             $("#search-results").html("");
             configuration_updated();
-
-            collapse_triggered_by_update=false; // prevents error during popstate
         });
 
-    $("#descCollapse").on("shown.bs.collapse",
+    $("#description-button").click(
         function() {
             if (search_mode === "text") return;
 
-            that.setSearchMode("text", !collapse_triggered_by_update);
+            console.log("text");
+
+            that.setSearchMode("text");
 
             $("#search-results").html("");
 
             configuration_updated();
-
-            collapse_triggered_by_update=false; // prevents error during popstate
         });
 
     that.popState();

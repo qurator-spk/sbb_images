@@ -21,6 +21,7 @@ from PIL import Image, ImageDraw, ImageStat  # ImageOps, ImageFilter
 
 from ..feature_extraction import load_extraction_model
 from ..saliency import load_saliency_model, process_region, find_all_regions
+from ..iconclass.data_access import IconClassDataset
 
 # noinspection PyUnresolvedReferences
 from annoy import AnnoyIndex
@@ -128,6 +129,7 @@ class ThreadStore:
         mconfig = app.config["MODEL_CONFIGURATION"][model_conf]
 
         model_name = None
+        tokenizer = None
         if "MODEL_NAME" in mconfig:
             model_name = mconfig["MODEL_NAME"]
 
@@ -135,12 +137,15 @@ class ThreadStore:
         if "CLIP_MODEL" in mconfig:
             clip_model = mconfig["CLIP_MODEL"]
 
-        ms_clip_model_config = None
+        ms_clip_model_yaml = None
         if "MS_CLIP_MODEL_CONFIG" in mconfig:
-            ms_clip_model_config = app.config['MS_CLIP_MODEL_CONFIG'][mconfig["MS_CLIP_MODEL_CONFIG"]]
+            ms_clip_config = app.config['MS_CLIP_MODEL_CONFIG'][mconfig["MS_CLIP_MODEL_CONFIG"]]
+            ms_clip_model_yaml = ms_clip_config["YAML"]
+            tokenizer = ms_clip_config["TOKENIZER"]
 
         extract_features, extract_transform, _ = load_extraction_model(model_name=model_name, clip_model=clip_model,
-                                                                       ms_clip_model=ms_clip_model_config)
+                                                                       ms_clip_model=ms_clip_model_yaml,
+                                                                       tokenizer=tokenizer)
 
         self._model_map[model_conf] = (extract_features, extract_transform)
 
@@ -324,12 +329,111 @@ def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
          'x': x, 'y': y, 'width': width, 'height': height})
 
 
-@app.route('/similar/<conf>', methods=['GET', 'POST'])
-@app.route('/similar/<conf>/<start>/<count>', methods=['GET', 'POST'])
-@app.route('/similar/<conf>/<start>/<count>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
+def get_similar_from_features(conf, count, data_conf, fe, model_conf, start):
+    result = []
+
+    min_result_len = count
+
+    index = thread_store.get_search_index(conf, model_conf)
+    while len(result) < min_result_len:
+        neighbours = index.get_nns_by_vector(fe, start + count)
+
+        neighbour_ids = [n + 1 for n in neighbours[start:start + count]]  # sqlite rowids are 1-based
+
+        imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
+                           con=thread_store.get_db(data_conf))
+
+        imgs['index'] = imgs['index'] + 1
+        imgs = imgs.reset_index(drop=True).set_index('index')
+
+        rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid', 'rank']). \
+            set_index('rowid')
+
+        imgs = imgs.merge(rank, left_index=True, right_index=True)
+
+        result = \
+            pd.DataFrame(
+                [(img_grp.iloc[img_grp['rank'].argmin()].name, img_grp.iloc[img_grp['rank'].argmin()]['rank'])
+                 for _, img_grp in imgs.groupby('file')], columns=['rowid', 'rank']). \
+                sort_values('rank', ascending=True)
+
+        result = result.rowid.to_list()
+
+        count += min_result_len
+
+    return result
+
+
+@app.route('/similar-by-iconclass/<conf>', methods=['POST'])
+@app.route('/similar-by-iconclass/<conf>/<start>/<count>', methods=['POST'])
 @htpasswd.required
 @cache_for(minutes=10)
-def get_similar(user, conf, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
+def get_similar_by_iconclass(user, conf, start=0, count=100):
+
+    del user
+    start, count = int(start), int(count)
+
+    data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
+    model_conf = app.config["CONFIGURATION"][conf]["MODEL_CONF"]
+
+    if "iconclass_label" not in request.json:
+        raise BadRequest("iconclass_label missing.")
+
+    iconclass_label = request.json['iconclass_label']
+
+    text = IconClassDataset.get_text(iconclass_label)
+
+    if text is None:
+        raise BadRequest(description="Invalid iconclass label.")
+
+    label_parts = iconclass.get_parts(iconclass_label)
+
+    extract_features, extract_transform = thread_store.get_extraction_model(model_conf)
+
+    fe = extract_features(text)
+
+    fe = fe.squeeze()
+
+    result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
+
+    return jsonify({'ids': result, 'info': text, 'iconclass_parts': label_parts})
+
+
+@app.route('/similar-by-text/<conf>', methods=['POST'])
+@app.route('/similar-by-text/<conf>/<start>/<count>', methods=['POST'])
+@htpasswd.required
+@cache_for(minutes=10)
+def get_similar_by_text(user, conf, start=0, count=100):
+    data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
+    model_conf = app.config["CONFIGURATION"][conf]["MODEL_CONF"]
+
+    print(request.json)
+
+    if "text" not in request.json:
+        raise BadRequest()
+
+    text = request.json['text']
+
+    del user
+    start, count = int(start), int(count)
+
+    extract_features, extract_transform = thread_store.get_extraction_model(model_conf)
+
+    fe = extract_features(text)
+
+    fe = fe.squeeze()
+
+    result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
+
+    return jsonify({'ids': result, 'info': '"{}"'.format(text)})
+
+
+@app.route('/similar-by-image/<conf>', methods=['GET', 'POST'])
+@app.route('/similar-by-image/<conf>/<start>/<count>', methods=['GET', 'POST'])
+@app.route('/similar-by-image/<conf>/<start>/<count>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
+@htpasswd.required
+@cache_for(minutes=10)
+def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
 
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
     model_conf = app.config["CONFIGURATION"][conf]["MODEL_CONF"]
@@ -338,7 +442,7 @@ def get_similar(user, conf, start=0, count=100, x=-1, y=-1, width=-1, height=-1)
     start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
 
     search_id = request.args.get('search_id', default=None, type=int)
-    search_id_from = request.args.get('search_id_from', default=data_conf, type=str)
+    search_id_from = request.args.get('search_id_from', default=data_conf)
 
     # import ipdb;ipdb.set_trace();
 
@@ -362,7 +466,7 @@ def get_similar(user, conf, start=0, count=100, x=-1, y=-1, width=-1, height=-1)
                                   float(sample.width.iloc[0]), float(sample.height.iloc[0])
 
             x, y, width, height = x / img.size[0], y / img.size[1], width / img.size[0], height / img.size[1]
-            
+
     elif request.method == 'POST' and 'file' in request.files:
 
         file = request.files['file']
@@ -430,38 +534,7 @@ def get_similar(user, conf, start=0, count=100, x=-1, y=-1, width=-1, height=-1)
 
     fe = fe.squeeze()
 
-    result = []
-
-    min_result_len = count
-
-    index = thread_store.get_search_index(conf, model_conf)
-
-    while len(result) < min_result_len:
-
-        neighbours = index.get_nns_by_vector(fe, start + count)
-
-        neighbour_ids = [n + 1 for n in neighbours[start:start + count]]  # sqlite rowids are 1-based
-
-        imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
-                           con=thread_store.get_db(data_conf))
-
-        imgs['index'] = imgs['index']+1
-        imgs = imgs.reset_index(drop=True).set_index('index')
-
-        rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid', 'rank']).\
-            set_index('rowid')
-
-        imgs = imgs.merge(rank, left_index=True, right_index=True)
-
-        result =\
-            pd.DataFrame(
-                [(img_grp.iloc[img_grp['rank'].argmin()].name, img_grp.iloc[img_grp['rank'].argmin()]['rank'])
-                 for _, img_grp in imgs.groupby('file')], columns=['rowid', 'rank']).\
-            sort_values('rank', ascending=True)
-
-        result = result.rowid.to_list()
-
-        count += min_result_len
+    result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
     if x < 0 and y < 0 and width < 0 and height < 0:
         x, y, width, height = 0.0, 0.0, 1.0, 1.0

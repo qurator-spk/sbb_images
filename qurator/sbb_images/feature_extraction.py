@@ -10,11 +10,9 @@ from PIL import Image
 
 
 def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_model=None, vst_model=None,
-                          clip_model=None, ms_clip_model=None):
+                          clip_model=None, ms_clip_model=None, tokenizer=None):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    # import ipdb;ipdb.set_trace()
 
     model_extr = None
     if vit_model is not None and vst_model is not None:
@@ -70,6 +68,13 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
         from msclip.config import config, update_config
         import msclip.models.clip_openai_pe_res_v1 as clip_openai_pe_res_v1
 
+        ms_clip_tokenizer = None
+        if tokenizer is not None:
+            from msclip.dataset.languages import SimpleTokenizer
+
+            ms_clip_tokenizer = SimpleTokenizer(bpe_path=tokenizer)
+
+
         args = argparse.Namespace()
 
         args.opts = []
@@ -102,10 +107,18 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
         def model_extr(inputs):
 
-            inputs = inputs.to(device)
+            if type(inputs) == str:
 
-            with torch.set_grad_enabled(False):
-                return model_without_ddp.encode_image(inputs).detach().to('cpu').numpy()
+                tokens = ms_clip_tokenizer.tokenize(inputs).to(device)
+
+                with torch.set_grad_enabled(False):
+                    return model_without_ddp.encode_text(tokens).detach().to('cpu').numpy()
+            else:
+
+                inputs = inputs.to(device)
+
+                with torch.set_grad_enabled(False):
+                    return model_without_ddp.encode_image(inputs).detach().to('cpu').numpy()
 
         return model_extr, extract_transform, normalization
     else:

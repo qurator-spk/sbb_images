@@ -1,5 +1,6 @@
 function setup_search_result_list(configuration, search) {
     let that = null;
+    let iconclass_highlighted = [];
 
     let spinner_html =
         `<div class="d-flex justify-content-center mt-5">
@@ -32,10 +33,9 @@ function setup_search_result_list(configuration, search) {
         );
     };
 
-    function add_iconclass_info (image_id) {
+    function highlight_iconclass(remove=true) {
 
-        function highlight(label_classes) {
-
+        if (remove) {
             $(".icon-badge").removeClass('selected-0');
             $(".icon-badge").removeClass('selected-1');
             $(".icon-badge").removeClass('selected-2');
@@ -43,39 +43,53 @@ function setup_search_result_list(configuration, search) {
             $(".icon-badge").removeClass('selected-4');
             $(".icon-badge").removeClass('selected-5');
             $(".icon-badge").removeClass('selected-6');
-
-            $.each(label_classes,
-                function(index, label_class) {
-                    if (index < 1) {
-                        $(`.${label_class}`).addClass("selected-0");
-                    }
-                    else if (index < 2) {
-                        $(`.${label_class}`).addClass("selected-1");
-                    }
-                    else if (index < 3) {
-                        $(`.${label_class}`).addClass("selected-2");
-                    }
-                    else if (index < 4) {
-                        $(`.${label_class}`).addClass("selected-3");
-                    }
-                    else if (index < 5) {
-                        $(`.${label_class}`).addClass("selected-4");
-                    }
-                    else if (index < 6) {
-                        $(`.${label_class}`).addClass("selected-5");
-                    }
-                    else {
-                        $(`.${label_class}`).addClass("selected-6");
-                    }
-                }
-            );
         }
+
+        $.each(iconclass_highlighted,
+            function(iconclass_depth, label_class) {
+                if (iconclass_depth < 1) {
+                    $(`.${label_class}`).addClass("selected-0");
+                }
+                else if (iconclass_depth < 2) {
+                    $(`.${label_class}`).addClass("selected-1");
+                }
+                else if (iconclass_depth < 3) {
+                    $(`.${label_class}`).addClass("selected-2");
+                }
+                else if (iconclass_depth < 4) {
+                    $(`.${label_class}`).addClass("selected-3");
+                }
+                else if (iconclass_depth < 5) {
+                    $(`.${label_class}`).addClass("selected-4");
+                }
+                else if (iconclass_depth < 6) {
+                    $(`.${label_class}`).addClass("selected-5");
+                }
+                else {
+                    $(`.${label_class}`).addClass("selected-6");
+                }
+            }
+        );
+    }
+
+    function iconclass_sanitize(part) {
+        part = part.replace(/\+/g,"p");
+        part = part.replace(/\(/g,"bo");
+        part = part.replace(/\)/g,"bc");
+        part = part.replace(/:/g,"col");
+        part = part.replace(/\./g,"dot");
+
+        return part;
+    }
+
+    function add_iconclass_info (image_id) {
+
 
         $.get("image-iconclass/"+ configuration.getDataConf() + "/"  + image_id,
             function(results) {
 
                 let info_html = "";
-                let iconclass_classes = [];
+                let iconclass_badges = [];
 
                 $.each(results,
                     function(index, result) {
@@ -83,11 +97,7 @@ function setup_search_result_list(configuration, search) {
                         let label_classes=[];
                         $.each(result.parts,
                             function(index, part){
-                                part = part.replace(/\+/,"p");
-                                part = part.replace(/\(/,"bo");
-                                part = part.replace(/\)/,"bc");
-                                part = part.replace(/:/,"col");
-                                part = part.replace(/\./,"dot");
+                                part = iconclass_sanitize(part)
 
                                 label_classes_joined += " icon-" + part;
                                 label_classes.push("icon-"+part);
@@ -104,16 +114,19 @@ function setup_search_result_list(configuration, search) {
                             </a>
                             `;
 
-                        iconclass_classes.push(label_classes);
+                        iconclass_badges.push(label_classes);
                     }
                 );
                 $("#card-info-"+ image_id).html(info_html);
 
-                $.each(iconclass_classes,
-                    function(index, label_classes) {
-                            $(`#icon-badge-${image_id}-${index}`).click(
+                highlight_iconclass(false);
+
+                $.each(iconclass_badges,
+                    function(badge_index, label_classes) {
+                            $(`#icon-badge-${image_id}-${badge_index}`).click(
                                 function() {
-                                    highlight(label_classes);
+                                    iconclass_highlighted = label_classes;
+                                    highlight_iconclass();
                                 }
                             );
                     }
@@ -127,13 +140,13 @@ function setup_search_result_list(configuration, search) {
     function update(results) {
         request_counter += 1;
 
-        (function(counter_at_request) {
+        (function(counter_at_request, ids) {
 
             $('#search-results').html("");
 
             let result_html = "";
 
-            $.each(results,
+            $.each(ids,
                 function(index, result_id) {
 
                     if (counter_at_request < request_counter) return;
@@ -161,7 +174,7 @@ function setup_search_result_list(configuration, search) {
 
             $('#search-results').html(result_html);
 
-            $.each(results,
+            $.each(ids,
                 function(index, result_id) {
 
                     (function(rid, dconf) {
@@ -174,10 +187,10 @@ function setup_search_result_list(configuration, search) {
 
             function triggerNextImage () {
 
-                if (results.length <= 0) return;
+                if (ids.length <= 0) return;
                 if (counter_at_request < request_counter) return;
 
-                let next_one = results.shift();
+                let next_one = ids.shift();
 
                 (function(result_id) {
                     $('#img-'+ next_one).on('load',
@@ -206,11 +219,29 @@ function setup_search_result_list(configuration, search) {
 
             triggerNextImage();
 
-        })(request_counter);
+        })(request_counter, results["ids"]);
+
+        if ("iconclass_parts" in results) {
+            console.log(results["iconclass_parts"]);
+            that.highlightIconclass(results["iconclass_parts"]);
+        }
     };
 
     that = {
-        update : update
+        update : update,
+        highlightIconclass:
+            function(labels) {
+
+                iconclass_highlighted = [];
+
+                $.each(labels,
+                    function(index, label) {
+                        label = iconclass_sanitize(label);
+                        iconclass_highlighted.push("icon-" + label);
+                    });
+
+                highlight_iconclass();
+            }
     };
 
 //    let url_params = new URLSearchParams(window.location.search);

@@ -3,8 +3,14 @@
   "AUTH_REALM": "search",
   "MAX_IMG_SIZE": 250,
   "MS_CLIP_MODEL_CONFIG": {
-    "B16-YFCC-ORIG" : "MSCLIP/experiments/model/b16-yfcc-msclips.yaml",
-    "B16-YFCC-RETRAINED": "notebooks/experiment10/b16-yfcc-msclips.yaml"
+    "B16-YFCC-ORIG" : {
+      "YAML" : "MSCLIP/experiments/model/b16-yfcc-msclips.yaml",
+      "TOKENIZER" : "MSCLIP/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz"
+    },
+    "B16-YFCC-RETRAINED": {
+      "YAML":  "notebooks/experiment10/b16-yfcc-msclips.yaml",
+      "TOKENIZER" : "MSCLIP/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz"
+    }
   },
   "MODEL_CONFIGURATION":
     {

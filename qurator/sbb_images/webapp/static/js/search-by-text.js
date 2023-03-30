@@ -5,6 +5,36 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     let text_search_mode = null;
     let search_text = "";
 
+    function find_similar(onSuccess, onError) {
+        let request =
+            {
+                success: onSuccess,
+                error: onError
+            };
+
+        if (text_search_mode === "desc") {
+            request['url'] = "similar-by-text/"+ configuration.getActive();
+            request['data'] = JSON.stringify({ "text" : $("#search-for").val() });
+        }
+        else if (text_search_mode === "filename") {
+            request['url'] = "similar-by-filename/"+ configuration.getActive();
+            request['data'] = JSON.stringify({ "filename" : $("#search-for").val() });
+        }
+        else if (text_search_mode === "iconclass") {
+            request['url'] = "similar-by-iconclass/"+ configuration.getActive();
+            request['data'] = JSON.stringify({ "iconclass_label" : $("#search-for").val() });
+        }
+        else if (text_search_mode === "tag") {
+            request['url'] = "similar-by-tag/"+ configuration.getActive();
+            request['data'] = JSON.stringify({ "tag" : $("#search-for").val() });
+        }
+
+        request['type'] = "POST";
+        request['contentType'] = "application/json";
+
+        $.ajax(request);
+    };
+
     function update() {
         let active_html = "";
 
@@ -25,9 +55,9 @@ function setup_search_by_text(configuration, update_search_results, global_push_
             $("#search-select-button").html(active_html);
         }
 
-        if ($("#search-for").val() !== search_text) {
-            $("search-for").val(search_text);
-        }
+        $("#search-for").val(search_text);
+
+        search();
     }
 
     that = {
@@ -35,7 +65,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
             function(url_params, state) {
 
                 url_params.set('text_search_mode', text_search_mode);
-                url_params.set('search_text', search_text);
+                url_params.set('search_text', encodeURIComponent(search_text));
 
 
                 state.text_search_mode = text_search_mode;
@@ -45,6 +75,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
             function(event=null) {
                 if (event !== null) {
                     if (event.state === null) return;
+
                     text_search_mode = event.state.text_search_mode;
                     search_text = event.state.search_text;
                 }
@@ -53,10 +84,15 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
                     if (url_params.has('text_search_mode')) {
                         text_search_mode = url_params.get('text_search_mode');
-                        search_text = url_params.get('search_text');
                     }
                     else {
                         text_search_mode = "desc";
+                    }
+
+                    if (url_params.has('search_text')) {
+                        search_text = decodeURIComponent(url_params.get('search_text'));
+                    }
+                    else {
                         search_text="";
                     }
                 }
@@ -106,12 +142,42 @@ function setup_search_by_text(configuration, update_search_results, global_push_
         }
     );
 
+    let update_counter=0;
     function search() {
-        if ($("#search-for").val() === search_text) return;
+        $('#search-results').html("");
+        $("#search-text-info-group").addClass("d-none");
+        $("#search-text-info-group").removeClass("alert");
+        $("#search-text-info-group").removeClass("alert-danger");
 
-        search_text = $("#search-for").val();
+        update_counter++;
 
-        console.log(search_text);
+        (function(counter_at_request, search_text_at_request) {
+            if (search_text_at_request === "") return;
+
+            find_similar(
+                function(result) {
+                    if (update_counter > counter_at_request) return;
+
+                    update_search_results(result);
+
+                    that.setSearchText(search_text_at_request, search_text_at_request!==search_text);
+
+                    if ("info" in result) {
+                        $("#search-text-info-group").removeClass("d-none");
+                        $("#search-text-info").html(result["info"]);
+                    }
+                    else {
+                        $("#search-text-info-group").addClass("d-none");
+                    }
+                },
+                function(error) {
+                    $("#search-text-info-group").removeClass("d-none");
+                    $("#search-text-info-group").addClass("alert");
+                    $("#search-text-info-group").addClass("alert-danger");
+                    $("#search-text-info").html("Invalid iconclass label.");
+                }
+            );
+        })(update_counter, $("#search-for").val());
     }
 
     let search_timeout=null;
@@ -124,7 +190,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
             search_timeout = setTimeout(
                 function() {
                     search();
-                }, 500);
+                }, 750);
         }
     );
 

@@ -28,19 +28,19 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
         if (post_data != null) {
             request['data'] = post_data;
-            request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
+            request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
             request['type'] = "POST";
-            request['contentType'] = "application/json"
+            request['contentType'] = "application/json";
         }
         else if (form_data != null) {
             request['data'] = form_data;
-            request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
+            request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
             request['type'] = "POST";
             request['contentType'] = false;
             request['enctype'] = "multipart/form-data";
         }
         else if ((search_id !== null) && (search_id_from !== null)) {
-             request['url'] = "similar/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height +
+             request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height +
                                     "?search_id=" + search_id + "&search_id_from=" + search_id_from;
              request['type'] = "GET";
         }
@@ -166,7 +166,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
                     function(result) {
                         if (update_counter > counter_at_request) return;
 
-                        update_search_results(result['ids']);
+                        update_search_results(result);
                     }
                 );
             }
@@ -186,7 +186,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
                             function(result) {
                                 if (update_counter > counter_at_request) return;
 
-                                update_search_results(result['ids']);
+                                update_search_results(result);
                             },
                             JSON.stringify(saliency_result)
                         );
