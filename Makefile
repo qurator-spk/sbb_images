@@ -17,6 +17,7 @@ train-classifier:
 	train-classifier stabi-illustrations.sqlite model-selection.pkl classifier.bin
 apply-classifier:
 	apply-classifier stabi-illustrations.sqlite model-selection.pkl classifier.bin full-classification.pkl
+
 docker-search-cpu:
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-search-cpu -f DockerSearch.cpu .
 

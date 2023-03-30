@@ -35,7 +35,6 @@ function setup_search_result_list(configuration, search) {
     function add_iconclass_info (image_id) {
 
         function highlight(label_classes) {
-            console.log(label_classes);
 
             $(".icon-badge").removeClass('selected-0');
             $(".icon-badge").removeClass('selected-1');
@@ -88,6 +87,7 @@ function setup_search_result_list(configuration, search) {
                                 part = part.replace(/\(/,"bo");
                                 part = part.replace(/\)/,"bc");
                                 part = part.replace(/:/,"col");
+                                part = part.replace(/\./,"dot");
 
                                 label_classes_joined += " icon-" + part;
                                 label_classes.push("icon-"+part);
@@ -213,20 +213,18 @@ function setup_search_result_list(configuration, search) {
         update : update
     };
 
-    let url_params = new URLSearchParams(window.location.search);
-
-    if (url_params.has('ids')) {
-
-        var ids = url_params.get('ids');
-
-        if (ids.length > 0) {
-            ids = ids.split(/\s*,\s*/).map(Number);
-
-            //console.log(ids.length);
-
-            update(ids);
-        }
-    }
+//    let url_params = new URLSearchParams(window.location.search);
+//    if (url_params.has('ids')) {
+//
+//        var ids = url_params.get('ids');
+//
+//        if (ids.length > 0) {
+//            ids = ids.split(/\s*,\s*/).map(Number);
+//
+//
+//            update(ids);
+//        }
+//    }
 
     return that;
 }

@@ -78,10 +78,6 @@
                                 <label class="col-3 col-form-label">Search in:</label>
                                 <div class="col-9">
                                     <select class="form-control" id="dataset-select">
-                                        <option>Dataset A</option>
-                                        <option>Dataset B</option>
-                                        <option>Dataset C</option>
-                                        <option>Dataset D</option>
                                     </select>
                                 </div>
                             </div>
@@ -94,10 +90,6 @@
                                 <label class="col-3 col-form-label">Model:</label>
                                 <div class="col-9">
                                     <select class="form-control" id="model-select">
-                                        <option>Model A</option>
-                                        <option>Model B</option>
-                                        <option>Model C</option>
-                                        <option>Model D</option>
                                     </select>
                                 </div>
                             </div>
@@ -112,7 +104,7 @@
             </div>
         </div>
         <div class="col-9 text-center">
-            <div id="accordion">
+            <div id="search-accordion">
                 <div class="card" id="img-card">
                     <div class="card-header" id="img-heading">
                         <h5 class="mb-0">
@@ -124,7 +116,7 @@
                         </h5>
                     </div>
                     <div id="imgCollapse" class="collapse show" aria-labelledby="img-heading"
-                         data-parent="#accordion">
+                         data-parent="#search-accordion">
                         <div class="card-body text-center" id="search-rgn">
                         </div>
                     </div>
@@ -139,19 +131,20 @@
                             </button>
                         </h5>
                     </div>
-                    <div id="descCollapse" class="collapse" aria-labelledby="desc-heading" data-parent="#accordion">
+                    <div id="descCollapse" class="collapse" aria-labelledby="desc-heading"
+                         data-parent="#search-accordion">
                         <div class="card-body text-center" id="search-desc">
                             <div class="input-group">
                                 <div class="input-group-prepend">
-                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <button id="search-select-button" class="btn btn-outline-secondary dropdown-toggle"
+                                            type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         Description:
                                     </button>
                                     <div class="dropdown-menu">
-                                        <a class="dropdown-item" href="#">Description</a>
-                                        <a class="dropdown-item" href="#">Filename</a>
-                                        <a class="dropdown-item" href="#">Iconclass</a>
-                                        <a class="dropdown-item" href="#">Tag</a>
+                                        <a class="dropdown-item" href="#" id="search-select-description">Description</a>
+                                        <a class="dropdown-item" href="#" id="search-select-filename">Filename</a>
+                                        <a class="dropdown-item" href="#" id="search-select-iconclass">Iconclass</a>
+                                        <a class="dropdown-item" href="#" id="search-select-tag">Tag</a>
                                     </div>
                                 </div>
                                 <input type="text" list="suggestions" class="from-control" style="flex: auto"
@@ -168,6 +161,7 @@
     <div class="row mt-2 text-center">
         <div class="col-10" style="height: 80vh;overflow-y: scroll;">
             <div class="row mt-2 text-center" id="search-results">
+                <!-- Search results -->
             </div>
         </div>
         <div class="col-2" style="height: 80vh;overflow-y: scroll;">
@@ -220,6 +214,7 @@
 </div>
 <script src="js/search-configuration.js"></script>
 <script src="js/search-by-image.js"></script>
+<script src="js/search-by-text.js"></script>
 <script src="js/search-result-list.js"></script>
 <script src="js/search.js"></script>
 <script src="js/cropper.min.js"></script>

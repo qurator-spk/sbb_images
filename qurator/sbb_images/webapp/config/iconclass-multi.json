@@ -3,7 +3,7 @@
   "AUTH_REALM": "search",
   "MAX_IMG_SIZE": 250,
   "MS_CLIP_MODEL_CONFIG": {
-    "B16-YFCC-ORIG" : "/home/kai.labusch/MMK/MSCLIP/experiments/model/b16-yfcc-msclips.yaml",
+    "B16-YFCC-ORIG" : "MSCLIP/experiments/model/b16-yfcc-msclips.yaml",
     "B16-YFCC-RETRAINED": "notebooks/experiment10/b16-yfcc-msclips.yaml"
   },
   "MODEL_CONFIGURATION":

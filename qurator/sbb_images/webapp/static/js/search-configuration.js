@@ -1,4 +1,4 @@
-function setup_configuration(gconf, configuration_updated, save_state) {
+function setup_configuration(gconf, configuration_updated, global_push_state) {
     let that = {};
 
     let conf_map = {};
@@ -87,12 +87,9 @@ function setup_configuration(gconf, configuration_updated, save_state) {
         }
     );
 
-    function update(event) {
-        that.setActiveConf(event.state.active_conf, false);
-    }
 
     that = {
-        saveState:
+        pushState:
             function(url_params, state) {
                 let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
                 let model_conf = gconf["CONFIGURATION"][active_conf]["MODEL_CONF"];
@@ -102,13 +99,34 @@ function setup_configuration(gconf, configuration_updated, save_state) {
 
                 state.active_conf = active_conf;
             },
+        popState:
+            function (event=null) {
+
+                if (event !== null) {
+                    if (event.state == null) return;
+                    if (!("active_conf" in event.state)) return;
+
+                    that.setActiveConf(event.state.active_conf, false);
+                }
+                else {
+                    let url_params = new URLSearchParams(window.location.search);
+
+                    if ((url_params.has("data_conf")) && (url_params.has("model_conf"))) {
+                        active_conf = conf_map[[url_params.get("data_conf") , url_params.get("model_conf")]];
+                    }
+                    else {
+                        active_conf = default_conf;
+                    }
+                }
+            },
+
         setActiveConf:
             function(conf, new_state=true) {
                 active_conf = conf;
 
                 updateModelSelect();
 
-                if (new_state) save_state();
+                if (new_state) global_push_state();
             },
         getActive:
             function() { return active_conf },
@@ -116,19 +134,15 @@ function setup_configuration(gconf, configuration_updated, save_state) {
             function() { return gconf["CONFIGURATION"][active_conf]["DATA_CONF"]; },
         getModelConf:
             function() { return gconf["CONFIGURATION"][active_conf]["MODEL_CONF"]; },
-        update: update
+        acceptsText:
+            function() {
+                return gconf["MODEL_CONFIGURATION"][that.getModelConf()]["ACCEPTS_TEXT"];
+            },
+
+        update: updateModelSelect
     };
 
-    let url_params = new URLSearchParams(window.location.search);
-
-    if ((url_params.has("data_conf")) && (url_params.has("model_conf"))) {
-        active_conf = conf_map[[url_params.get("data_conf") , url_params.get("model_conf")]];
-    }
-    else {
-        active_conf = default_conf;
-    }
-
-    updateModelSelect();
+    that.popState();
 
     return that;
 };

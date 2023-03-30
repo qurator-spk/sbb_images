@@ -1,4 +1,4 @@
-function setup_search_by_image(configuration, update_search_results, save_state) {
+function setup_search_by_image(configuration, update_search_results, global_push_state) {
 
     let that = null;
 
@@ -9,6 +9,13 @@ function setup_search_by_image(configuration, update_search_results, save_state)
 
     let cropper = null;
     let has_saliency_model = false;
+
+    let spinner_html =
+        `<div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border align-center mt-5" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+         </div>`;
 
     function find_similar(x,y, width, height, onSuccess, post_data=null) {
         let request =
@@ -189,41 +196,26 @@ function setup_search_by_image(configuration, update_search_results, save_state)
          })(update_counter);
     };
 
-    function update(event=null) {
+    function update() {
 
-        if (event !== null) {
-            form_data = event.state.form_data;
-            img_file = event.state.img_file;
-
-            search_id = event.state.search_id;
-            search_id_from = event.state.search_id_from;
-        }
-
-        if (cropper != null) {
-            cropper.destroy();
-            cropper = null;
-        }
-
-        $('#img-upload').on('load',
-                function() {
-                    create_cropper($('#img-upload').attr('src'));
-                });
-
-        $('#img-upload').on('ready',
-            function() {
-                if (this.cropper === cropper) search();
-            }
-        );
-
+        let new_img_url = $('#img-upload').attr('src');
         if ((search_id !== null) && (search_id_from !== null)) {
-
-            $('#img-upload').attr('src', "image/" + search_id_from + "/" + search_id + "/full/nomarker");
-
-            search();
+            new_img_url = "image/" + search_id_from + "/" + search_id + "/full/nomarker";
         }
         else if (img_file !== null) {
-            $('#img-upload').attr('src', img_file);
+            new_img_url = img_file;
+        }
 
+        if ($('#img-upload').attr('src') != new_img_url) {
+
+            if (cropper != null) {
+                cropper.destroy();
+                cropper = null;
+            }
+
+            $('#img-upload').attr('src', new_img_url);
+        }
+        else {
             search();
         }
     }
@@ -238,6 +230,21 @@ function setup_search_by_image(configuration, update_search_results, save_state)
         `;
 
     $("#search-rgn").html(upload_html);
+
+    $('#img-upload').on('load',
+        function() {
+            create_cropper($('#img-upload').attr('src'));
+        });
+
+    $('#img-upload').on('ready',
+        function() {
+            if (this.cropper !== cropper) return;
+
+            if (((search_id !== null) && (search_id_from !== null)) || (img_file !== null)) {
+                search();
+            }
+        }
+    );
 
     $("#the-image").change(
         function(){
@@ -265,21 +272,52 @@ function setup_search_by_image(configuration, update_search_results, save_state)
         });
 
     that = {
-        saveState:
+        pushState:
             function(url_params, state) {
                 if ((form_data !== null) && (img_file !== null)) {
                     url_params.delete('search_id');
                     url_params.delete('search_id_from');
                 }
+                else {
 
-                url_params.set('search_id', search_id);
-                url_params.set('search_id_from', search_id_from);
+                    url_params.set('search_id', search_id);
+                    url_params.set('search_id_from', search_id_from);
+                }
 
                 state.form_data = form_data;
-                state.img_file =  img_file;
+                state.img_file = img_file;
                 state.search_id = search_id;
                 state.search_id_from = search_id_from;
             },
+        popState:
+            function pop_state(event=null) {
+
+                if ((event !== null) && (event.state != null)) {
+
+                    form_data = event.state.form_data;
+                    img_file = event.state.img_file;
+
+                    search_id = event.state.search_id;
+                    search_id_from = event.state.search_id_from;
+
+                    if (search_id_from === null) {
+                        search_id_from = configuration.getDataConf();
+                    }
+                }
+                else {
+                    let url_params = new URLSearchParams(window.location.search);
+
+                    if (url_params.has('search_id')) {
+                        search_id = url_params.get('search_id');
+                        search_id_from = url_params.get('search_id_from');
+
+                        if (search_id_from === null) {
+                            search_id_from = configuration.getDataConf();
+                        }
+                    }
+                }
+            },
+
         setSearchId :
             function (search_id_, search_id_from_, new_state=true) {
                 search_id = search_id_;
@@ -290,24 +328,14 @@ function setup_search_by_image(configuration, update_search_results, save_state)
                     img_file = null;
                 }
 
-                if (new_state) save_state();
+                if (new_state) global_push_state();
             },
-        update: update,
-        search: search,
-        find_similar: find_similar,
-        get_saliency: get_saliency
+        update: update
     };
 
     let url_params = new URLSearchParams(window.location.search);
 
-    if (url_params.has('search_id')) {
-        search_id = url_params.get('search_id');
-        search_id_from = url_params.get('search_id_from');
-
-        if (search_id_from === null) {
-            search_id_from = configuration.getDataConf();
-        }
-    }
+    that.popState();
 
     return that;
 }
