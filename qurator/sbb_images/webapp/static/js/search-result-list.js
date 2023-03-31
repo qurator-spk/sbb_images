@@ -221,9 +221,9 @@ function setup_search_result_list(configuration, search) {
 
         })(request_counter, results["ids"]);
 
-        if ("iconclass_parts" in results) {
+        if ("highlight_labels" in results) {
 
-            that.highlightIconclass(results["iconclass_parts"]);
+            that.highlightIconclass(results["highlight_labels"]);
         }
         else {
             iconclass_highlighted=[];

@@ -1,6 +1,4 @@
-import time
 import os
-import numpy as np
 import pandas as pd
 import click
 from .data_access import IconClassRandomSampler
@@ -21,6 +19,13 @@ def add_iconclass_table(data_json, sqlite_file):
 
     samples = IconClassRandomSampler.parse(df)
 
+    samples['file'] = os.path.dirname(data_json) + "/" + samples['file']
+
     with sqlite3.connect(sqlite_file) as conn:
+
+        images = pd.read_sql("SELECT file, rowid FROM images", con=conn)
+
+        samples = samples.merge(images, on="file", how="inner").\
+            rename(columns={"rowid": "imageid"})
 
         samples.to_sql(name='iconclass', con=conn, if_exists='replace', index=True)

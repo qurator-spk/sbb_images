@@ -362,6 +362,36 @@ def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
          'x': x, 'y': y, 'width': width, 'height': height})
 
 
+@app.route('/similar-by-tag/<conf>', methods=['POST'])
+@app.route('/similar-by-tag/<conf>/<start>/<count>', methods=['POST'])
+@htpasswd.required
+@cache_for(minutes=10)
+def get_similar_by_tag(user, conf, start=0, count=100):
+
+    del user
+    start, count = int(start), int(count)
+
+    data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
+
+    if "tag" not in request.json:
+        raise BadRequest("tag missing.")
+
+    search_tag = request.json['tag']
+
+    found = []
+
+    if has_table("iconclass", data_conf):
+
+        df_iconclass = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label LIKE ?', con=thread_store.get_db(data_conf),
+                                   params=(search_tag+"%",))
+
+        df_iconclass = df_iconclass.drop_duplicates(subset=['imageid'])
+
+        found += df_iconclass['imageid'].tolist()
+
+    return jsonify({'ids': found[start:start+count], 'highlight_labels': [search_tag]})
+
+
 @app.route('/similar-by-filename/<conf>', methods=['POST'])
 @app.route('/similar-by-filename/<conf>/<start>/<count>', methods=['POST'])
 @htpasswd.required
@@ -420,7 +450,7 @@ def get_similar_by_iconclass(user, conf, start=0, count=100):
 
     result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
-    return jsonify({'ids': result, 'info': text, 'iconclass_parts': label_parts})
+    return jsonify({'ids': result, 'info': text, 'highlight_labels': label_parts})
 
 
 @app.route('/similar-by-text/<conf>', methods=['POST'])
@@ -576,7 +606,7 @@ def has_table(table_name, data_conf):
 @app.route('/configuration')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_configuration(user):
+def configuration(user):
     gconf = dict()
 
     gconf['CONFIGURATION'] = app.config['CONFIGURATION']
@@ -589,7 +619,7 @@ def get_configuration(user):
 @app.route('/haslinks/<data_conf>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_has_links(user, data_conf):
+def has_links(user, data_conf):
     del user
     return jsonify(has_table('links', data_conf))
 
@@ -597,7 +627,7 @@ def get_has_links(user, data_conf):
 @app.route('/hasiconclass/<data_conf>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_has_iconclass(user, data_conf):
+def has_iconclass(user, data_conf):
     del user
     return jsonify(has_table('iconclass', data_conf))
 
@@ -671,15 +701,11 @@ def get_image_iconclass(user, data_conf, rowid=None):
 
         return "NOT FOUND", 404
 
-    img = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(data_conf), params=(rowid,))
-
-    file = os.path.basename(img.iloc[0].file)
-
-    iconclass_info = pd.read_sql('select * from iconclass where file=?', con=thread_store.get_db(data_conf),
-                                 params=(file,))
+    iconclass_info = pd.read_sql('select * from iconclass where imageid=?', con=thread_store.get_db(data_conf),
+                                 params=(rowid,))
 
     result = []
-    for _, (index, file, target, label) in iconclass_info.iterrows():
+    for _, (index, file, target, label, imageid) in iconclass_info.iterrows():
 
         label_parts = iconclass.get_parts(label)
 

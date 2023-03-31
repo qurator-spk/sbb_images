@@ -91,10 +91,12 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
             $("#search-dropdown").html(drop_down_html);
 
-            $("#search-select-description").click(
+            $("#search-select-tag").click(
                 function() {
                     $("#search-select-button").html($(this).html());
-                    that.setSearchMode("desc");
+                    that.setSearchMode("tag");
+
+                    search();
                 }
             );
 
@@ -102,6 +104,8 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                 function() {
                     $("#search-select-button").html($(this).html());
                     that.setSearchMode("filename");
+
+                    search();
                 }
             );
         }
@@ -204,8 +208,6 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
             find_similar(
                 function(result) {
-
-                    console.log(result)
 
                     if (search_counter > counter_at_request) return;
 
