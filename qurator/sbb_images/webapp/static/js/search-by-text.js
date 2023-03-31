@@ -18,7 +18,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
         }
         else if (text_search_mode === "filename") {
             request['url'] = "similar-by-filename/"+ configuration.getActive();
-            request['data'] = JSON.stringify({ "filename" : $("#search-for").val() });
+            request['data'] = JSON.stringify({ "pattern" : $("#search-for").val() });
         }
         else if (text_search_mode === "iconclass") {
             request['url'] = "similar-by-iconclass/"+ configuration.getActive();
@@ -36,6 +36,76 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     };
 
     function update() {
+
+        if (configuration.acceptsText()) {
+            let drop_down_html = `
+                <a class="dropdown-item" id="search-select-filename">Filename</a>
+                <a class="dropdown-item" id="search-select-tag">Tag</a>
+                <a class="dropdown-item" id="search-select-description">Description</a>
+                <a class="dropdown-item" id="search-select-iconclass">Iconclass</a>
+            `;
+
+            $("#search-dropdown").html(drop_down_html);
+
+            $("#search-select-description").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("desc");
+
+                    search();
+                }
+            );
+
+            $("#search-select-filename").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("filename");
+
+                    search();
+                }
+            );
+
+            $("#search-select-iconclass").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("iconclass");
+
+                    search();
+                }
+            );
+
+            $("#search-select-tag").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("tag");
+
+                    search();
+                }
+            );
+        }
+        else {
+            let drop_down_html = `
+                <a class="dropdown-item" id="search-select-filename">Filename</a>
+                <a class="dropdown-item" id="search-select-tag">Tag</a>
+            `;
+
+            $("#search-dropdown").html(drop_down_html);
+
+            $("#search-select-description").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("desc");
+                }
+            );
+
+            $("#search-select-filename").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("filename");
+                }
+            );
+        }
+
         let active_html = "";
 
         if (text_search_mode == "desc") {
@@ -63,6 +133,12 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     that = {
         pushState:
             function(url_params, state) {
+
+                if (    (!configuration.acceptsText())
+                    && ((text_search_mode==="desc") || (text_search_mode==="iconclass"))) {
+
+                    text_search_mode = "filename";
+                }
 
                 url_params.set('text_search_mode', text_search_mode);
                 url_params.set('search_text', encodeURIComponent(search_text));
@@ -114,49 +190,24 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     };
 
 
-    $("#search-select-description").click(
-        function() {
-            $("#search-select-button").html($(this).html());
-            that.setSearchMode("desc");
-        }
-    );
-
-    $("#search-select-filename").click(
-        function() {
-            $("#search-select-button").html($(this).html());
-            that.setSearchMode("filename");
-        }
-    );
-
-    $("#search-select-iconclass").click(
-        function() {
-            $("#search-select-button").html($(this).html());
-            that.setSearchMode("iconclass");
-        }
-    );
-
-    $("#search-select-tag").click(
-        function() {
-            $("#search-select-button").html($(this).html());
-            that.setSearchMode("tag");
-        }
-    );
-
-    let update_counter=0;
+    let search_counter=0;
     function search() {
         $('#search-results').html("");
         $("#search-text-info-group").addClass("d-none");
         $("#search-text-info-group").removeClass("alert");
         $("#search-text-info-group").removeClass("alert-danger");
 
-        update_counter++;
+        search_counter++;
 
         (function(counter_at_request, search_text_at_request) {
             if (search_text_at_request === "") return;
 
             find_similar(
                 function(result) {
-                    if (update_counter > counter_at_request) return;
+
+                    console.log(result)
+
+                    if (search_counter > counter_at_request) return;
 
                     update_search_results(result);
 
@@ -177,7 +228,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                     $("#search-text-info").html("Invalid iconclass label.");
                 }
             );
-        })(update_counter, $("#search-for").val());
+        })(search_counter, $("#search-for").val());
     }
 
     let search_timeout=null;

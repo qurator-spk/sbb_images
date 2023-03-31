@@ -26,18 +26,16 @@ from ..iconclass.data_access import IconClassDataset
 # noinspection PyUnresolvedReferences
 from annoy import AnnoyIndex
 
-from flask_cachecontrol import (
-    cache_for)
+from flask_cachecontrol import (cache_for)
 
 import iconclass
+
+from fnmatch import fnmatch
 
 # from torchvision import transforms
 
 app = flask.Flask(__name__)
-# flask_cache_control = FlaskCacheControl()
-# flask_cache_control.init_app(app)
 
-# app.config.from_json('search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
 app.config.from_file('search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'),
                      load=json.load)
 
@@ -169,9 +167,39 @@ class ThreadStore:
 thread_store = ThreadStore()
 
 
-@app.route('/')
-def entry():
-    return redirect("search.html", code=302)
+def get_similar_from_features(conf, count, data_conf, fe, model_conf, start):
+    result = []
+
+    min_result_len = count
+
+    index = thread_store.get_search_index(conf, model_conf)
+    while len(result) < min_result_len:
+        neighbours = index.get_nns_by_vector(fe, start + count)
+
+        neighbour_ids = [n + 1 for n in neighbours[start:start + count]]  # sqlite rowids are 1-based
+
+        imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
+                           con=thread_store.get_db(data_conf))
+
+        imgs['index'] = imgs['index'] + 1
+        imgs = imgs.reset_index(drop=True).set_index('index')
+
+        rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid', 'rank']). \
+            set_index('rowid')
+
+        imgs = imgs.merge(rank, left_index=True, right_index=True)
+
+        result = \
+            pd.DataFrame(
+                [(img_grp.iloc[img_grp['rank'].argmin()].name, img_grp.iloc[img_grp['rank'].argmin()]['rank'])
+                 for _, img_grp in imgs.groupby('file')], columns=['rowid', 'rank']). \
+                sort_values('rank', ascending=True)
+
+        result = result.rowid.to_list()
+
+        count += min_result_len
+
+    return result
 
 
 def load_image_from_database(data_conf, search_id, x=-1, y=-1, width=-1, height=-1):
@@ -217,6 +245,11 @@ def load_image_from_database(data_conf, search_id, x=-1, y=-1, width=-1, height=
     return img, x, y, width, height, detections
 
 
+@app.route('/')
+def entry():
+    return redirect("search.html", code=302)
+
+
 @app.route('/saliency/<conf>', methods=['GET', 'POST'])
 @app.route('/saliency/<conf>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
 def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
@@ -225,7 +258,7 @@ def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
     # max_img_size = 4*app.config['MAX_IMG_SIZE']
 
     search_id = request.args.get('search_id', default=None, type=int)
-    search_id_from = request.args.get('search_id_from', default=data_conf, type=str)
+    search_id_from = request.args.get('search_id_from', default=data_conf)
 
     if request.method == 'GET' and search_id is not None:
 
@@ -329,39 +362,30 @@ def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
          'x': x, 'y': y, 'width': width, 'height': height})
 
 
-def get_similar_from_features(conf, count, data_conf, fe, model_conf, start):
-    result = []
+@app.route('/similar-by-filename/<conf>', methods=['POST'])
+@app.route('/similar-by-filename/<conf>/<start>/<count>', methods=['POST'])
+@htpasswd.required
+@cache_for(minutes=10)
+def get_similar_by_filename(user, conf, start=0, count=100):
 
-    min_result_len = count
+    del user
+    start, count = int(start), int(count)
 
-    index = thread_store.get_search_index(conf, model_conf)
-    while len(result) < min_result_len:
-        neighbours = index.get_nns_by_vector(fe, start + count)
+    data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
 
-        neighbour_ids = [n + 1 for n in neighbours[start:start + count]]  # sqlite rowids are 1-based
+    if "pattern" not in request.json:
+        raise BadRequest("pattern missing.")
 
-        imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
-                           con=thread_store.get_db(data_conf))
+    search_pattern = request.json['pattern']
 
-        imgs['index'] = imgs['index'] + 1
-        imgs = imgs.reset_index(drop=True).set_index('index')
+    df_files = pd.read_sql('SELECT rowid, file from images', con=thread_store.get_db(data_conf))
 
-        rank = pd.DataFrame([(nid, rank) for rank, nid in enumerate(neighbour_ids)], columns=['rowid', 'rank']). \
-            set_index('rowid')
+    found = []
+    for _, (rowid, file) in df_files.iterrows():
+        if fnmatch(file, search_pattern):
+            found.append(rowid)
 
-        imgs = imgs.merge(rank, left_index=True, right_index=True)
-
-        result = \
-            pd.DataFrame(
-                [(img_grp.iloc[img_grp['rank'].argmin()].name, img_grp.iloc[img_grp['rank'].argmin()]['rank'])
-                 for _, img_grp in imgs.groupby('file')], columns=['rowid', 'rank']). \
-                sort_values('rank', ascending=True)
-
-        result = result.rowid.to_list()
-
-        count += min_result_len
-
-    return result
+    return jsonify({'ids': found[start:start+count]})
 
 
 @app.route('/similar-by-iconclass/<conf>', methods=['POST'])

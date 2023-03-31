@@ -4,7 +4,6 @@ function setup_search_collapse (configuration, configuration_updated, save_state
 
     let search_mode = null;
 
-
     let collapse_state="undefined";
 
     function update() {
@@ -13,41 +12,28 @@ function setup_search_collapse (configuration, configuration_updated, save_state
 
         collapse_state = search_mode;
 
-        if (search_mode === "image") {
-            if (configuration.acceptsText()) {
-                $("#description-card").removeClass("d-none");
+        if (configuration.acceptsText()) {
+            $("#description-button").html("By description | filename | iconclass | tag");
+        }
+        else {
+            $("#description-button").html("By filename | tag");
+        }
 
-            }
-            else {
-                $("#description-card").addClass("d-none");
-            }
+        if (search_mode === "image") {
 
             $("#imgCollapse").collapse("show");
             $("#descCollapse").collapse("hide");
         }
         else if (search_mode === "text") {
 
-            if (configuration.acceptsText()) {
-                $("#description-card").removeClass("d-none");
-
-                $("#descCollapse").collapse("show");
-                $("#imgCollapse").collapse("hide");
-
-            }
-            else {
-                $("#description-card").addClass("d-none");
-
-                $("#imgCollapse").collapse("show");
-                $("#descCollapse").collapse("hide");
-            }
+            $("#descCollapse").collapse("show");
+            $("#imgCollapse").collapse("hide");
         }
     }
 
     that = {
         pushState:
             function(url_params, state) {
-
-                console.log("pushState");
 
                 url_params.set('search_mode', search_mode);
 
@@ -137,12 +123,14 @@ function search_setup (gconf){
     };
 
     function image_search(search_id, search_id_from) {
+        search_collapse.setSearchMode("image", false);
+        search_collapse.update();
         search_by_image.setSearchId(search_id, search_id_from);
         search_by_image.update();
     }
 
-    function update_search_results(ids) {
-        search_result_list.update(ids);
+    function update_search_results(results) {
+        search_result_list.update(results);
 
         $('[data-toggle="tooltip"]').tooltip();
     }

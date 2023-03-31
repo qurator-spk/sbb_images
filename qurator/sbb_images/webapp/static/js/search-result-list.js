@@ -222,8 +222,11 @@ function setup_search_result_list(configuration, search) {
         })(request_counter, results["ids"]);
 
         if ("iconclass_parts" in results) {
-            console.log(results["iconclass_parts"]);
+
             that.highlightIconclass(results["iconclass_parts"]);
+        }
+        else {
+            iconclass_highlighted=[];
         }
     };
 

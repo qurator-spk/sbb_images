@@ -24,3 +24,6 @@ annoy
 
 opencv-contrib-python
 # VST
+
+iconclass
+dicttoxml
