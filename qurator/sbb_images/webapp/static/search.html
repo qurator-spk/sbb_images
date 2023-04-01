@@ -70,7 +70,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="settingsCollapse" class="collapse" aria-labelledby="settings-heading"
+                <div id="settingsCollapse" class="collapse show" aria-labelledby="settings-heading"
                      data-parent="#settings-accordion">
                     <div class="card-body text-left" id="search-settings">
                         <div class="form">
@@ -157,12 +157,12 @@
         </div>
     </div>
     <div class="row mt-2 text-center">
-        <div class="col-10" style="height: 80vh;overflow-y: scroll;">
-            <div class="row mt-2 text-center" id="search-results">
+        <div class="col-12" style="height: 80vh;overflow-y: scroll;">
+            <div class="row mt-2 text-center"  id="search-results">
                 <!-- Search results -->
             </div>
         </div>
-        <div class="col-2" style="height: 80vh;overflow-y: scroll;">
+        <div class="col-2 d-none" style="height: 80vh;overflow-y: scroll;">
             <div id="tag-accordion">
                 <div class="card" id="search-tag-card">
                     <div class="card-header" id="search-tag-heading">

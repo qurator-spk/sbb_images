@@ -108,7 +108,7 @@ function setup_search_result_list(configuration, search) {
                             `
                             <a id="icon-badge-${image_id}-${index}">
                                 <span class="badge badge-pill badge-info mr-1 ${label_classes_joined}"
-                                        data-toggle="tooltip" title="${result.text}" >
+                                        data-toggle="tooltip" title="${result.text}">
                                     ${result.label}
                                 </span>
                             </a>
@@ -137,6 +137,7 @@ function setup_search_result_list(configuration, search) {
 
     let request_counter = 0;
 
+
     function update(results) {
         request_counter += 1;
 
@@ -153,21 +154,27 @@ function setup_search_result_list(configuration, search) {
 
                     result_html +=
                             `
-                            <div class="row-fluid">
                                 <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                                     <div class="card-body">
-                                    <a id="more-btn-${result_id}">
-                                        <span class="badge badge-pill badge-light badge-primary mb-1" data-toggle="tooltip" title="Click to find similar based on this image.">
-                                            More
-                                        </span>
-                                    </a><br>
-                                    <a href="image/${configuration.getDataConf()}/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
-                                        <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer"/>
-                                    </a>
-                                    <div id="card-info-${result_id}" style="width: 100%;display: table-caption;"> </div>
+                                        <div class="text-left">
+                                            <span class="badge badge-light" >${index + 1}</span>
+                                        </div>
+                                        <a id="more-btn-${result_id}">
+                                            <span class="badge badge-pill badge-light badge-primary mb-1" data-toggle="tooltip" title="Click to find similar based on this image.">
+                                                More
+                                            </span>
+                                        </a><br>
+                                        <a href="image/${configuration.getDataConf()}/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
+                                            <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer"/>
+                                        </a>
+                                        <div class="row  justify-content-center text-center">
+                                            <div class="d-inline-flex">
+                                                <div class="flex-column" style="max-width: 250px" id="card-info-${result_id}" />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
                             `;
                 }
             );
@@ -193,8 +200,9 @@ function setup_search_result_list(configuration, search) {
                 let next_one = ids.shift();
 
                 (function(result_id) {
-                    $('#img-'+ next_one).on('load',
+                    $('#img-'+ result_id).on('load',
                         function() {
+
                             $.get("link/" + configuration.getDataConf() + "/" + result_id).done(
                                 function(result) {
                                     if (result.length <= 0) return;
@@ -203,10 +211,13 @@ function setup_search_result_list(configuration, search) {
                                 }
                             );
 
+
+
                             triggerNextImage();
                         }
                      );
                 })(next_one);
+
 
                 $('#img-'+ next_one).attr("src", "image/" + configuration.getDataConf() + "/"+next_one+"/resize/regionmarker");
 

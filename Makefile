@@ -18,8 +18,16 @@ train-classifier:
 apply-classifier:
 	apply-classifier stabi-illustrations.sqlite model-selection.pkl classifier.bin full-classification.pkl
 
-docker-search-cpu:
+VST:
+	git clone https://github.com/labusch/VST.git
+MSCLIP:
+	git clone https://github.com/labusch/MSCLIP.git
+
+docker-search-cpu:	MSCLIP VST
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-search-cpu -f DockerSearch.cpu .
+
+docker-search-iconclass-cpu:	MSCLIP VST
+	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-search-iconclass-cpu -f DockerSearch.cpu .
 
 ##########################################################
 

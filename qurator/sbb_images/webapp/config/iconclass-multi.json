@@ -1,15 +1,16 @@
 {
-  "PASSWD_FILE": "",
+  "PASSWD_FILE": "htpasswd",
   "AUTH_REALM": "search",
   "MAX_IMG_SIZE": 250,
+  "ICONCLASS_DB_LOCATION" : "data/iconclass/iconclass-db.sqlite",
   "MS_CLIP_MODEL_CONFIG": {
     "B16-YFCC-ORIG" : {
-      "YAML" : "MSCLIP/experiments/model/b16-yfcc-msclips.yaml",
-      "TOKENIZER" : "MSCLIP/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz"
+      "YAML" : "data/MSCLIP/original/config/b16-yfcc-msclips.yaml",
+      "TOKENIZER" : "data/MSCLIP/tokenizer/bpe_simple_vocab_16e6.txt.gz"
     },
     "B16-YFCC-RETRAINED": {
-      "YAML":  "notebooks/experiment10/b16-yfcc-msclips.yaml",
-      "TOKENIZER" : "MSCLIP/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz"
+      "YAML":  "data/MSCLIP/retrained/config/b16-yfcc-msclips.yaml",
+      "TOKENIZER" : "data/MSCLIP/tokenizer/bpe_simple_vocab_16e6.txt.gz"
     }
   },
   "MODEL_CONFIGURATION":
@@ -28,8 +29,8 @@
       }
     },
   "SQLITE_FILES": {
-    "ICONCLASS-AI-TEST": "iconclass-test.sqlite",
-    "ICONCLASS-AI-TRAIN": "iconclass-train.sqlite"
+    "ICONCLASS-AI-TEST": "data/iconclass/iconclass-test.sqlite",
+    "ICONCLASS-AI-TRAIN": "data/iconclass/iconclass-train.sqlite"
   },
   "DATA_CONFIGURATION": {
     "ICONCLASS-AI-TEST": {
@@ -43,19 +44,19 @@
   },
   "INDEX_CONFIGURATION": {
     "A": {
-      "INDEX_FILE": "iconclass-test-msclip-search-index.ann",
+      "INDEX_FILE": "data/iconclass/iconclass-test-msclip-search-index.ann",
       "DIST_MEASURE": "angular"
     },
     "B": {
-      "INDEX_FILE": "iconclass-train-msclip-search-index.ann",
+      "INDEX_FILE": "data/iconclass/iconclass-train-msclip-search-index.ann",
           "DIST_MEASURE": "angular"
     },
     "C": {
-      "INDEX_FILE": "iconclass-test-msclip-retrained-search-index.ann",
+      "INDEX_FILE": "data/iconclass/iconclass-test-msclip-retrained-search-index.ann",
       "DIST_MEASURE": "angular"
     },
     "D": {
-      "INDEX_FILE": "iconclass-train-msclip-retrained-search-index.ann",
+      "INDEX_FILE": "data/iconclass/iconclass-train-msclip-retrained-search-index.ann",
       "DIST_MEASURE": "angular"
     }
   },

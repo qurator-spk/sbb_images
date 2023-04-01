@@ -28,23 +28,35 @@ from annoy import AnnoyIndex
 
 from flask_cachecontrol import (cache_for)
 
-import iconclass
-
 from fnmatch import fnmatch
 
 # from torchvision import transforms
 
 app = flask.Flask(__name__)
 
-app.config.from_file('search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'),
-                     load=json.load)
+try:
+    config_file = 'search-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG')
+
+    app.config.from_file(os.path.join(os.getcwd(), config_file), load=json.load)
+
+except FileNotFoundError as e:
+    import pathlib
+    print(e)
+    print("Current path: {}".format(pathlib.Path(os.getcwd())))
+
+
+if "ICONCLASS_DB_LOCATION" in app.config:
+    os.environ["ICONCLASS_DB_LOCATION"] = app.config["ICONCLASS_DB_LOCATION"]
+
 
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-if len(app.config['PASSWD_FILE']) > 0:
-    app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
+print(app.config['PASSWD_FILE'])
+
+if len(app.config['PASSWD_FILE']) > 0 and os.path.exists(os.path.join(os.getcwd(), app.config['PASSWD_FILE'])):
+    app.config['FLASK_HTPASSWD_PATH'] = os.path.join(os.getcwd(), app.config['PASSWD_FILE'])
     app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
     from flask_htpasswd import HtPasswdAuth
 else:
@@ -52,6 +64,8 @@ else:
     from .no_auth import NoAuth as HtPasswdAuth
 
 htpasswd = HtPasswdAuth(app)
+
+import iconclass
 
 
 class ThreadStore:
@@ -379,8 +393,11 @@ def get_similar_by_tag(user, conf, start=0, count=100):
     search_tag = request.json['tag']
 
     found = []
+    highlight_labels = [search_tag]
 
-    if has_table("iconclass", data_conf):
+    text = IconClassDataset.get_text(search_tag)
+
+    if text is not None and has_table("iconclass", data_conf):
 
         df_iconclass = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label LIKE ?', con=thread_store.get_db(data_conf),
                                    params=(search_tag+"%",))
@@ -389,7 +406,12 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
         found += df_iconclass['imageid'].tolist()
 
-    return jsonify({'ids': found[start:start+count], 'highlight_labels': [search_tag]})
+        label_parts = iconclass.get_parts(search_tag)
+
+        if len(label_parts) > 0:
+            highlight_labels = label_parts
+
+    return jsonify({'ids': found[start:start+count], 'info': text, 'highlight_labels': highlight_labels})
 
 
 @app.route('/similar-by-filename/<conf>', methods=['POST'])

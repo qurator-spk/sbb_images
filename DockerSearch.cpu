@@ -1,4 +1,4 @@
-FROM python:3.6-slim-stretch
+FROM python:3.9-buster
 
 ARG http_proxy
 ENV http_proxy=$http_proxy
@@ -8,27 +8,39 @@ RUN echo $http_proxy
 
 RUN apt-get update && \
     apt-get -y install build-essential && \
+    apt-get -y install python3-opencv && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-COPY requirements.txt /tmp
-RUN pip install -U pip
-# RUN pip --no-cache-dir install -r /tmp/requirements.txt
+RUN pip3 install -U pip
 
+COPY MSCLIP /usr/src/MSCLIP
 COPY . /usr/src/qurator-sbb-images
+
+# Makefile checks this out into sbb_images folder -> leads to problems later on if we do not remove it.
+RUN rm -r /usr/src/qurator-sbb-images/MSCLIP
 
 RUN mkdir -p /.cache
 RUN chmod a+w /.cache
-RUN mkdir -p /usr/src/qurator-sbb-images/data
-RUN mkdir -p /usr/src/qurator-sbb-images/config
-RUN ln -s /usr/src/qurator-sbb-images/data/Stabi-Illustrationen /usr/src/qurator-sbb-images/Stabi-Illustrationen
+RUN mkdir /srv/workbench
 
-RUN pip3 --no-cache-dir install -e /usr/src/qurator-sbb-images
+COPY ./requirements-39.txt /usr/src/qurator-sbb-images/requirements.txt
+
+RUN pip3 --no-cache-dir install wheel
 
 WORKDIR /usr/src/qurator-sbb-images
 
-CMD env PASSWD_FILE=/usr/src/qurator-sbb-images/config/htpasswd CONFIG=/usr/src/qurator-sbb-images/config/active.json env USE_CUDA=False gunicorn --bind 0.0.0.0:8081 qurator.sbb_images.webapp.wsgi_search:app
+RUN pip3 --no-cache-dir install -e ./
 
+WORKDIR /usr/src/MSCLIP
+
+RUN pip3 --no-cache-dir install -e ./
+
+RUN pip3 list
+
+WORKDIR /srv/workbench
+
+CMD CONFIG=config/active.json env USE_CUDA=False gunicorn --chdir . --bind 0.0.0.0:8081 qurator.sbb_images.webapp.wsgi_search:app

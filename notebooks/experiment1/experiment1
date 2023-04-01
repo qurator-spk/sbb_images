@@ -1,7 +1,0 @@
-#!/usr/bin/bash
-
-for lr_sched in CosineAnnealingWarmRestarts StepLR ; do
-	for accu_steps in 1 2 4 8 16 ; do 
-		make iconclass-b16-yfcc-msclips ACCU_STEPS=$accu_steps LR_SCHEDULER=$lr_sched DEBUG= ;
-	done
-done
