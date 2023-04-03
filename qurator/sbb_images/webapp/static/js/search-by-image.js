@@ -26,19 +26,20 @@ function setup_search_by_image(configuration, update_search_results, global_push
                 error: function(error) { console.log(error); }
             };
 
-        if (post_data != null) {
-            request['data'] = post_data;
-            request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
-            request['type'] = "POST";
-            request['contentType'] = "application/json";
-        }
-        else if (form_data != null) {
+        if (form_data != null) {
             request['data'] = form_data;
             request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
             request['type'] = "POST";
             request['contentType'] = false;
             request['enctype'] = "multipart/form-data";
         }
+        else if (img_file != null) {
+            request['data'] = JSON.stringify({ 'image' : img_file });
+            request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
+            request['type'] = "POST";
+            request['contentType'] = "application/json";
+        }
+
         else if ((search_id !== null) && (search_id_from !== null)) {
              request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height +
                                     "?search_id=" + search_id + "&search_id_from=" + search_id_from;
@@ -222,10 +223,10 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
     let upload_html =
         `
-            <img class="fit-image" id='img-upload' src=""/>
-            <form action="similar" method="post" enctype="multipart/form-data">
-                        <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
-                        <input type="file" name="file" id="the-image" style="display: none;"/>
+            <form class="form" action="similar" method="post" enctype="multipart/form-data" id="upload-form" draggable="true">
+                <div><img class="fit-image" id='img-upload' src=""/></div>
+                <label for="the-image" class="btn btn-primary mt-3">Upload search image</label>
+                <input type="file" name="file" id="the-image" style="display: none;"/>
             </form>
         `;
 
@@ -242,6 +243,73 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
             if (((search_id !== null) && (search_id_from !== null)) || (img_file !== null)) {
                 search();
+            }
+        }
+    );
+
+    $(window).on('paste',
+        function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            let clipboardData = event.clipboardData || event.originalEvent.clipboardData || window.clipboardData;
+
+            if (clipboardData.items[0] &&(clipboardData.items[0].type.startsWith("image/"))) {
+
+               let file = clipboardData.items[0].getAsFile();
+
+               form_data = new FormData();
+               form_data.append('file', file);
+
+               let reader = new FileReader();
+
+               reader.onload =
+                    function(e) {
+                        img_file = e.target.result;
+
+                        that.setSearchId(null, null);
+
+                        that.update();
+                    };
+
+               reader.readAsDataURL(file);
+            }
+            else if (clipboardData.items[0] &&(clipboardData.items[0].type == "text/html")) {
+
+                clipboardData.items[0].getAsString(
+                    function (s) {
+
+                        let url = $($.filter("img", $.parseHTML(s))[0]).attr("src");
+
+                        console.log(url);
+
+                        let img = new Image();
+                        img.crossOrigin= "Anonymous";
+
+                        img.onload =
+                            function() {
+                                let canv = document.createElement('canvas');
+                                let context = canv.getContext('2d');
+                                canv.height = this.naturalHeight;
+                                canv.width = this.naturalWidth;
+                                context.drawImage(this, 0,0);
+
+                                form_data = null;
+                                that.setSearchId(null, null);
+
+                                img_file = canv.toDataURL('image/jpeg');
+
+                                $('#img-upload').attr('src', url);
+
+                                update();
+                            };
+
+                        img.src = url;
+                    }
+                );
+            }
+            else {
+                console.log(clipboardData.items[0]);
             }
         }
     );
