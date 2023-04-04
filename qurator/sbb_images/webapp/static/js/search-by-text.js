@@ -5,6 +5,16 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     let text_search_mode = null;
     let search_text = "";
 
+    let spinner_html =
+        `
+        <div class="col text-center">
+                <div class="d-flex justify-content-center mt-5">
+                    <div class="spinner-border align-center mt-5" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                 </div>
+        </div>`;
+
     function find_similar(onSuccess, onError) {
         let request =
             {
@@ -196,7 +206,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
     let search_counter=0;
     function search() {
-        $('#search-results').html("");
+        $('#search-results').html(spinner_html);
         $("#search-text-info-group").addClass("d-none");
         $("#search-text-info-group").removeClass("alert");
         $("#search-text-info-group").removeClass("alert-danger");
@@ -204,7 +214,10 @@ function setup_search_by_text(configuration, update_search_results, global_push_
         search_counter++;
 
         (function(counter_at_request, search_text_at_request) {
-            if (search_text_at_request === "") return;
+            if (search_text_at_request === "") {
+                $('#search-results').html("");
+                return;
+            }
 
             find_similar(
                 function(result) {
@@ -227,7 +240,13 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                     $("#search-text-info-group").removeClass("d-none");
                     $("#search-text-info-group").addClass("alert");
                     $("#search-text-info-group").addClass("alert-danger");
-                    $("#search-text-info").html("Invalid iconclass label.");
+
+                    if (text_search_mode === "iconclass") {
+                        $("#search-text-info").html("Invalid iconclass label.");
+                    }
+                    else {
+                        $("#search-text-info").html(error);
+                    }
                 }
             );
         })(search_counter, $("#search-for").val());

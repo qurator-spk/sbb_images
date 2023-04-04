@@ -10,11 +10,14 @@ function setup_search_by_image(configuration, update_search_results, global_push
     let has_saliency_model = false;
 
     let spinner_html =
-        `<div class="d-flex justify-content-center mt-5">
-            <div class="spinner-border align-center mt-5" role="status">
-                <span class="sr-only">Loading...</span>
-            </div>
-         </div>`;
+        `
+        <div class="col text-center">
+                <div class="d-flex justify-content-center mt-5">
+                    <div class="spinner-border align-center mt-5" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                 </div>
+        </div>`;
 
     function find_similar(x,y, width, height, onSuccess, form_data=null) {
         let request =
@@ -136,7 +139,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
     let search_counter=0;
     function search() {
-         $('#search-results').html("");
+         $('#search-results').html(spinner_html);
 
         search_counter++;
 
