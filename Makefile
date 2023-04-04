@@ -23,8 +23,8 @@ VST:
 MSCLIP:
 	git clone https://github.com/labusch/MSCLIP.git
 
-docker-search-cpu:	MSCLIP VST
-	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-search-cpu -f DockerSearch.cpu .
+docker-cpu:	MSCLIP VST
+	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-images-cpu -f Docker.cpu .
 
 docker-search-iconclass-cpu:	MSCLIP VST
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-search-iconclass-cpu -f DockerSearch.cpu .

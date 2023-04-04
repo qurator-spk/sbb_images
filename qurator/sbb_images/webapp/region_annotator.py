@@ -28,7 +28,15 @@ dicttoxml.LOG.setLevel(logging.ERROR)
 
 app = flask.Flask(__name__)
 
-app.config.from_json('config/region-annotator-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG'))
+try:
+    config_file = 'config/region-annotator-config.json' if not os.environ.get('CONFIG') else os.environ.get('CONFIG')
+
+    app.config.from_file(os.path.join(os.getcwd(), config_file), load=json.load)
+
+except FileNotFoundError as e:
+    import pathlib
+    print(e)
+    print("Current path: {}".format(pathlib.Path(os.getcwd())))
 
 logging.basicConfig(level=logging.INFO)
 

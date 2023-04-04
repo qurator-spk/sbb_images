@@ -23,6 +23,9 @@ COPY . /usr/src/qurator-sbb-images
 # Makefile checks this out into sbb_images folder -> leads to problems later on if we do not remove it.
 RUN rm -r /usr/src/qurator-sbb-images/MSCLIP
 
+RUN ln -s /usr/src/qurator-sbb-images/qurator/sbb_images/webapp/static/annotorious-openseadragon-customized /usr/src/qurator-sbb-images/qurator/sbb_images/webapp/static/annotorious-openseadragon
+RUN ln -s /usr/src/qurator-sbb-images/qurator/sbb_images/webapp/static/openseadragon-bin-3.0.0 /usr/src/qurator-sbb-images/qurator/sbb_images/webapp/static/openseadragon
+
 RUN mkdir -p /.cache
 RUN chmod a+w /.cache
 RUN mkdir /srv/workbench
@@ -43,4 +46,9 @@ RUN pip3 list
 
 WORKDIR /srv/workbench
 
-CMD CONFIG=config/active.json env USE_CUDA=False gunicorn --chdir . --bind 0.0.0.0:8081 qurator.sbb_images.webapp.wsgi_search:app
+ENV USE_CUDA=False
+ENV CONFIG=config/active.json
+
+ENTRYPOINT ["gunicorn", "--chdir", ".", "--bind", "0.0.0.0:8081"]
+
+#CMD qurator.sbb_images.webapp.wsgi_search:app
