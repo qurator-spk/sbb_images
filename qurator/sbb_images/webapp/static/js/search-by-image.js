@@ -134,11 +134,11 @@ function setup_search_by_image(configuration, update_search_results, global_push
         }
     }
 
-    let update_counter=0;
+    let search_counter=0;
     function search() {
          $('#search-results').html("");
 
-        update_counter++;
+        search_counter++;
 
         let x=-1;
         let y=-1;
@@ -164,7 +164,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
             if (!has_saliency_model) {
                 find_similar(x,y,width, height,
                     function(result) {
-                        if (update_counter > counter_at_request) return;
+                        if (search_counter > counter_at_request) return;
 
                         update_search_results(result);
                     }
@@ -173,27 +173,27 @@ function setup_search_by_image(configuration, update_search_results, global_push
             else {
                 get_saliency(x,y,width, height,
                     function(saliency_result) {
-                        if (update_counter > counter_at_request) return;
+                        if (search_counter > counter_at_request) return;
 
                         create_cropper(saliency_result.image,
                                        { x : saliency_result.x, y : saliency_result.y,
                                          width: saliency_result.width, height : saliency_result.height});
 
-                        if (update_counter > counter_at_request) return;
+                        if (search_counter > counter_at_request) return;
+
+                        //img_file = saliency_result.image;
 
                         find_similar(saliency_result.x, saliency_result.y,
                                      saliency_result.width, saliency_result.height,
                             function(result) {
-                                if (update_counter > counter_at_request) return;
+                                if (search_counter > counter_at_request) return;
 
                                 update_search_results(result);
-                            },
-                            JSON.stringify(saliency_result)
-                        );
+                            });
                     }
                 );
             }
-         })(update_counter);
+         })(search_counter);
     };
 
     function update() {
