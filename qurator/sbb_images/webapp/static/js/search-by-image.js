@@ -2,7 +2,6 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
     let that = null;
 
-    let form_data = null;
     let img_file = null;
     let search_id = null;
     let search_id_from = null;
@@ -17,7 +16,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
             </div>
          </div>`;
 
-    function find_similar(x,y, width, height, onSuccess, post_data=null) {
+    function find_similar(x,y, width, height, onSuccess, form_data=null) {
         let request =
             {
                 processData: false,
@@ -53,7 +52,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
         $.ajax(request);
     };
 
-    function get_saliency(x,y, width, height, onSuccess, post_data=null) {
+    function get_saliency(x,y, width, height, onSuccess, form_data=null) {
 
         let request =
             {
@@ -62,8 +61,8 @@ function setup_search_by_image(configuration, update_search_results, global_push
                 error: function(error) { console.log(error); }
             };
 
-        if (post_data != null) {
-            request['data'] = post_data;
+        if (img_file != null) {
+            request['data'] = JSON.stringify({ 'image': img_file});
             request['url'] = "saliency/"+x+"/"+y+"/"+width+"/"+height;
             request['type'] = "POST";
             request['contentType'] = "application/json";
@@ -200,6 +199,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
     function update() {
 
         let new_img_url = $('#img-upload').attr('src');
+
         if ((search_id !== null) && (search_id_from !== null)) {
             new_img_url = "image/" + search_id_from + "/" + search_id + "/full/nomarker";
         }
@@ -216,7 +216,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
             $('#img-upload').attr('src', new_img_url);
         }
-        else {
+        else if ($('#img-upload').attr('src') !== "") {
             search();
         }
     }
@@ -258,7 +258,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
                let file = clipboardData.items[0].getAsFile();
 
-               form_data = new FormData();
+               let form_data = new FormData();
                form_data.append('file', file);
 
                let reader = new FileReader();
@@ -294,7 +294,6 @@ function setup_search_by_image(configuration, update_search_results, global_push
                                 canv.width = this.naturalWidth;
                                 context.drawImage(this, 0,0);
 
-                                form_data = null;
                                 that.setSearchId(null, null);
 
                                 img_file = canv.toDataURL('image/jpeg');
@@ -322,7 +321,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
             let reader = new FileReader();
 
-            form_data = new FormData();
+            let form_data = new FormData();
             form_data.append('file', file);
 
             $("#search-results").html(spinner_html);
@@ -342,7 +341,8 @@ function setup_search_by_image(configuration, update_search_results, global_push
     that = {
         pushState:
             function(url_params, state) {
-                if ((form_data !== null) && (img_file !== null)) {
+
+                if (img_file !== null) {
                     url_params.delete('search_id');
                     url_params.delete('search_id_from');
                 }
@@ -352,7 +352,6 @@ function setup_search_by_image(configuration, update_search_results, global_push
                     url_params.set('search_id_from', search_id_from);
                 }
 
-                state.form_data = form_data;
                 state.img_file = img_file;
                 state.search_id = search_id;
                 state.search_id_from = search_id_from;
@@ -362,7 +361,6 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
                 if ((event !== null) && (event.state != null)) {
 
-                    form_data = event.state.form_data;
                     img_file = event.state.img_file;
 
                     search_id = event.state.search_id;
@@ -392,7 +390,6 @@ function setup_search_by_image(configuration, update_search_results, global_push
                 search_id_from = search_id_from_;
 
                 if (search_id !== null) {
-                    form_data = null;
                     img_file = null;
                 }
 
