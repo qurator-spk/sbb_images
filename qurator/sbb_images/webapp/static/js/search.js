@@ -66,7 +66,7 @@ function setup_search_collapse (configuration, configuration_updated, save_state
                 if (new_state) save_state();
             },
         getSearchMode : function() { return search_mode; },
-        update: update
+        update: update,
     };
 
     $("#img-button").click(
@@ -169,6 +169,17 @@ function search_setup (gconf){
                 configuration_updated();
             }
         );
+
+    $(window).on('paste',
+        function (event) {
+            if (search_collapse.getSearchMode() === "image") {
+                event.preventDefault();
+                event.stopPropagation();
+
+                search_by_image.paste(event);
+            }
+        }
+    );
 
     configuration_updated();
 }

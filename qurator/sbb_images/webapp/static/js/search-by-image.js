@@ -25,7 +25,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
                 processData: false,
                 cache: false,
                 success: onSuccess,
-                error: function(error) { console.log(error); }
+                error: function(error) { console.log(error); $("#search-results").html(""); }
             };
 
         if (form_data != null) {
@@ -250,71 +250,67 @@ function setup_search_by_image(configuration, update_search_results, global_push
         }
     );
 
-    $(window).on('paste',
-        function(event) {
-            event.preventDefault();
-            event.stopPropagation();
+    function paste(event) {
 
-            let clipboardData = event.clipboardData || event.originalEvent.clipboardData || window.clipboardData;
+        let clipboardData = event.clipboardData || event.originalEvent.clipboardData || window.clipboardData;
 
-            if (clipboardData.items[0] &&(clipboardData.items[0].type.startsWith("image/"))) {
+        if (clipboardData.items[0] &&(clipboardData.items[0].type.startsWith("image/"))) {
 
-               let file = clipboardData.items[0].getAsFile();
+           let file = clipboardData.items[0].getAsFile();
 
-               let form_data = new FormData();
-               form_data.append('file', file);
+           let form_data = new FormData();
+           form_data.append('file', file);
 
-               let reader = new FileReader();
+           let reader = new FileReader();
 
-               reader.onload =
-                    function(e) {
-                        img_file = e.target.result;
+           reader.onload =
+                function(e) {
+                    img_file = e.target.result;
 
-                        that.setSearchId(null, null);
+                    that.setSearchId(null, null);
 
-                        that.update();
-                    };
+                    that.update();
+                };
 
-               reader.readAsDataURL(file);
-            }
-            else if (clipboardData.items[0] &&(clipboardData.items[0].type == "text/html")) {
-
-                clipboardData.items[0].getAsString(
-                    function (s) {
-
-                        let url = $($.filter("img", $.parseHTML(s))[0]).attr("src");
-
-                        console.log(url);
-
-                        let img = new Image();
-                        img.crossOrigin= "Anonymous";
-
-                        img.onload =
-                            function() {
-                                let canv = document.createElement('canvas');
-                                let context = canv.getContext('2d');
-                                canv.height = this.naturalHeight;
-                                canv.width = this.naturalWidth;
-                                context.drawImage(this, 0,0);
-
-                                that.setSearchId(null, null);
-
-                                img_file = canv.toDataURL('image/jpeg');
-
-                                $('#img-upload').attr('src', url);
-
-                                update();
-                            };
-
-                        img.src = url;
-                    }
-                );
-            }
-            else {
-                console.log(clipboardData.items[0]);
-            }
+           reader.readAsDataURL(file);
         }
-    );
+        else if (clipboardData.items[0] &&(clipboardData.items[0].type == "text/html")) {
+
+            clipboardData.items[0].getAsString(
+                function (s) {
+
+                    let url = $($.filter("img", $.parseHTML(s))[0]).attr("src");
+
+                    console.log(url);
+
+                    let img = new Image();
+                    img.crossOrigin= "Anonymous";
+
+                    img.onload =
+                        function() {
+                            let canv = document.createElement('canvas');
+                            let context = canv.getContext('2d');
+                            canv.height = this.naturalHeight;
+                            canv.width = this.naturalWidth;
+                            context.drawImage(this, 0,0);
+
+                            that.setSearchId(null, null);
+
+                            img_file = canv.toDataURL('image/jpeg');
+
+                            $('#img-upload').attr('src', url);
+
+                            update();
+                        };
+
+                    img.src = url;
+                }
+            );
+        }
+        else {
+            console.log(clipboardData.items[0]);
+        }
+    }
 
     $("#the-image").change(
         function(){
@@ -350,9 +346,10 @@ function setup_search_by_image(configuration, update_search_results, global_push
                     url_params.delete('search_id_from');
                 }
                 else {
-
-                    url_params.set('search_id', search_id);
-                    url_params.set('search_id_from', search_id_from);
+                    if (search_id !== null) {
+                        url_params.set('search_id', search_id);
+                        url_params.set('search_id_from', search_id_from);
+                    }
                 }
 
                 state.img_file = img_file;
@@ -398,7 +395,8 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
                 if (new_state) global_push_state();
             },
-        update: update
+        update: update,
+        paste: paste
     };
 
     let url_params = new URLSearchParams(window.location.search);

@@ -237,6 +237,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                     }
                 },
                 function(error) {
+                    $("#search-results").html("");
                     $("#search-text-info-group").removeClass("d-none");
                     $("#search-text-info-group").addClass("alert");
                     $("#search-text-info-group").addClass("alert-danger");
