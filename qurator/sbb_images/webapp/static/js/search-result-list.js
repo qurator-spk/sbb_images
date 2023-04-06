@@ -106,9 +106,8 @@ function setup_search_result_list(configuration, search) {
 
                         info_html +=
                             `
-                            <a id="icon-badge-${image_id}-${index}">
-                                <span class="badge badge-pill badge-info mr-1 ${label_classes_joined}"
-                                        data-toggle="tooltip" title="${result.text}">
+                            <a id="icon-badge-${image_id}-${index}" data-toggle="tooltip" title="${result.text}">
+                                <span class="badge badge-pill badge-info mr-1 ${label_classes_joined}">
                                     ${result.label}
                                 </span>
                             </a>

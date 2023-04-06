@@ -49,10 +49,26 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
         if (configuration.acceptsText()) {
             let drop_down_html = `
-                <a class="dropdown-item" id="search-select-filename">Filename</a>
-                <a class="dropdown-item" id="search-select-tag">Tag</a>
-                <a class="dropdown-item" id="search-select-description">Description</a>
-                <a class="dropdown-item" id="search-select-iconclass">Iconclass</a>
+                <a class="dropdown-item" id="search-select-filename"
+                    data-toggle="tooltip"
+                    title="Search for images solely based on their filename. Accepts wildcards. Search for *123* finds any file in the selected dataset that has 123 in its filename.">
+                    Filename
+                </a>
+                <a class="dropdown-item" id="search-select-tag"
+                    data-toggle="tooltip"
+                    title="Search for images solely based on their handcrafted labels. For instance 46C2 finds any image in the selected dataset that has a handcrafted label with prefix 46C2.">
+                    Tag
+                </a>
+                <a class="dropdown-item" id="search-select-description"
+                    data-toggle="tooltip"
+                    title="Search for images solely based on text-to-image similarity implemented by selected model. Does not use any handcrafted labels. Enter a textual description of your search.">
+                    Description
+                </a>
+                <a class="dropdown-item" id="search-select-iconclass"
+                    data-toggle="tooltip"
+                    title="Search for images solely based on text-to-image similarity implemented by selected model. Does not use any handcrafted labels. Enter a valid iconclass-label to be automatically translated into a textual description for search.">
+                    Iconclass
+                </a>
             `;
 
             $("#search-dropdown").html(drop_down_html);
