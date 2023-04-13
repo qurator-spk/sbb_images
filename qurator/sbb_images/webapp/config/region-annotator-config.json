@@ -2,7 +2,7 @@
     "PASSWD_FILE": ".htpasswd",
     "AUTH_REALM": "region-annotate",
     "SQLITE_FILE": "region-annotations.sqlite",
-    "ADMIN_USERS": ["root", "cneud", "kpick", "neichenberger", "fostrowski", "klabusch"],
+    "ADMIN_USERS": ["root", "cneud", "kpick", "neichenberger", "fostrowski", "klabusch", "wseifert"],
     "COOPERATIVE_ACCESS": true,
     "COOPERATIVE_MODIFICATION": false
 }
