@@ -1,4 +1,4 @@
-annoy==1.17.1
+annoy==1.16.3
 click==8.0.4
 dataclasses
 dicttoxml==1.7.16
