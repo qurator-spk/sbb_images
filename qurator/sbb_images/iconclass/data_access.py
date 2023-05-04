@@ -153,7 +153,12 @@ class IconClassRandomSampler(Sampler):
                 if sam_parts[0] not in iconclass_toplevel:
                     continue
 
-                tree_samples.append({'file': sample.name, 'target': target, 'label': label})
+                tree_samples.append({'file': sample.name, 'target': target, 'label': label,
+                                     'label0': sam_parts[0],
+                                     'label1': sam_parts[1] if len(sam_parts) > 1 else '-',
+                                     'label2': sam_parts[2] if len(sam_parts) > 2 else '-',
+                                     'label3': sam_parts[3] if len(sam_parts) > 3 else '-',
+                                     'label4': sam_parts[4] if len(sam_parts) > 4 else '-'})
 
         tree_samples = pd.DataFrame(tree_samples)
 
