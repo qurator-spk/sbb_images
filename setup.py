@@ -32,7 +32,8 @@ setup(
 
         "iconclass-train=qurator.sbb_images.iconclass.train:train",
         "iconclass-traintestsplit=qurator.sbb_images.iconclass.train:traintestsplit",
-        "iconclass-add-table=qurator.sbb_images.iconclass.cli:add_iconclass_table"
+        "iconclass-add-table=qurator.sbb_images.iconclass.cli:add_iconclass_table",
+        "iconclass-evaluation=qurator.sbb_images.iconclass.evaluation:evaluate"
         ]
     },
     python_requires='>=3.6.0',

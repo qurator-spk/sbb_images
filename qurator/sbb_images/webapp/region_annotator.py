@@ -12,6 +12,7 @@ import string
 import json
 import re
 import io
+import requests
 
 from pathlib import Path
 from urllib.parse import urlparse
@@ -23,6 +24,8 @@ from xml.dom.minidom import parseString
 
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
+
+from PIL import Image
 
 dicttoxml.LOG.setLevel(logging.ERROR)
 
@@ -554,11 +557,38 @@ def data_export(user):
         return jsonify({'data': data, 'mimetype': 'application/json', 'filename': filename + '.json'})
 
     elif export_type == "xml":
+
+        # app.logger.error("os.environ['http_proxy'] :" + os.environ['http_proxy'])
+        # app.logger.error("os.environ['no_proxy'] :" + os.environ['no_proxy'])
+
         df_anno = pd.read_sql("SELECT * FROM annotations", con=get_db())
 
         df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
 
         data = [json.loads(df_anno.iloc[i].anno_json) for i in range(len(df_anno))]
+
+        images = dict()
+
+        for data_item in data:
+            img_url = data_item['target']['source']
+
+            data_item['target']['width'], data_item['target']['height'] = 100, 100
+
+            # app.logger.error("Downloading {}".format(img_url))
+
+            try:
+                if img_url not in images:
+                    img_resp = requests.get(img_url, timeout=(3, 3))
+
+                    if img_resp.status_code == 200:
+
+                        images[img_url] = Image.open(io.BytesIO(img_resp.content))
+
+                img = images[img_url]
+
+                data_item['target']['width'],  data_item['target']['height'] = img.size
+            except Exception as ex:
+                app.logger.error(str(ex))
 
         xml = dicttoxml.dicttoxml(data, return_bytes=False)
 

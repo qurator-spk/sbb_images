@@ -638,6 +638,21 @@ def configuration(user):
     return jsonify(gconf)
 
 
+@app.route('/imageids/<data_conf>')
+@htpasswd.required
+@cache_for(minutes=10)
+def get_image_ids(user, data_conf):
+    # import ipdb;ipdb.set_trace()
+    del user
+
+    df = pd.read_sql('select rowid from images', con=thread_store.get_db(data_conf))
+
+    if df is None or len(df) == 0:
+        return jsonify("")
+
+    return jsonify(df.rowid.tolist())
+
+
 @app.route('/haslinks/<data_conf>')
 @htpasswd.required
 @cache_for(minutes=10)
