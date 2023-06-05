@@ -12,8 +12,11 @@ function setup_search_collapse (configuration, configuration_updated, save_state
 
         collapse_state = search_mode;
 
-        if (configuration.acceptsText()) {
+        if (configuration.acceptsText() && configuration.acceptsIconclass()) {
             $("#description-button").html("By description | filename | iconclass | tag");
+        }
+        else if (configuration.acceptsText()) {
+            $("#description-button").html("By description | filename | tag");
         }
         else {
             $("#description-button").html("By filename | tag");
@@ -77,6 +80,7 @@ function setup_search_collapse (configuration, configuration_updated, save_state
 
             that.setSearchMode("image");
 
+            $("#tag-controls").addClass("d-none");
             $("#search-results").html("");
             configuration_updated();
         });
@@ -89,6 +93,7 @@ function setup_search_collapse (configuration, configuration_updated, save_state
 
             that.setSearchMode("text");
 
+            $("#tag-controls").addClass("d-none");
             $("#search-results").html("");
 
             configuration_updated();

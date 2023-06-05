@@ -130,12 +130,9 @@ iconclass-b32-yfcc-msclips: export ICONCLASS_DB_LOCATION = $(ICONCLASS_PATH)/dat
 iconclass-b32-yfcc-msclips:
 	iconclass-train --test-data-json=./test.json --sampler=$(SAMPLER) --test-interval=$(TEST_INTERVAL) --batch-size=64 --num-workers=$(NUM_WORKERS) --epochs=$(EPOCHS) --accu-steps=$(ACCU_STEPS) --start-lr=$(START_LR) --lr-scheduler=$(LR_SCHEDULER) $(MSCLIP_PATH)/experiments/model/b32-yfcc-msclips.yaml $(MSCLIP_PATH)/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz ./train.json $(ICONCLASS_PATH)/testset ./iconclass-b32-yfcc-msclips_$(FPARAMS).pth ./iconclass-b32-yfcc-msclips_$(FPARAMS).pkl $(DEBUG) $(TRFLAGS)
 
-
 iconclass-b32-laion-msclips: export ICONCLASS_DB_LOCATION = $(ICONCLASS_PATH)/data/iconclass.sqlite
 iconclass-b32-laion-msclips:
 	iconclass-train --test-data-json=./test.json --sampler=$(SAMPLER) --test-interval=$(TEST_INTERVAL) --batch-size=64 --num-workers=$(NUM_WORKERS) --epochs=$(EPOCHS) --accu-steps=$(ACCU_STEPS) --start-lr=$(START_LR) --lr-scheduler=$(LR_SCHEDULER) $(MSCLIP_PATH)/experiments/model/b32-laion-msclips.yaml $(MSCLIP_PATH)/msclip/dataset/languages/bpe_simple_vocab_16e6.txt.gz ./train.json $(ICONCLASS_PATH)/testset ./iconclass-b32-laion-msclips_$(FPARAMS).pth ./iconclass-b32-laion-msclips_$(FPARAMS).pkl $(DEBUG) $(TRFLAGS)
-
-
 
 ###################################################################
 

@@ -84,7 +84,6 @@ function setup_search_result_list(configuration, search) {
 
     function add_iconclass_info (image_id) {
 
-
         $.get("image-iconclass/"+ configuration.getDataConf() + "/"  + image_id,
             function(results) {
 
@@ -134,14 +133,73 @@ function setup_search_result_list(configuration, search) {
         );
     };
 
-    let request_counter = 0;
+    function add_tag_info (image_id) {
 
+        $.get("image-tags/"+ configuration.getDataConf() + "/"  + image_id,
+            function(results) {
+
+                let info_html = "";
+
+                $.each(results,
+                    function(index, result) {
+
+                        info_html +=
+                            `
+                            <a id="tag-badge-${image_id}-${index}" class="" data-toggle="tooltip" title="${result.user} : ${result.timestamp}">
+                                    <span class="badge badge-pill badge-info d-inline-flex mt-2" style="align-items: center">
+                                            ${result.tag}
+                                    <button type="button" class="btn-sm close ml-2" id="tag-delete-${image_id}-${index}" aria-label="Dismiss">
+                                        &times;
+                                    </button>
+                                    </span>
+                                </span>
+                            </a>
+                            `;
+                    }
+                );
+                $("#card-info-"+ image_id).html(info_html);
+
+                 $.each(results,
+                    function(index, result) {
+                        (function(img_id, tag_id, tag) {
+                            $(`#tag-delete-${img_id}-${tag_id}`).click(
+                                function(){
+                                    console.log("Delete " + img_id + "-" + tag );
+
+                                    (function(tag_id) {
+                                        console.log(tag, img_id)
+
+                                        let request =
+                                        {
+                                            success:
+                                                function(){
+                                                    add_tag_info(img_id);
+                                                },
+                                            error: function(){},
+                                            url: "delete-image-tag/"+ configuration.getDataConf() + "/" + img_id,
+                                            data: JSON.stringify({ "tag": tag }),
+                                            type: "POST",
+                                            contentType: "application/json"
+                                        };
+                                    $.ajax(request);
+                                    })(tag_id);
+                                }
+                             );
+                        })(image_id, index, result.tag);
+                    }
+                 );
+            }
+        );
+    };
+
+    let request_counter = 0;
 
     function update(results) {
         request_counter += 1;
 
         (function(counter_at_request, ids) {
 
+            $("#tag-controls").addClass("d-none");
             $('#search-results').html("");
 
             let result_html = "";
@@ -154,10 +212,11 @@ function setup_search_result_list(configuration, search) {
                     result_html += `
                          <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                              <div class="card-body">
-                                 <div class="text-left">
-                                     <span class="badge badge-light" >${index + 1}</span>
+                                 <div class="d-flex justify-content-between">
+                                    <span class="badge badge-light" >${index + 1}</span>
+                                    <input class="justify-content-end tag-selectable" type="checkbox" id="select-${result_id}" />
                                  </div>
-                                 <a id="more-btn-${result_id}">
+                                 <a id="more-btn-${result_id}" class="btn btn-link" href="">
                                      <span class="badge badge-pill badge-light badge-primary mb-1" data-toggle="tooltip" title="Click to find similar based on this image." onclick="$(this).tooltip('hide')">
                                          More
                                      </span>
@@ -187,6 +246,8 @@ function setup_search_result_list(configuration, search) {
                         function() {
                             search(rid, dconf);
                         });
+
+                      $(`#select-${result_id}`).data("image_id", result_id);
                     })(result_id, configuration.getDataConf());
                 });
 
@@ -209,8 +270,6 @@ function setup_search_result_list(configuration, search) {
                                 }
                             );
 
-
-
                             triggerNextImage();
                         }
                      );
@@ -224,6 +283,8 @@ function setup_search_result_list(configuration, search) {
                 add_file_info(next_one);
                 //add_ppn_info(next_one);
                 add_iconclass_info(next_one);
+
+                add_tag_info(next_one);
             };
 
             triggerNextImage();
@@ -237,7 +298,61 @@ function setup_search_result_list(configuration, search) {
         else {
             iconclass_highlighted=[];
         }
+
+        if (results["ids"].length > 0)  $("#tag-controls").removeClass("d-none");
     };
+
+    $("#add-tag").click(
+        function() {
+            //console.log("add-tag");
+
+            let ids = [];
+            $('.tag-selectable:checkbox:checked').each(
+                function() {
+                    ids.push($(this).data("image_id"));
+                });
+
+            (function(update_ids) {
+            let request =
+            {
+                success:
+                    function(){
+                        $.each(update_ids,
+                            function(idx, uid) {
+                                //console.log(uid)
+                                add_tag_info(uid);
+                            }
+                        );
+
+                        $(".tag-selectable").prop("checked", false);
+                    },
+                error: function(){},
+                url: "add-image-tag/"+ configuration.getDataConf(),
+                data: JSON.stringify({ "ids" : ids, "tag": $("#add-tag-input").val() }),
+                type: "POST",
+                contentType: "application/json"
+            };
+
+            $.ajax(request);
+            })(ids);
+        }
+    );
+
+    $("#select-all").click(
+        function() {
+            //console.log("select-all");
+
+            $(".tag-selectable").prop("checked", true);
+        }
+    );
+
+    $("#select-none").click(
+        function() {
+            //console.log("select-none");
+
+            $(".tag-selectable").prop("checked", false);
+        }
+    );
 
     that = {
         update : update,
@@ -255,19 +370,6 @@ function setup_search_result_list(configuration, search) {
                 highlight_iconclass();
             }
     };
-
-//    let url_params = new URLSearchParams(window.location.search);
-//    if (url_params.has('ids')) {
-//
-//        var ids = url_params.get('ids');
-//
-//        if (ids.length > 0) {
-//            ids = ids.split(/\s*,\s*/).map(Number);
-//
-//
-//            update(ids);
-//        }
-//    }
 
     return that;
 }

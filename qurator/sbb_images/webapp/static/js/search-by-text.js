@@ -47,7 +47,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
     function update() {
 
-        if (configuration.acceptsText()) {
+        if (configuration.acceptsText() && configuration.acceptsIconclass()) {
             let drop_down_html = `
                 <a class="dropdown-item" id="search-select-filename"
                     data-toggle="tooltip"
@@ -95,6 +95,54 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                 function() {
                     $("#search-select-button").html($(this).html());
                     that.setSearchMode("iconclass");
+
+                    search();
+                }
+            );
+
+            $("#search-select-tag").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("tag");
+
+                    search();
+                }
+            );
+        }
+        else if (configuration.acceptsText()) {
+            let drop_down_html = `
+                <a class="dropdown-item" id="search-select-filename"
+                    data-toggle="tooltip"
+                    title="Search for images solely based on their filename. Accepts wildcards. Search for *123* finds any file in the selected dataset that has 123 in its filename.">
+                    Filename
+                </a>
+                <a class="dropdown-item" id="search-select-tag"
+                    data-toggle="tooltip"
+                    title="Search for images solely based on their handcrafted labels. For instance 'XXX' finds any image in the selected dataset that has a handcrafted label with prefix 'XXX'.">
+                    Tag
+                </a>
+                <a class="dropdown-item" id="search-select-description"
+                    data-toggle="tooltip"
+                    title="Search for images solely based on text-to-image similarity implemented by selected model. Does not use any handcrafted labels. Enter a textual description of your search.">
+                    Description
+                </a>
+            `;
+
+            $("#search-dropdown").html(drop_down_html);
+
+            $("#search-select-description").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("desc");
+
+                    search();
+                }
+            );
+
+            $("#search-select-filename").click(
+                function() {
+                    $("#search-select-button").html($(this).html());
+                    that.setSearchMode("filename");
 
                     search();
                 }
@@ -222,6 +270,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
     let search_counter=0;
     function search() {
+        $("#tag-controls").addClass("d-none");
         $('#search-results').html(spinner_html);
         $("#search-text-info-group").addClass("d-none");
         $("#search-text-info-group").removeClass("alert");
@@ -231,6 +280,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
         (function(counter_at_request, search_text_at_request) {
             if (search_text_at_request === "") {
+                $("#tag-controls").addClass("d-none");
                 $('#search-results').html("");
                 return;
             }
@@ -253,6 +303,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                     }
                 },
                 function(error) {
+                    $("#tag-controls").addClass("d-none");
                     $("#search-results").html("");
                     $("#search-text-info-group").removeClass("d-none");
                     $("#search-text-info-group").addClass("alert");

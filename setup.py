@@ -21,6 +21,7 @@ setup(
     entry_points={
       'console_scripts': [
         "create-database=qurator.sbb_images.cli:create_database",
+        "create-thumbnails=qurator.sbb_images.cli:create_thumbnails",
         "model-selection=qurator.sbb_images.cli:model_selection",
         "train-classifier=qurator.sbb_images.cli:train",
         "apply-classifier=qurator.sbb_images.cli:apply",

@@ -25,7 +25,12 @@ function setup_search_by_image(configuration, update_search_results, global_push
                 processData: false,
                 cache: false,
                 success: onSuccess,
-                error: function(error) { console.log(error); $("#search-results").html(""); }
+                error:
+                    function(error) {
+                        console.log(error);
+                        $("#search-results").html("");
+                        $("#tag-controls").addClass("d-none");
+                    }
             };
 
         if (form_data != null) {
@@ -139,7 +144,8 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
     let search_counter=0;
     function search() {
-         $('#search-results').html(spinner_html);
+        $("#tag-controls").addClass("d-none");
+        $('#search-results').html(spinner_html);
 
         search_counter++;
 
@@ -323,6 +329,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
             let form_data = new FormData();
             form_data.append('file', file);
 
+            $("#tag-controls").addClass("d-none");
             $("#search-results").html(spinner_html);
 
             reader.onload =

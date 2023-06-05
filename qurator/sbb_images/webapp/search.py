@@ -99,7 +99,27 @@ class ThreadStore:
 
         return conn
 
+    def get_thumb_db(self):
+
+        thid = threading.current_thread().ident
+
+        conn = self._connection_map.get(("__THUMBNAILS__", thid))
+
+        if conn is None and "THUMBNAILS" in app.config:
+
+            logger.info('Create database connection: {}'.format(app.config['THUMBNAILS']))
+
+            conn = sqlite3.connect(app.config['THUMBNAILS'])
+
+            conn.execute('pragma journal_mode=wal')
+
+            self._connection_map[("__THUMBNAILS__", thid)] = conn
+
+        return conn
+
     def get_search_index(self, index_conf, model_conf):
+
+        print("Search index: ", index_conf)
 
         if index_conf in self._index_map:
             return self._index_map[index_conf]
@@ -391,27 +411,45 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         raise BadRequest("tag missing.")
 
     search_tag = request.json['tag']
+    ids = []
+    highlight_labels = []
+    text = ""
 
-    found = []
-    highlight_labels = [search_tag]
+    if has_table("iconclass", data_conf):
 
-    text = IconClassDataset.get_text(search_tag)
+        highlight_labels = [search_tag]
 
-    if text is not None and has_table("iconclass", data_conf):
+        text = IconClassDataset.get_text(search_tag)
 
-        df_iconclass = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label LIKE ?', con=thread_store.get_db(data_conf),
-                                   params=(search_tag+"%",))
+        if text is not None:
 
-        df_iconclass = df_iconclass.drop_duplicates(subset=['imageid'])
+            df_iconclass = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label LIKE ?', con=thread_store.get_db(data_conf),
+                                       params=(search_tag+"%",))
 
-        found += df_iconclass['imageid'].tolist()
+            df_iconclass = df_iconclass.drop_duplicates(subset=['imageid'])
 
-        label_parts = iconclass.get_parts(search_tag)
+            label_parts = iconclass.get_parts(search_tag)
 
-        if len(label_parts) > 0:
-            highlight_labels = label_parts
+            if len(label_parts) > 0:
+                highlight_labels = label_parts
 
-    return jsonify({'ids': found[start:start+count], 'info': text, 'highlight_labels': highlight_labels})
+            ids += df_iconclass['imageid'].tolist()[start:start + count]
+
+    if has_table("tags", data_conf):
+        df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag LIKE ?',
+                                   con=thread_store.get_db(data_conf),
+                                   params=(search_tag + "%",))
+
+        df_tags = df_tags.drop_duplicates(subset=['image_id'])
+
+        ids += df_tags['image_id'].tolist()[start:start + count]
+
+    ret = {'ids': ids, 'info': text}
+
+    if len(highlight_labels) > 0:
+        ret['highlight_labels'] = highlight_labels
+
+    return jsonify(ret)
 
 
 @app.route('/similar-by-filename/<conf>', methods=['POST'])
@@ -668,6 +706,13 @@ def has_iconclass(user, data_conf):
     del user
     return jsonify(has_table('iconclass', data_conf))
 
+@app.route('/hastags/<data_conf>')
+@htpasswd.required
+@cache_for(minutes=10)
+def has_tags(user, data_conf):
+    del user
+    return jsonify(has_table('tags', data_conf))
+
 
 @app.route('/link/<data_conf>/<image_id>')
 @htpasswd.required
@@ -750,6 +795,91 @@ def get_image_iconclass(user, data_conf, rowid=None):
 
     return jsonify(result)
 
+@app.route('/delete-image-tag/<data_conf>/<image_id>', methods=['POST'])
+@htpasswd.required
+def delete_image_tag(user, data_conf, image_id):
+
+    if not has_table('tags', data_conf):
+        return "OK", 200
+
+    conn = thread_store.get_db(data_conf)
+
+    if "tag" not in request.json:
+        raise BadRequest()
+
+    if conn.execute("select * from tags where image_id=? and tag=?",
+                    (image_id, request.json['tag'])).fetchone() is None:
+        return "OK", 200
+
+    print("Deleting...")
+
+    conn.execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    conn.execute('delete from tags where image_id=? and tag=?', (image_id, request.json['tag']))
+
+    conn.execute('COMMIT TRANSACTION')
+
+    return "OK", 200
+
+@app.route('/add-image-tag/<data_conf>', methods=['POST'])
+@htpasswd.required
+def add_image_tag(user, data_conf):
+
+    conn = thread_store.get_db(data_conf)
+
+    if not has_table('tags', data_conf):
+        conn.execute('BEGIN EXCLUSIVE TRANSACTION')
+
+        conn.execute('create table tags (id integer primary key, image_id integer, '
+                     'tag text not null, user text not null, timestamp text not null)')
+
+        conn.execute('COMMIT TRANSACTION')
+
+    if "tag" not in request.json:
+        raise BadRequest()
+
+    if "ids" not in request.json:
+        raise BadRequest()
+
+    conn.execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    for image_id in request.json['ids']:
+        if conn.execute("select * from tags where image_id=? and tag=?",
+                        (image_id, request.json['tag'])).fetchone() is not None:
+            print("continue")
+            continue
+
+
+        conn.execute('insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)',
+                     (image_id,request.json['tag'], user, datetime.now()))
+
+        print("insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)");
+
+    conn.execute('COMMIT TRANSACTION')
+
+    return "OK", 200
+
+
+@app.route('/image-tags/<data_conf>/<image_id>')
+@htpasswd.required
+def get_image_tags(user, data_conf, image_id=None):
+    del user
+
+    #result = [{'tag' : 'test', 'user': 'klabusch', 'timestamp' : datetime.now()}]
+
+    if not has_table('tags', data_conf):
+
+        return "NOT FOUND", 404
+
+    tag_info = pd.read_sql('select * from tags where image_id=?', con=thread_store.get_db(data_conf),
+                           params=(image_id,))
+    result = []
+    for _, (index, image_id, tag, user, timestamp) in tag_info.iterrows():
+
+        result.append({ 'tag': tag, 'user': user, 'timestamp': timestamp})
+
+    return jsonify(result)
+
 
 @app.route('/image-file/<data_conf>/<rowid>')
 @htpasswd.required
@@ -795,18 +925,33 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
 
             return "NOT FOUND", 404
 
-    img = Image.open(filename).convert('RGB')
-
     if version == 'resize':
 
-        max_size = float(max(img.size[0], img.size[1]))
+        scale_factor = None
+        img = None
+        conn = thread_store.get_thumb_db()
+        if conn is not None:
 
-        scale_factor = 1.0 if max_size <= max_img_size else max_img_size / max_size
+            result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
+                                  (filename, max_img_size)).fetchone()
+            if result is not None:
+                data, scale_factor = result
 
-        hsize = int((float(img.size[0]) * scale_factor))
-        vsize = int((float(img.size[1]) * scale_factor))
+                buffer = io.BytesIO(data)
 
-        img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+                img = Image.open(buffer)
+
+        if img is None:
+            img = Image.open(filename).convert('RGB')
+
+            max_size = float(max(img.size[0], img.size[1]))
+
+            scale_factor = 1.0 if max_size <= max_img_size else max_img_size / max_size
+
+            hsize = int((float(img.size[0]) * scale_factor))
+            vsize = int((float(img.size[1]) * scale_factor))
+
+            img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
 
         if x >= 0 and y >= 0 and width > 0 and height > 0:
             x = int((float(x) * scale_factor))
@@ -815,7 +960,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
             height = int((float(height) * scale_factor))
 
     elif version == 'full':
-        pass
+        img = Image.open(filename).convert('RGB')
     else:
         return "BAD PARAMS <version>: full/resize", 400
 

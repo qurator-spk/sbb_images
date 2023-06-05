@@ -51,6 +51,10 @@
         .selected-6 {
             background: rgb(0, 210, 0)
         }
+
+
+
+
     </style>
     <title>Image Search</title>
 </head>
@@ -70,7 +74,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="settingsCollapse" class="collapse show" aria-labelledby="settings-heading"
+                <div id="settingsCollapse" class="collapse" aria-labelledby="settings-heading"
                      data-parent="#settings-accordion">
                     <div class="card-body text-left" id="search-settings">
                         <div class="form">
@@ -83,7 +87,7 @@
                             </div>
                             <div class="from-group row mt-3">
                                 <div class="col">
-                                     <p class="text-muted" id="dataset-description"></p>
+                                    <p class="text-muted" id="dataset-description"></p>
                                 </div>
                             </div>
                             <div class="from-group row">
@@ -111,7 +115,8 @@
                             <button id="img-button" class="btn btn-link" data-toggle="collapse"
                                     data-target="#imgCollapse"
                                     aria-expanded="true" aria-controls="imgCollapse">
-                                <span data-toggle="tooltip" title="Search for images solely based on image-to-image similarity implemented by selected model. Accepts image copy+paste input."> By image </span>
+                                <span data-toggle="tooltip"
+                                      title="Search for images solely based on image-to-image similarity implemented by selected model. Accepts image copy+paste input."> By image </span>
                             </button>
                         </h5>
                     </div>
@@ -136,7 +141,8 @@
                             <div class="input-group">
                                 <div class="input-group-prepend">
                                     <button id="search-select-button" class="btn btn-outline-secondary dropdown-toggle"
-                                            type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            type="button" data-toggle="dropdown" aria-haspopup="true"
+                                            aria-expanded="false">
                                         Description:
                                     </button>
                                     <div class="dropdown-menu" id="search-dropdown">
@@ -156,9 +162,21 @@
             </div>
         </div>
     </div>
-    <div class="row mt-2 text-center">
-        <div class="col-12" style="height: 80vh;overflow-y: scroll;">
-            <div class="row mt-2 text-center"  id="search-results">
+    <div class="row mt-2">
+        <div class="col-12 d-none" id="tag-controls">
+            <div class="input-group  justify-content-center">
+                <div class="input-group-prepend">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="add-tag">Add tag</button>
+                </div>
+                <input type="text" class="from-control" style="" id="add-tag-input" autocomplete="off"/>
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-3 mr-2" id="select-all">Select all</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm mr-2" id="select-none">Select none</button>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2 text-center" style="height: 80vh;overflow-y: scroll;">
+        <div class="col-12">
+            <div class="row mt-2 text-center" id="search-results" >
                 <!-- Search results -->
             </div>
         </div>

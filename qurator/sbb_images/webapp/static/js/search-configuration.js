@@ -138,7 +138,10 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
             function() {
                 return gconf["MODEL_CONFIGURATION"][that.getModelConf()]["ACCEPTS_TEXT"];
             },
-
+        acceptsIconclass:
+            function() {
+                return gconf["MODEL_CONFIGURATION"][that.getModelConf()]["ACCEPTS_ICONCLASS"];
+            },
         update: updateModelSelect
     };
 

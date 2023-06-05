@@ -7,6 +7,7 @@ import pandas as pd
 import copy
 # import importlib
 import os
+import io
 from fnmatch import fnmatch
 import numpy as np
 import itertools
@@ -37,6 +38,7 @@ except:
 from .detections import summarize_detections
 from .saliency import load_saliency_model
 
+import PIL
 from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageStat
 from torchvision import transforms
 import multiprocessing as mp
@@ -105,6 +107,97 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_jso
         conn.execute('create index idx_user on annotations(user);')
         conn.execute('create index idx_label on annotations(label);')
 
+class ThumbTask:
+
+    def __init__(self, filename, max_img_size):
+
+        self._filename = filename
+        self._max_img_size = max_img_size
+
+    def __call__(self, *args, **kwargs):
+
+        img = Image.open(self._filename).convert('RGB')
+
+        max_size = float(max(img.size[0], img.size[1]))
+
+        scale_factor = 1.0 if max_size <= self._max_img_size else self._max_img_size / max_size
+
+        hsize = int((float(img.size[0]) * scale_factor))
+        vsize = int((float(img.size[1]) * scale_factor))
+
+        img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+
+        buffer = io.BytesIO()
+        img.save(buffer, "JPEG")
+        buffer.seek(0)
+
+        return self._filename, buffer, scale_factor
+
+
+@click.command()
+@click.argument('directory', type=click.Path(exists=True))
+@click.argument('sqlite-file', type=click.Path(exists=False))
+@click.option('--pattern', type=str, default="*.jpg", help="File pattern to search for. Default: *.jpg")
+@click.option('--follow-symlinks', type=bool, is_flag=True, default=False)
+@click.option('--subset-json', type=click.Path(exists=True), default=None)
+@click.option('--max-img-size', type=int, default=250)
+@click.option('--processes', type=int, default=8)
+def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_json, max_img_size, processes):
+    """
+    DIRECTORY: Recursively enlist all the image files in this directory and add them to the thumbnail database.
+    Write the thumbnail information to the thumbnails table of SQLITE_FILE that is a sqlite3 database file.
+    """
+
+    def file_it(to_scan):
+
+        for f in os.scandir(to_scan):
+
+            try:
+                if f.is_dir(follow_symlinks=follow_symlinks):
+                    for g in file_it(f):
+                        yield g
+                else:
+                    if not fnmatch(f.path, pattern):
+                        continue
+                    yield f.path
+            except NotADirectoryError:
+                continue
+
+    _file_it = tqdm(file_it(directory))
+
+    subset = None
+    if subset_json is not None:
+        with open(subset_json, 'r') as f:
+            subset = json.load(f)
+
+    print("Scanning for {} files ...".format(pattern))
+    images = []
+    for p in _file_it:
+
+        if subset is not None:
+            if os.path.basename(p) not in subset:
+                continue
+
+        images.append(p)
+        _file_it.set_description("Scanning ... [{}]".format(len(images)))
+
+    def get_thumbs(images):
+
+        for filename in tqdm(images, desc="Creating thumbnails..."):
+
+            yield ThumbTask(filename, max_img_size)
+
+    with sqlite3.connect(sqlite_file) as conn:
+
+        conn.execute('create TABLE thumbnails (id INTEGER PRIMARY KEY, filename TEXT NOT NULL, '
+                     'data BLOB NOT NULL, size INTEGER, scale_factor REAL)')
+
+        for idx, (filename, buffer, scale_factor) in enumerate(prun(get_thumbs(images), processes=processes)):
+
+            conn.execute('INSERT INTO thumbnails VALUES(?,?,?,?,?)',
+                         (idx, filename, sqlite3.Binary(buffer.read()), max_img_size, scale_factor))
+
+        conn.execute('create index idx_thumb on thumbnails(filename, size);')
 
 @click.command()
 @click.argument('detection-file', type=click.Path(exists=True))
