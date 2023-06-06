@@ -210,6 +210,8 @@ def get_similar_from_features(conf, count, data_conf, fe, model_conf, start):
     while len(result) < min_result_len:
         neighbours = index.get_nns_by_vector(fe, start + count)
 
+        assert (len(neighbours) == len(set(neighbours)))
+
         neighbour_ids = [n + 1 for n in neighbours[start:start + count]]  # sqlite rowids are 1-based
 
         imgs = pd.read_sql('SELECT * FROM images WHERE rowid IN({})'.format(",".join([str(i) for i in neighbour_ids])),
@@ -693,7 +695,6 @@ def get_image_ids(user, data_conf):
 
 @app.route('/haslinks/<data_conf>')
 @htpasswd.required
-@cache_for(minutes=10)
 def has_links(user, data_conf):
     del user
     return jsonify(has_table('links', data_conf))
@@ -701,14 +702,12 @@ def has_links(user, data_conf):
 
 @app.route('/hasiconclass/<data_conf>')
 @htpasswd.required
-@cache_for(minutes=10)
 def has_iconclass(user, data_conf):
     del user
     return jsonify(has_table('iconclass', data_conf))
 
 @app.route('/hastags/<data_conf>')
 @htpasswd.required
-@cache_for(minutes=10)
 def has_tags(user, data_conf):
     del user
     return jsonify(has_table('tags', data_conf))

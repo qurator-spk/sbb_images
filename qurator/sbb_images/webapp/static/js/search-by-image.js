@@ -6,6 +6,8 @@ function setup_search_by_image(configuration, update_search_results, global_push
     let search_id = null;
     let search_id_from = null;
 
+    let search_pos = 0;
+
     let cropper = null;
     let has_saliency_model = false;
 
@@ -35,20 +37,20 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
         if (form_data != null) {
             request['data'] = form_data;
-            request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
+            request['url'] = "similar-by-image/"+ configuration.getActive() + "/" + search_pos + "/100/"+x+"/"+y+"/"+width+"/"+height;
             request['type'] = "POST";
             request['contentType'] = false;
             request['enctype'] = "multipart/form-data";
         }
         else if (img_file != null) {
             request['data'] = JSON.stringify({ 'image' : img_file });
-            request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height;
+            request['url'] = "similar-by-image/"+ configuration.getActive() + "/" + search_pos + "/100/"+x+"/"+y+"/"+width+"/"+height;
             request['type'] = "POST";
             request['contentType'] = "application/json";
         }
 
         else if ((search_id !== null) && (search_id_from !== null)) {
-             request['url'] = "similar-by-image/"+ configuration.getActive() + "/0/100/"+x+"/"+y+"/"+width+"/"+height +
+             request['url'] = "similar-by-image/"+ configuration.getActive() + "/" + search_pos + "/100/"+x+"/"+y+"/"+width+"/"+height +
                                     "?search_id=" + search_id + "&search_id_from=" + search_id_from;
              request['type'] = "GET";
         }
@@ -98,7 +100,12 @@ function setup_search_by_image(configuration, update_search_results, global_push
     function create_cropper(img_src, crop_box=null) {
 
         function cropper_ready() {
-            $('#img-upload').on('cropend', search);
+            $('#img-upload').on('cropend',
+                function() {
+                    search_pos = 0;
+                    search();
+                }
+            );
 
             if (crop_box === null) return;
 
@@ -142,12 +149,25 @@ function setup_search_by_image(configuration, update_search_results, global_push
         }
     }
 
-    let search_counter=0;
-    function search() {
-        $("#tag-controls").addClass("d-none");
-        $('#search-results').html(spinner_html);
+    let batches = [];
+    let search_counter = 0;
 
-        search_counter++;
+    function search() {
+        if (search_pos == 0) {
+            $("#tag-controls").addClass("d-none");
+            $('#search-results').html(spinner_html);
+
+            batches = [ search_pos ];
+
+            search_counter++;
+        }
+        else {
+            if (batches.length > 0) {
+                batches.push(search_pos);
+                return;
+            }
+            batches.push(search_pos);
+        }
 
         let x=-1;
         let y=-1;
@@ -168,14 +188,15 @@ function setup_search_by_image(configuration, update_search_results, global_push
             height = crop_data.height/image_height;
         }
 
-        (function(counter_at_request) {
+        while(batches.length > 0)
+        (function(counter_at_request, from_pos) {
 
             if (!has_saliency_model) {
                 find_similar(x,y,width, height,
                     function(result) {
                         if (search_counter > counter_at_request) return;
 
-                        update_search_results(result);
+                        update_search_results(result, from_pos==0);
                     }
                 );
             }
@@ -190,23 +211,22 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
                         if (search_counter > counter_at_request) return;
 
-                        //img_file = saliency_result.image;
-
                         find_similar(saliency_result.x, saliency_result.y,
                                      saliency_result.width, saliency_result.height,
                             function(result) {
                                 if (search_counter > counter_at_request) return;
 
-                                update_search_results(result);
+                                update_search_results(result, from_pos==0);
                             });
                     }
                 );
             }
-         })(search_counter);
+         })(search_counter, batches.shift());
     };
 
     function update() {
 
+        search_pos = 0;
         let new_img_url = $('#img-upload').attr('src');
 
         if ((search_id !== null) && (search_id_from !== null)) {
@@ -243,6 +263,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
 
     $('#img-upload').on('load',
         function() {
+            search_pos = 0;
             create_cropper($('#img-upload').attr('src'));
         });
 
@@ -251,6 +272,7 @@ function setup_search_by_image(configuration, update_search_results, global_push
             if (this.cropper !== cropper) return;
 
             if (((search_id !== null) && (search_id_from !== null)) || (img_file !== null)) {
+                search_pos = 0;
                 search();
             }
         }
@@ -390,7 +412,6 @@ function setup_search_by_image(configuration, update_search_results, global_push
                     }
                 }
             },
-
         setSearchId :
             function (search_id_, search_id_from_, new_state=true) {
                 search_id = search_id_;
@@ -401,6 +422,11 @@ function setup_search_by_image(configuration, update_search_results, global_push
                 }
 
                 if (new_state) global_push_state();
+            },
+        nextBatch:
+            function() {
+                search_pos += 100;
+                search();
             },
         update: update,
         paste: paste

@@ -112,7 +112,6 @@ function search_setup (gconf){
     let search_by_text = null;
     let search_result_list = null;
 
-
     function global_push_state() {
         let url_params = new URLSearchParams(window.location.search);
         let url = window.location.href.split('?')[0];
@@ -134,8 +133,10 @@ function search_setup (gconf){
         search_by_image.update();
     }
 
-    function update_search_results(results) {
-        search_result_list.update(results);
+    function update_search_results(results, start) {
+        console.log("update_search_results start:", start);
+
+        search_result_list.update(results, start);
 
         $('[data-toggle="tooltip"]').tooltip();
     }
@@ -153,11 +154,20 @@ function search_setup (gconf){
         }
     }
 
+    function next_batch() {
+
+        console.log("next batch");
+
+        if (search_collapse.getSearchMode() === "image") {
+            search_by_image.nextBatch();
+        }
+    }
+
     configuration = setup_configuration(gconf, configuration_updated, global_push_state);
 
     search_collapse = setup_search_collapse(configuration, configuration_updated, global_push_state);
 
-    search_result_list = setup_search_result_list(configuration, image_search);
+    search_result_list = setup_search_result_list(configuration, image_search, next_batch);
 
     search_by_image = setup_search_by_image(configuration, update_search_results, global_push_state);
 

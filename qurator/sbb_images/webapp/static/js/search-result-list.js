@@ -1,6 +1,32 @@
-function setup_search_result_list(configuration, search) {
+function setup_search_result_list(configuration, search, next_batch) {
     let that = null;
     let iconclass_highlighted = [];
+
+    let has_links  = false;
+    let has_tags = false;
+    let has_iconclass = false;
+
+    function check_for_info(afterwards) {
+        $.get("hasiconclass/" + configuration.getDataConf(),
+            function(hasit) {
+                has_iconclass = hasit;
+
+                $.get("hastags/" + configuration.getDataConf(),
+                    function(hasit) {
+                        has_tags = hasit;
+
+                        $.get("haslinks/" + configuration.getDataConf(),
+                            function(hasit) {
+                                has_links = hasit;
+
+                                afterwards();
+                            }
+                        );
+                    }
+                );
+            }
+        );
+    }
 
     let spinner_html =
         `<div class="d-flex justify-content-center mt-5">
@@ -147,14 +173,13 @@ function setup_search_result_list(configuration, search) {
                             `
                             <a id="tag-badge-${image_id}-${index}" class="" data-toggle="tooltip" title="${result.user} : ${result.timestamp}">
                                     <span class="badge badge-pill badge-info d-inline-flex mt-2" style="align-items: center">
-                                            ${result.tag}
-                                    <button type="button" class="btn-sm close ml-2" id="tag-delete-${image_id}-${index}" aria-label="Dismiss">
-                                        &times;
-                                    </button>
+                                        ${result.tag}
+                                        <button type="button" class="btn-sm close ml-2" id="tag-delete-${image_id}-${index}" aria-label="Dismiss">
+                                            &times;
+                                        </button>
                                     </span>
                                 </span>
-                            </a>
-                            `;
+                            </a>`;
                     }
                 );
                 $("#card-info-"+ image_id).html(info_html);
@@ -193,27 +218,51 @@ function setup_search_result_list(configuration, search) {
     };
 
     let request_counter = 0;
+    let batches = [];
+    let num_results = 0;
+    let result_number = 0;
 
-    function update(results) {
-        request_counter += 1;
+    function update(results, start=false) {
+        if (start) {
+            request_counter += 1;
+            batches = [ results ];
+            num_results = 0;
+            result_number = 0;
+        }
+        else {
+            if (batches.length > 0) {
+                batches.push(results);
+                return;
+            }
+            batches.push(results);
+        }
 
-        (function(counter_at_request, ids) {
+        while(batches.length > 0)
+        (function(counter_at_request, ids, at_pos) {
 
-            $("#tag-controls").addClass("d-none");
-            $('#search-results').html("");
+            if (at_pos == 0) {
+                $("#tag-controls").addClass("d-none");
+                $('#search-results').html("");
+            }
 
             let result_html = "";
 
+            let valid_ids = [];
             $.each(ids,
                 function(index, result_id) {
 
                     if (counter_at_request < request_counter) return;
 
+                    if ($(`#card-${result_id}`).length > 0) return;
+
+                    valid_ids.push(result_id);
+                    result_number += 1
+
                     result_html += `
                          <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                              <div class="card-body">
                                  <div class="d-flex justify-content-between">
-                                    <span class="badge badge-light" >${index + 1}</span>
+                                    <span class="badge badge-light" >${result_number}</span>
                                     <input class="justify-content-end tag-selectable" type="checkbox" id="select-${result_id}" />
                                  </div>
                                  <a id="more-btn-${result_id}" class="btn btn-link" href="">
@@ -236,10 +285,18 @@ function setup_search_result_list(configuration, search) {
                 }
             );
 
-            $('#search-results').html(result_html);
+            if (counter_at_request < request_counter) return;
 
-            $.each(ids,
+            if (num_results == 0) $('#search-results').html(result_html);
+            else $('#search-results').append(result_html);
+
+            num_results += ids.length;
+
+
+            $.each(valid_ids,
                 function(index, result_id) {
+
+                    if (counter_at_request < request_counter) return;
 
                     (function(rid, dconf) {
                       $(`#more-btn-${result_id}`).click(
@@ -249,14 +306,15 @@ function setup_search_result_list(configuration, search) {
 
                       $(`#select-${result_id}`).data("image_id", result_id);
                     })(result_id, configuration.getDataConf());
-                });
+                }
+            );
 
-            function triggerNextImage () {
+            function triggerNextImage (valid_ids) {
 
                 if (ids.length <= 0) return;
                 if (counter_at_request < request_counter) return;
 
-                let next_one = ids.shift();
+                let next_one = valid_ids.shift();
 
                 (function(result_id) {
                     $('#img-'+ result_id).on('load',
@@ -270,29 +328,31 @@ function setup_search_result_list(configuration, search) {
                                 }
                             );
 
-                            triggerNextImage();
+                            triggerNextImage(valid_ids);
                         }
-                     );
-                })(next_one);
+                    );
 
+                    $('#img-'+ result_id).attr("src",
+                        "image/" + configuration.getDataConf() + "/"+result_id+"/resize/regionmarker");
 
-                $('#img-'+ next_one).attr("src", "image/" + configuration.getDataConf() + "/"+next_one+"/resize/regionmarker");
+                    $("#card-"+ result_id).removeClass('invisible');
 
-                $("#card-"+ next_one).removeClass('invisible');
+                    add_file_info(result_id);
+                    //add_ppn_info(next_one);
+                    if (has_iconclass) add_iconclass_info(result_id);
 
-                add_file_info(next_one);
-                //add_ppn_info(next_one);
-                add_iconclass_info(next_one);
+                    if (has_tags) {
+                        add_tag_info(result_id);
+                    }
 
-                add_tag_info(next_one);
+                 })(next_one);
             };
 
-            triggerNextImage();
+            triggerNextImage(valid_ids);
 
-        })(request_counter, results["ids"]);
+        })(request_counter, batches.pop()["ids"]);
 
         if ("highlight_labels" in results) {
-
             that.highlightIconclass(results["highlight_labels"]);
         }
         else {
@@ -324,7 +384,7 @@ function setup_search_result_list(configuration, search) {
                             }
                         );
 
-                        $(".tag-selectable").prop("checked", false);
+                        //$(".tag-selectable").prop("checked", false);
                     },
                 error: function(){},
                 url: "add-image-tag/"+ configuration.getDataConf(),
@@ -354,8 +414,32 @@ function setup_search_result_list(configuration, search) {
         }
     );
 
+    let nextBatchTimeout=null;
+
+    $("#search-results-container").scroll(
+        function() {
+            let se = $("#search-results");
+
+            if ($(this).scrollTop() + $(this).height() >= se.height()) {
+
+                if (nextBatchTimeout !== null) clearTimeout(nextBatchTimeout);
+
+                nextBatchTimeout =
+                    setTimeout(
+                        function() {
+                            next_batch();
+                        }, 1000);
+            }
+        }
+    );
+
     that = {
-        update : update,
+        update :
+            function(results, start) {
+                (function(res, st) {
+                    check_for_info(function() {update(res, st); });
+                 })(results, start);
+            },
         highlightIconclass:
             function(labels) {
 
