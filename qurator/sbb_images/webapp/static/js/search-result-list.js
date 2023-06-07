@@ -55,6 +55,12 @@ function setup_search_result_list(configuration, search, next_batch) {
                 if (result['file'] === undefined) return;
 
                 $("#card-"+ image_id).attr('title', result['file']);
+                $("#card-"+ image_id).tooltip();
+
+                $("#card-"+ image_id).click(
+                    function() {
+                        $(this).tooltip('hide');
+                    });
             }
         );
     };
@@ -187,9 +193,12 @@ function setup_search_result_list(configuration, search, next_batch) {
                  $.each(results,
                     function(index, result) {
                         (function(img_id, tag_id, tag) {
+                            $(`#tag-badge-${img_id}-${tag_id}`).tooltip();
+
                             $(`#tag-delete-${img_id}-${tag_id}`).click(
                                 function(){
-                                    console.log("Delete " + img_id + "-" + tag );
+
+                                    $(`#tag-badge-${img_id}-${tag_id}`).tooltip('hide');
 
                                     (function(tag_id) {
                                         console.log(tag, img_id)

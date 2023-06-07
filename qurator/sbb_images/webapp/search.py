@@ -469,6 +469,7 @@ def get_similar_by_filename(user, conf, start=0, count=100):
         raise BadRequest("pattern missing.")
 
     search_pattern = request.json['pattern']
+    print(search_pattern)
 
     df_files = pd.read_sql('SELECT rowid, file from images', con=thread_store.get_db(data_conf))
 
@@ -476,6 +477,9 @@ def get_similar_by_filename(user, conf, start=0, count=100):
     for _, (rowid, file) in df_files.iterrows():
         if fnmatch(file, search_pattern):
             found.append(rowid)
+
+        if len(found) >= start + count:
+            break;
 
     return jsonify({'ids': found[start:start+count]})
 

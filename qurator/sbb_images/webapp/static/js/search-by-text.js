@@ -5,6 +5,8 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     let text_search_mode = null;
     let search_text = "";
 
+    let search_pos = 0;
+
     let spinner_html =
         `
         <div class="col text-center">
@@ -23,19 +25,19 @@ function setup_search_by_text(configuration, update_search_results, global_push_
             };
 
         if (text_search_mode === "desc") {
-            request['url'] = "similar-by-text/"+ configuration.getActive();
+            request['url'] = "similar-by-text/"+ configuration.getActive() + "/" + search_pos + "/100";
             request['data'] = JSON.stringify({ "text" : $("#search-for").val() });
         }
         else if (text_search_mode === "filename") {
-            request['url'] = "similar-by-filename/"+ configuration.getActive();
+            request['url'] = "similar-by-filename/"+ configuration.getActive() + "/" + search_pos + "/100";
             request['data'] = JSON.stringify({ "pattern" : $("#search-for").val() });
         }
         else if (text_search_mode === "iconclass") {
-            request['url'] = "similar-by-iconclass/"+ configuration.getActive();
+            request['url'] = "similar-by-iconclass/"+ configuration.getActive() + "/" + search_pos + "/100";
             request['data'] = JSON.stringify({ "iconclass_label" : $("#search-for").val() });
         }
         else if (text_search_mode === "tag") {
-            request['url'] = "similar-by-tag/"+ configuration.getActive();
+            request['url'] = "similar-by-tag/"+ configuration.getActive() + "/" + search_pos + "/100";
             request['data'] = JSON.stringify({ "tag" : $("#search-for").val() });
         }
 
@@ -46,6 +48,8 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     };
 
     function update() {
+
+        search_pos == 0;
 
         if (configuration.acceptsText() && configuration.acceptsIconclass()) {
             let drop_down_html = `
@@ -253,6 +257,8 @@ function setup_search_by_text(configuration, update_search_results, global_push_
             },
         setSearchMode :
             function (text_search_mode_, new_state=true) {
+                search_pos = 0;
+
                 text_search_mode = text_search_mode_;
 
                 if (new_state) global_push_state();
@@ -263,22 +269,40 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
                 if (new_state) global_push_state();
             },
-
+        nextBatch:
+            function() {
+                search_pos += 100;
+                search();
+            },
         update: update
     };
 
 
     let search_counter=0;
     function search() {
-        $("#tag-controls").addClass("d-none");
-        $('#search-results').html(spinner_html);
+        if (search_pos == 0) {
+            $("#tag-controls").addClass("d-none");
+            $('#search-results').html(spinner_html);
+
+            batches = [ search_pos ];
+
+            search_counter++;
+        }
+        else {
+            if (batches.length > 0) {
+                batches.push(search_pos);
+                return;
+            }
+            batches.push(search_pos);
+        }
+
         $("#search-text-info-group").addClass("d-none");
         $("#search-text-info-group").removeClass("alert");
         $("#search-text-info-group").removeClass("alert-danger");
 
-        search_counter++;
 
-        (function(counter_at_request, search_text_at_request) {
+        while (batches.length > 0)
+        (function(counter_at_request, search_text_at_request, from_pos) {
             if (search_text_at_request === "") {
                 $("#tag-controls").addClass("d-none");
                 $('#search-results').html("");
@@ -290,7 +314,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
                     if (search_counter > counter_at_request) return;
 
-                    update_search_results(result);
+                    update_search_results(result, from_pos==0);
 
                     that.setSearchText(search_text_at_request, search_text_at_request!==search_text);
 
@@ -317,7 +341,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                     }
                 }
             );
-        })(search_counter, $("#search-for").val());
+        })(search_counter, $("#search-for").val(), batches.shift());
     }
 
     let search_timeout=null;
@@ -325,10 +349,13 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     $("#search-for").on("keyup",
         function(e) {
 
+            if ($("#search-for").val() === search_text) return;
+
             if (search_timeout !== null) clearTimeout(search_timeout);
 
             search_timeout = setTimeout(
                 function() {
+                    search_pos = 0;
                     search();
                 }, 750);
         }

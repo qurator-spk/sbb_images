@@ -161,6 +161,9 @@ function search_setup (gconf){
         if (search_collapse.getSearchMode() === "image") {
             search_by_image.nextBatch();
         }
+        else if (search_collapse.getSearchMode() === "text") {
+            search_by_text.nextBatch();
+        }
     }
 
     configuration = setup_configuration(gconf, configuration_updated, global_push_state);
