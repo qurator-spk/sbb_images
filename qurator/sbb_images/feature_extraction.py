@@ -1,5 +1,6 @@
 import argparse
 import torch
+import copy
 # import torch.nn as nn
 
 from torchvision import models, transforms
@@ -79,14 +80,16 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
         args.opts = []
         args.cfg = ms_clip_model
-        update_config(config, args)
-        config.defrost()
-        config.NAME = ""
-        config.freeze()
 
-        model,_,_ = clip_openai_pe_res_v1.get_clip_model(config)
+        acopy_config = copy.deepcopy(config)
+        update_config(acopy_config, args)
+        acopy_config.defrost()
+        acopy_config.NAME = ""
+        acopy_config.freeze()
 
-        model_file = config.MODEL.PRETRAINED_MODEL
+        model,_,_ = clip_openai_pe_res_v1.get_clip_model(acopy_config)
+
+        model_file = acopy_config.MODEL.PRETRAINED_MODEL
         # logging.info('=> load model file: {}'.format(model_file))
         state_dict = torch.load(model_file, map_location="cpu")
         model.load_state_dict(state_dict)

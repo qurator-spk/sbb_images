@@ -164,14 +164,72 @@
     </div>
     <div class="row mt-2">
         <div class="col-12 d-none" id="tag-controls">
-            <div class="input-group  justify-content-center">
-                <div class="input-group-prepend">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="add-tag">Add tag</button>
+            <form class="form-inline">
+                <div class="input-group justify-content-center" style="width: 50%">
+                    <div class="input-group-prepend">
+
+                    </div>
+                    <input type="text" class="from-control input-sm" style="" id="tag-input" autocomplete="off"/>
+                    <div class="input-group-append">
+                        <button id="tag-button" class="btn btn-outline-secondary btn-sm" type="button"
+                                aria-haspopup="true"  aria-expanded="false">
+                            Add tag
+                        </button>
+                        <button id="tag-select-button" class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                data-toggle="dropdown" aria-haspopup="true"  aria-expanded="false">
+                        </button>
+                        <div class="dropdown-menu" id="tag-button-dropdown">
+                            <a class="dropdown-item" id="tag-select-add"
+                                data-toggle="tooltip"
+                                title="Add tag to all selected images.">
+                                Add tag
+                            </a>
+                            <a class="dropdown-item" id="tag-select-remove"
+                                data-toggle="tooltip"
+                                title="Remove tag from all selected images.">
+                                Remove tag
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <input type="text" class="from-control" style="" id="add-tag-input" autocomplete="off"/>
-                <button type="button" class="btn btn-outline-secondary btn-sm ml-3 mr-2" id="select-all">Select all</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm mr-2" id="select-none">Select none</button>
-            </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="select-images">
+                        Select first 5
+                    </button>
+
+                    <button id="img-select-button" class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                            data-toggle="dropdown" aria-haspopup="true"  aria-expanded="false">
+                    </button>
+                    <div class="dropdown-menu" id="img-select-button-dropdown">
+                        <a class="dropdown-item" id="select-first-5"
+                            data-toggle="tooltip"
+                            title="">
+                            Select first 5
+                        </a>
+                        <a class="dropdown-item" id="select-first-10"
+                            data-toggle="tooltip"
+                            title="">
+                            Select first 10
+                        </a>
+                        <a class="dropdown-item" id="select-first-20"
+                            data-toggle="tooltip"
+                            title="">
+                            Select first 20
+                        </a>
+                        <a class="dropdown-item" id="select-first-40"
+                            data-toggle="tooltip"
+                            title="">
+                            Select first 40
+                        </a>
+                        <a class="dropdown-item" id="select-first-80"
+                            data-toggle="tooltip"
+                            title="">
+                            Select first 80
+                        </a>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-2" id="select-none">Select none</button>
+            </form>
         </div>
     </div>
     <div class="row mt-2 text-center" style="height: 80vh;overflow-y: scroll;" id="search-results-container">

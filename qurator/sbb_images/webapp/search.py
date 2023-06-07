@@ -671,7 +671,6 @@ def has_table(table_name, data_conf):
 
 @app.route('/configuration')
 @htpasswd.required
-@cache_for(minutes=10)
 def configuration(user):
     gconf = dict()
 
@@ -798,9 +797,9 @@ def get_image_iconclass(user, data_conf, rowid=None):
 
     return jsonify(result)
 
-@app.route('/delete-image-tag/<data_conf>/<image_id>', methods=['POST'])
+@app.route('/delete-image-tag/<data_conf>', methods=['POST'])
 @htpasswd.required
-def delete_image_tag(user, data_conf, image_id):
+def delete_image_tag(user, data_conf):
 
     if not has_table('tags', data_conf):
         return "OK", 200
@@ -810,17 +809,22 @@ def delete_image_tag(user, data_conf, image_id):
     if "tag" not in request.json:
         raise BadRequest()
 
-    if conn.execute("select * from tags where image_id=? and tag=?",
-                    (image_id, request.json['tag'])).fetchone() is None:
-        return "OK", 200
+    if "ids" not in request.json:
+        raise BadRequest()
 
-    print("Deleting...")
+    for image_id in request.json['ids']:
 
-    conn.execute('BEGIN EXCLUSIVE TRANSACTION')
+        if conn.execute("select * from tags where image_id=? and tag=?",
+                        (image_id, request.json['tag'])).fetchone() is None:
+            continue
 
-    conn.execute('delete from tags where image_id=? and tag=?', (image_id, request.json['tag']))
+        # print("Deleting...")
 
-    conn.execute('COMMIT TRANSACTION')
+        conn.execute('BEGIN EXCLUSIVE TRANSACTION')
+
+        conn.execute('delete from tags where image_id=? and tag=?', (image_id, request.json['tag']))
+
+        conn.execute('COMMIT TRANSACTION')
 
     return "OK", 200
 

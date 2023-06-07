@@ -61,6 +61,16 @@ function setup_search_result_list(configuration, search, next_batch) {
                     function() {
                         $(this).tooltip('hide');
                     });
+
+//                (function(filename) {
+//                $("#card-" + image_id + "-number").click(
+//                    function () {
+//                        $(this).tooltip('hide');
+//                        console.log(filename);
+//                        navigator.clipboard.writeText(filename);
+//                    }
+//                );
+//                })(result['file']);
             }
         );
     };
@@ -210,8 +220,8 @@ function setup_search_result_list(configuration, search, next_batch) {
                                                     add_tag_info(img_id);
                                                 },
                                             error: function(){},
-                                            url: "delete-image-tag/"+ configuration.getDataConf() + "/" + img_id,
-                                            data: JSON.stringify({ "tag": tag }),
+                                            url: "delete-image-tag/"+ configuration.getDataConf(),
+                                            data: JSON.stringify({ "ids": [img_id],  "tag": tag}),
                                             type: "POST",
                                             contentType: "application/json"
                                         };
@@ -271,7 +281,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                          <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                              <div class="card-body">
                                  <div class="d-flex justify-content-between">
-                                    <span class="badge badge-light" >${result_number}</span>
+                                    <span class="badge badge-light" id="card-${result_id}-number">${result_number}</span>
                                     <input class="justify-content-end tag-selectable" type="checkbox" id="select-${result_id}" />
                                  </div>
                                  <a id="more-btn-${result_id}" class="btn btn-link" href="">
@@ -310,10 +320,16 @@ function setup_search_result_list(configuration, search, next_batch) {
                     (function(rid, dconf) {
                       $(`#more-btn-${result_id}`).click(
                         function() {
+                            $(this).tooltip('hide');
                             search(rid, dconf);
                         });
 
                       $(`#select-${result_id}`).data("image_id", result_id);
+
+                      $(`#more-btn-${result_id}`).tooltip();
+
+                      //$(`#card-${result_id}-number`).tooltip();
+
                     })(result_id, configuration.getDataConf());
                 }
             );
@@ -371,10 +387,24 @@ function setup_search_result_list(configuration, search, next_batch) {
         if (results["ids"].length > 0)  $("#tag-controls").removeClass("d-none");
     };
 
-    $("#add-tag").click(
-        function() {
-            //console.log("add-tag");
+    let tag_mode = "add";
 
+    $("#tag-select-add").click(
+        function() {
+            tag_mode = "add";
+
+            $("#tag-button").html($(this).html());
+        });
+
+    $("#tag-select-remove").click(
+        function() {
+            tag_mode = "remove";
+
+            $("#tag-button").html($(this).html());
+        });
+
+    $("#tag-button ").click(
+        function() {
             let ids = [];
             $('.tag-selectable:checkbox:checked').each(
                 function() {
@@ -388,40 +418,60 @@ function setup_search_result_list(configuration, search, next_batch) {
                     function(){
                         $.each(update_ids,
                             function(idx, uid) {
-                                //console.log(uid)
                                 add_tag_info(uid);
                             }
                         );
-
-                        //$(".tag-selectable").prop("checked", false);
                     },
                 error: function(){},
-                url: "add-image-tag/"+ configuration.getDataConf(),
-                data: JSON.stringify({ "ids" : ids, "tag": $("#add-tag-input").val() }),
+                data: JSON.stringify({ "ids" : ids, "tag": $("#tag-input").val() }),
                 type: "POST",
                 contentType: "application/json"
             };
+
+            if (tag_mode === "add") {
+                request['url'] = "add-image-tag/"+ configuration.getDataConf();
+            }
+            else if (tag_mode == "remove") {
+                request['url'] = "delete-image-tag/"+ configuration.getDataConf();
+            }
 
             $.ajax(request);
             })(ids);
         }
     );
 
-    $("#select-all").click(
+    let select_first=5;
+
+    $("#select-images").click(
         function() {
-            //console.log("select-all");
-
-            $(".tag-selectable").prop("checked", true);
-        }
-    );
-
-    $("#select-none").click(
-        function() {
-            //console.log("select-none");
-
             $(".tag-selectable").prop("checked", false);
+
+            $.each($(".tag-selectable"),
+                function(index, selectable) {
+                    if (index >= select_first) return;
+
+                    $(selectable).prop("checked", true);
+                });
         }
     );
+
+    $.each([5,10,20,40,80],
+        function(index, val) {
+
+            (function(sf) {
+            $("#select-first-" + sf).click(
+                function() {
+                    select_first = sf;
+                    $("#select-images").html(`Select first ${select_first}`);
+                });
+            })(val);
+        });
+
+     $("#select-none").click(
+         function() {
+             $(".tag-selectable").prop("checked", false);
+         }
+     );
 
     let nextBatchTimeout=null;
 

@@ -49,7 +49,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
 
     function update() {
 
-        search_pos == 0;
+        search_pos = 0;
 
         if (configuration.acceptsText() && configuration.acceptsIconclass()) {
             let drop_down_html = `
