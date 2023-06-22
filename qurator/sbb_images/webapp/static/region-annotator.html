@@ -80,7 +80,37 @@
         </div>
         <div class="col-lg-3 col-md mt-1 mb-1">
             <div class="card mt-2 mb-1 h-100">
+                <div class="card-header text-center">
+                    <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="selected-user" show_user="all">
+                        All users
+                    </button>
+
+                    <button id="user-select-button" class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    </button>
+                    <div class="dropdown-menu" id="user-select-dropdown">
+                        <a class="dropdown-item" id="select-all-users" data-toggle="tooltip" title="" data-original-title="">
+                            Select all users
+                        </a>
+                        <!--<a class="dropdown-item" id="select-user-B" data-toggle="tooltip" title="" data-original-title="">
+                            Select user B
+                        </a>
+                        <a class="dropdown-item" id="select-user-C" data-toggle="tooltip" title="" data-original-title="">
+                            Select user C
+                        </a>
+                        <a class="dropdown-item" id="select-user-D" data-toggle="tooltip" title="" data-original-title="">
+                            Select user D
+                        </a>
+                        <a class="dropdown-item" id="select-user-E" data-toggle="tooltip" title="" data-original-title="">
+                            Select user E
+                        </a>-->
+                    </div>
+                </div>
+
+                </div>
                 <div class="card-body">
+                    <div class="list-group" id="annotations-list" style="max-height: 80vh;overflow-y: scroll;">
+                    </div>
                 </div>
             </div>
         </div>

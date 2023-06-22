@@ -77,6 +77,8 @@ function makeAnnotator() {
             $("#zoom").html("");
         }
 
+        $('#annotations-list').html("");
+
         $("#configuration").addClass("d-none");
         $("#data-export").addClass("d-none");
         $("#editor").addClass("d-none");
@@ -125,6 +127,8 @@ function makeAnnotator() {
                         if (anno===null) return;
 
                         anno.removeAnnotation(annotation['id']);
+
+                        $(`#anno-item-${annotation['id'].slice(1)}`).remove();
                     }
                 );
                 access_manager.restoreReadOnlyState();
@@ -148,7 +152,10 @@ function makeAnnotator() {
         anno.on('clickAnnotation',
             function(annotation, element) {
                 console.log('clickAnnotation',annotation);
-                get_write_permit(annotation);
+
+                if (!("id" in annotation)) return;
+
+                get_write_permit(annotation["id"]);
             }
         );
 
@@ -161,7 +168,9 @@ function makeAnnotator() {
 
         anno.on('selectAnnotation',
             function(annotation, element) {
-                get_write_permit(annotation);
+                if (!("id" in annotation)) return;
+
+                get_write_permit(annotation["id"]);
                 console.log('selectAnnotation',annotation);
             }
         );
@@ -171,6 +180,8 @@ function makeAnnotator() {
                 console.log('cancelSelected', selection);
 
                 release_write_permit();
+
+                refresh(selection);
             }
         );
 
@@ -205,15 +216,32 @@ function makeAnnotator() {
         update_annotation_list();
     }
 
-    function get_write_permit(annotation) {
+    function refresh(selection) {
 
-        if (!('id' in annotation)) return;
-        if (annotation['id'] === write_permit_id) return;
+        if (selection === null) return;
+
+        if (selection === undefined) return;
+
+        let id = selection["id"];
+
+        $(`[data-id="${id}"]`).addClass("d-none");
+        (function(_id) {
+            setTimeout(
+                function() {
+                    $(`[data-id="${_id}"]`).removeClass("d-none");
+                }, 250);
+        })(id);
+    }
+
+
+    function get_write_permit(anno_id) {
+
+        if (anno_id === write_permit_id) return;
         if (write_permit !== "") release_write_permit();
 
-        write_permit_id=annotation['id'];
+        write_permit_id=anno_id;
 
-        postit('get-write-permit', {'anno_id': annotation['id'], 'last_read_time': last_read_time },
+        postit('get-write-permit', {'anno_id': anno_id, 'last_read_time': last_read_time },
             function(result) {
                 write_permit = result['write_permit'];
                 write_permit_id = result['write_permit_id'];
@@ -244,18 +272,18 @@ function makeAnnotator() {
 
     function release_write_permit() {
 
+            console.log("release_write_permit");
+
             access_manager.restoreReadOnlyState();
 
             if (write_permit === "") return;
 
-            $(".a9s-annotation").addClass("d-none");
-
             postit('release-write-permit', { 'write_permit': write_permit},
                 function() {
-                    $(".a9s-annotation").removeClass("d-none");
+                    //console.log("release-write-permit success");
                 },
                 function() {
-                    $(".a9s-annotation").removeClass("d-none");
+                    //console.log("release-write-permit error");
                 }
             );
 
@@ -304,10 +332,101 @@ function makeAnnotator() {
             $.each(annotations_update,
                 function(index, anno_info) {
 
-                    if ('annotation' in anno_info)
+                    let anno_id = anno_info['anno_id'].slice(1);
+
+                    if ('annotation' in anno_info) {
                         anno.addAnnotation(anno_info['annotation'], result['read_only']);
-                    else
+
+                        $(`[data-id="#${anno_id}"]`).attr("user", anno_info["user"]);
+
+                        if (($("#selected-user").attr("show_user") !== "all") &&
+                            ($("#selected-user").attr("show_user") !== anno_info["user"])) {
+                            $(`[data-id="#${anno_id}"]`).addClass("d-none");
+                        }
+
+                        if ($(`#anno-item-${anno_id}`).length > 0) return;
+
+                        let annotation_html=`
+                            <li class="list-group-item list-group-item-action text-left anno-item"
+                                id="anno-item-${anno_id}">
+                                <small>
+                                ID: <span class="mr-2">${anno_id}</span>
+                                <br>
+                                User: <span class="mr-2">${anno_info['user']}</span>
+                                </small>
+                            </li>
+                        `;
+
+                        $('#annotations-list').append(annotation_html);
+
+                        (function(_anno, _anno_id, anno_user, selection) {
+
+                            $(`#anno-item-${anno_id}`).on('click',
+                                function(e) {
+                                    refresh(selection);
+
+                                    get_write_permit("#" + _anno_id);
+
+                                    anno.panTo("#" + _anno_id);
+
+                                    setTimeout(
+                                        function() {
+                                            console.log('_anno.selectAnnotation:' + anno_id);
+
+                                            _anno.selectAnnotation("#" + _anno_id);
+                                        }, 250);
+
+                                    e.preventDefault();
+                                }
+                            );
+
+                            $(`#anno-item-${_anno_id}`).attr("user", anno_user);
+
+                        })(anno, anno_id, anno_info["user"], anno.getSelected());
+
+                        if (($("#selected-user").attr("show_user") !== "all") &&
+                            ($("#selected-user").attr("show_user") !== anno_info["user"])) {
+                            $(`#anno-item-${anno_id}`).addClass("d-none");
+                        }
+
+                        if ($(`#select-user-${anno_info["user"]}`).length > 0) return;
+
+                        let select_user_html = `
+                             <a class="dropdown-item" id="select-user-${anno_info['user']}" data-toggle="tooltip" title="" data-original-title="">
+                                Select user ${anno_info["user"]}
+                            </a>
+                        `;
+
+                        $("#user-select-dropdown").append(select_user_html);
+
+                        (function(anno_info){
+                            $(`#select-user-${anno_info['user']}`).click(
+                                function(e) {
+
+                                    if (anno !== null) anno.cancelSelected();
+
+                                    $("#selected-user").html(anno_info['user']);
+                                    $("#selected-user").attr("show_user", anno_info['user']);
+
+                                    $(".anno-item").addClass("d-none");
+                                    $(".a9s-annotation").addClass("d-none");
+
+                                    setTimeout(
+                                       function() {
+                                           $(`[user='${anno_info["user"]}']`).removeClass("d-none");
+                                       }, 250);
+
+                                    e.preventDefault();
+                                }
+                            );
+
+                        })(anno_info);
+                    }
+                    else {
                         anno.removeAnnotation(anno_info['anno_id']);
+
+                        $(`#anno-item-${anno_id}`).remove();
+                    }
                 }
             );
 
@@ -319,6 +438,7 @@ function makeAnnotator() {
 
             anno.clearAnnotations();
             last_read_time="";
+            $('#annotations-list').html("");
         }
         else {
             let post_data =  { "url" : img_url };
@@ -701,6 +821,22 @@ function makeAnnotator() {
         $("#image-view").on("error",
             function(evt) {
                 clear_editor();
+            }
+        );
+
+        $("#select-all-users").click(
+            function(e) {
+
+                if (anno !== null) anno.cancelSelected();
+
+                $(".anno-item").removeClass("d-none");
+                $(".a9s-annotation").removeClass("d-none");
+
+                $("#selected-user").html("All users");
+
+                $("#selected-user").attr("show_user", "all");
+
+                e.preventDefault();
             }
         );
 
