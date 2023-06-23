@@ -172,12 +172,29 @@
                         Data Export
                     </div>
 
-                    <button class="btn btn-sm btn-secondary" id="json-export">Download JSON</button>
-                    <button class="btn btn-sm btn-secondary" id="xml-export">Download Raw-XML</button>
-                    <button class="btn btn-sm btn-secondary" id="sql-export">Download Database</button>
+                    <div class="card mt-2 mb-1">
+                         <div class="card-body">
+                             <div class="card-title text-center mt-3">
+                                Urls and Users to export
+                           </div>
+                           <div class="list-group" id="export-url-list"
+                                style="max-height:50vh; overflow-y: scroll;">
+                           </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <button class="btn btn-sm btn-secondary" id="json-export">Download JSON</button>
+                        <button class="btn btn-sm btn-secondary" id="xml-export">Download Raw-XML</button>
+
+
+                        <button class="btn btn-sm btn-secondary float-right ml-2" id="export-select-all">Select All</button>
+                        <button class="btn btn-sm btn-secondary float-right" id="export-select-none">Select None</button>
+                    </div>
                 </div>
 
                 <div class="card-footer text-right">
+                    <button class="btn btn btn-primary float-left" id="sql-export">Download Database Backup</button>
                     <button class="btn btn-primary back-to-editor">Back</button>
                 </div>
             </div>

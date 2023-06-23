@@ -352,6 +352,30 @@ def get_annotations(user):
     return jsonify({'annotations': annotations_update, 'read_time': str(read_time)})
 
 
+@app.route('/get-annotated-urls', methods=['POST'])
+@htpasswd.required
+def get_annotated_urls(user):
+
+    if user in app.config['ADMIN_USERS'] or app.config['COOPERATIVE_ACCESS']:
+        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, last_write_time "
+                              "FROM annotations", con=get_db())
+    else:
+        df_anno = pd.read_sql("SELECT anno_id, url, user, anno_json, state, last_write_time "
+                              "FROM annotations WHERE user=?", con=get_db(), params=(user,))
+
+    df_anno = df_anno.sort_values("url")
+
+    df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
+
+    ret = []
+
+    for url, part in df_anno.groupby("url"):
+
+        ret.append({"url": url, "users": part.user.unique().tolist()})
+
+    return jsonify(ret)
+
+
 @app.route('/get-url-patterns', methods=['POST'])
 @htpasswd.required
 def get_url_patterns(user):
@@ -539,7 +563,18 @@ def data_export(user):
     if user not in app.config['ADMIN_USERS']:
         raise Unauthorized()
 
+    if "export_type" not in request.json:
+        raise BadRequest()
+
+    if "selection" not in request.json:
+        raise BadRequest()
+
     export_type = request.json['export_type']
+
+    selection = request.json["selection"]
+
+    if export_type is not "sqlite" and len(selection) == 0:
+        raise BadRequest()
 
     get_db().execute("VACUUM")
 
@@ -552,7 +587,14 @@ def data_export(user):
 
         df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
 
-        data = [json.loads(df_anno.iloc[i].anno_json) for i in range(len(df_anno))]
+        df_anno = df_anno.loc[df_anno.url.isin(selection)]
+
+        df_export = []
+        for url, part in df_anno.groupby("url"):
+            df_export.append(part.loc[part.user.isin(selection[url])])
+        df_export = pd.concat(df_export)
+
+        data = [json.loads(df_export.iloc[i].anno_json) for i in range(len(df_export))]
 
         return jsonify({'data': data, 'mimetype': 'application/json', 'filename': filename + '.json'})
 
@@ -565,7 +607,14 @@ def data_export(user):
 
         df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
 
-        data = [json.loads(df_anno.iloc[i].anno_json) for i in range(len(df_anno))]
+        df_anno = df_anno.loc[df_anno.url.isin(selection)]
+
+        df_export = []
+        for url, part in df_anno.groupby("url"):
+            df_export.append(part.loc[part.user.isin(selection[url])])
+        df_export = pd.concat(df_export)
+
+        data = [json.loads(df_export.iloc[i].anno_json) for i in range(len(df_export))]
 
         images = dict()
 

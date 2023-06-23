@@ -177,7 +177,7 @@ function makeAnnotator() {
 
         anno.on('cancelSelected',
             function(selection) {
-                console.log('cancelSelected', selection);
+                //console.log('cancelSelected', selection);
 
                 release_write_permit();
 
@@ -272,7 +272,7 @@ function makeAnnotator() {
 
     function release_write_permit() {
 
-            console.log("release_write_permit");
+            //console.log("release_write_permit");
 
             access_manager.restoreReadOnlyState();
 
@@ -321,116 +321,162 @@ function makeAnnotator() {
         $("#image-view").attr("src", img_url);
     }
 
+    function selectUser(user) {
+        if ((anno !== null) && (anno.getSelected() !== undefined)){
+
+            anno.cancelSelected();
+
+            (function(user) {
+            setTimeout(
+                function(){
+                    release_write_permit();
+
+                    selectUser(user);
+                }, 250);
+            })(user);
+
+            return;
+        }
+        else if ((anno === null) && (user !== "all")) {
+            selectUser("all");
+            return;
+        }
+
+        if (user === "all") {
+            $("#selected-user").html("All users");
+
+            $(".anno-item").removeClass("d-none");
+            $(".a9s-annotation").addClass("d-none");
+            $("#selected-user").attr("show_user", "all");
+
+            setTimeout(
+               function() {
+                   $(".a9s-annotation").removeClass("d-none");
+               }, 250
+            );
+            return;
+        }
+
+        $("#selected-user").html(user);
+        $("#selected-user").attr("show_user", user);
+
+        $(".anno-item").addClass("d-none");
+        $(".a9s-annotation").addClass("d-none");
+
+        (function(user) {
+            setTimeout(
+               function() {
+                   $(`[user='${user}']`).removeClass("d-none");
+               }, 250
+            );
+        })(user);
+    }
+
     function update_annotation_list() {
         function render_list(result) {
 
-            let read_time = result['read_time'];
-            let annotations_update = result['annotations'];
-
             if (anno === null) return;
 
-            $.each(annotations_update,
-                function(index, anno_info) {
+            (function(read_time, annotations_update) {
 
-                    let anno_id = anno_info['anno_id'].slice(1);
+                last_read_time = read_time;
 
-                    if ('annotation' in anno_info) {
-                        anno.addAnnotation(anno_info['annotation'], result['read_only']);
+                $.each(annotations_update,
+                    function(index, anno_info) {
 
-                        $(`[data-id="#${anno_id}"]`).attr("user", anno_info["user"]);
+                        let anno_id = anno_info['anno_id'].slice(1);
 
-                        if (($("#selected-user").attr("show_user") !== "all") &&
-                            ($("#selected-user").attr("show_user") !== anno_info["user"])) {
-                            $(`[data-id="#${anno_id}"]`).addClass("d-none");
+                        if (!('annotation' in anno_info)) {
+                            anno.removeAnnotation(anno_info['anno_id']);
+
+                            $(`#anno-item-${anno_id}`).remove();
                         }
+                        else {
+                            anno.addAnnotation(anno_info['annotation'], result['read_only']);
 
-                        if ($(`#anno-item-${anno_id}`).length > 0) return;
+                            (function(anno_id, user) {
+                                setTimeout(
+                                    function() {
+                                        $(`[data-id="#${anno_id}"]`).attr("user", user);
 
-                        let annotation_html=`
-                            <li class="list-group-item list-group-item-action text-left anno-item"
-                                id="anno-item-${anno_id}">
-                                <small>
-                                ID: <span class="mr-2">${anno_id}</span>
-                                <br>
-                                User: <span class="mr-2">${anno_info['user']}</span>
-                                </small>
-                            </li>
-                        `;
+                                        if (($("#selected-user").attr("show_user") !== "all") &&
+                                            ($("#selected-user").attr("show_user") !== user)) {
+                                            $(`[data-id="#${anno_id}"]`).addClass("d-none");
+                                        }
+                                    }, 250);
+                            })(anno_id, anno_info["user"]);
 
-                        $('#annotations-list').append(annotation_html);
+                            if ($(`#anno-item-${anno_id}`).length > 0) return;
 
-                        (function(_anno, _anno_id, anno_user, selection) {
+                            let annotation_html=`
+                                <li class="list-group-item list-group-item-action text-left anno-item"
+                                    id="anno-item-${anno_id}">
+                                    <small>
+                                    ID: <span class="mr-2">${anno_id}</span>
+                                    <br>
+                                    User: <span class="mr-2">${anno_info['user']}</span>
+                                    </small>
+                                </li>
+                            `;
 
-                            $(`#anno-item-${anno_id}`).on('click',
-                                function(e) {
-                                    refresh(selection);
+                            $('#annotations-list').append(annotation_html);
 
-                                    get_write_permit("#" + _anno_id);
+                            (function(_anno, _anno_id, anno_user, selection) {
 
-                                    anno.panTo("#" + _anno_id);
+                                $(`#anno-item-${anno_id}`).on('click',
+                                    function(e) {
+                                        refresh(selection);
 
-                                    setTimeout(
-                                        function() {
-                                            console.log('_anno.selectAnnotation:' + anno_id);
+                                        get_write_permit("#" + _anno_id);
 
-                                            _anno.selectAnnotation("#" + _anno_id);
-                                        }, 250);
+                                        anno.panTo("#" + _anno_id);
 
-                                    e.preventDefault();
-                                }
-                            );
+                                        setTimeout(
+                                            function() {
+                                                console.log('_anno.selectAnnotation:' + anno_id);
 
-                            $(`#anno-item-${_anno_id}`).attr("user", anno_user);
+                                                _anno.selectAnnotation("#" + _anno_id);
+                                            }, 250);
 
-                        })(anno, anno_id, anno_info["user"], anno.getSelected());
+                                        e.preventDefault();
+                                    }
+                                );
 
-                        if (($("#selected-user").attr("show_user") !== "all") &&
-                            ($("#selected-user").attr("show_user") !== anno_info["user"])) {
-                            $(`#anno-item-${anno_id}`).addClass("d-none");
+                                $(`#anno-item-${_anno_id}`).attr("user", anno_user);
+
+                            })(anno, anno_id, anno_info["user"], anno.getSelected());
+
+                            if (($("#selected-user").attr("show_user") !== "all") &&
+                                ($("#selected-user").attr("show_user") !== anno_info["user"])) {
+                                $(`#anno-item-${anno_id}`).addClass("d-none");
+                            }
+
+                            if ($(`#select-user-${anno_info["user"]}`).length > 0) return;
+
+                            let select_user_html = `
+                                 <a class="dropdown-item" id="select-user-${anno_info['user']}"
+                                    data-toggle="tooltip" title="" data-original-title="">
+                                    Select user ${anno_info["user"]}
+                                </a>
+                            `;
+
+                            $("#user-select-dropdown").append(select_user_html);
+
+                            (function(anno_info){
+                                $(`#select-user-${anno_info['user']}`).click(
+                                    function(e) {
+                                        selectUser(anno_info['user']);
+
+                                        e.preventDefault();
+                                    }
+                                );
+                            })(anno_info);
                         }
-
-                        if ($(`#select-user-${anno_info["user"]}`).length > 0) return;
-
-                        let select_user_html = `
-                             <a class="dropdown-item" id="select-user-${anno_info['user']}" data-toggle="tooltip" title="" data-original-title="">
-                                Select user ${anno_info["user"]}
-                            </a>
-                        `;
-
-                        $("#user-select-dropdown").append(select_user_html);
-
-                        (function(anno_info){
-                            $(`#select-user-${anno_info['user']}`).click(
-                                function(e) {
-
-                                    if (anno !== null) anno.cancelSelected();
-
-                                    $("#selected-user").html(anno_info['user']);
-                                    $("#selected-user").attr("show_user", anno_info['user']);
-
-                                    $(".anno-item").addClass("d-none");
-                                    $(".a9s-annotation").addClass("d-none");
-
-                                    setTimeout(
-                                       function() {
-                                           $(`[user='${anno_info["user"]}']`).removeClass("d-none");
-                                       }, 250);
-
-                                    e.preventDefault();
-                                }
-                            );
-
-                        })(anno_info);
                     }
-                    else {
-                        anno.removeAnnotation(anno_info['anno_id']);
+                );
 
-                        $(`#anno-item-${anno_id}`).remove();
-                    }
-                }
-            );
 
-            last_read_time = read_time;
+             })(result['read_time'], result['annotations']);
         }
 
         if (!access_manager.hasUser()) {
@@ -466,17 +512,77 @@ function makeAnnotator() {
         $('#url-selection').addClass('d-none');
         $('#configuration').addClass('d-none');
         $('#data-export').removeClass('d-none');
+
+        render_export_list();
+    }
+
+    function render_export_list() {
+        postit("get-annotated-urls", {},
+            function(results) {
+                $('#export-url-list').html("");
+
+                if (results.length==0) {
+                    $('#export-url-list').html(`<li><span></span></li>`);
+                    return;
+                }
+
+                let export_url_list_html="";
+
+                $.each(results,
+                    function(index, result) {
+
+                        let user_badges_html="";
+
+                        $.each(result.users,
+                            function(user_index, user) {
+                                user_badges_html +=
+                                    `<span class="badge badge-pill badge-light badge-primary float-right  align-self-center">
+                                         ${user}
+                                         <input class="export-select float-right align-self-center ml-2"
+                                        type="checkbox" id="export-select-${index}-${user_index}"/>
+                                     </span>`;
+                            }
+                        );
+
+                        let item_html=`
+                            <li class="list-group-item list-group-item-action text-left"
+                                id="export-item-${index}">
+                                <small>
+                                <span class="mr-2 align-self-center">${result.url}</span>
+                                </small>
+                                ${user_badges_html}
+                            </li>
+                        `;
+
+                        export_url_list_html += item_html;
+                    }
+                );
+
+                $('#export-url-list').html(export_url_list_html);
+
+                $.each(results,
+                    function(index, result) {
+                        $.each(result.users,
+                            function(user_index, user) {
+                                $(`#export-select-${index}-${user_index}`).data("url", result.url);
+                                $(`#export-select-${index}-${user_index}`).data("user", user);
+                            });
+                    }
+                );
+            }
+        );
     }
 
     function showEditor() {
         $('#url-selection').removeClass('d-none');
+
         if ($("#image-view").attr('src').length > 0)
-        //$('#editor').removeClass('d-none');
+            $('#editor').removeClass('d-none');
 
         $('#configuration').addClass('d-none');
         $('#data-export').addClass('d-none');
 
-        clear_editor();
+        //clear_editor();
         annotation_url_submit();
     }
 
@@ -827,14 +933,7 @@ function makeAnnotator() {
         $("#select-all-users").click(
             function(e) {
 
-                if (anno !== null) anno.cancelSelected();
-
-                $(".anno-item").removeClass("d-none");
-                $(".a9s-annotation").removeClass("d-none");
-
-                $("#selected-user").html("All users");
-
-                $("#selected-user").attr("show_user", "all");
+                selectUser("all");
 
                 e.preventDefault();
             }
@@ -907,54 +1006,92 @@ function makeAnnotator() {
         );
 
         $("#conf-url").on('input',
-            function() {
-                postit('has-url-pattern', {'url_pattern': $("#conf-url").val()},
-                    function() {
-                        $("#add-url").prop('disabled', true);
-                        $("#change-url").prop('disabled', false);
-                        $("#delete-url").prop('disabled', false);
-                    },
-                    function() {
-                        $("#add-url").prop('disabled', false);
-                        $("#change-url").prop('disabled', true);
-                        $("#delete-url").prop('disabled', true);
-                    }
-                );
-            }
-         );
+           function() {
+               postit('has-url-pattern', {'url_pattern': $("#conf-url").val()},
+                   function() {
+                       $("#add-url").prop('disabled', true);
+                       $("#change-url").prop('disabled', false);
+                       $("#delete-url").prop('disabled', false);
+                   },
+                   function() {
+                       $("#add-url").prop('disabled', false);
+                       $("#change-url").prop('disabled', true);
+                       $("#delete-url").prop('disabled', true);
+                   }
+               );
+           }
+        );
 
-         $("#json-export").click(
-            function() {
-                postit('data-export',{'export_type': 'json'},
-                    function(result) {
-                        openSaveFileDialog(
-                            JSON.stringify(result['data'], null, 2), result['filename'], 'text/plain');
-                    }
-                );
-            }
-         );
+        function get_export_selection() {
+            selected_urls = {};
 
-         $("#xml-export").click(
-            function() {
-                postit('data-export',{'export_type': 'xml'},
-                    function(response, status, xhr) {
-                        content_disp = xhr.getResponseHeader('Content-Disposition');
-                        openSaveFileDialog(response, content_disp.match(/.*filename=(.*)$/)[1]);
-                    }
-                );
-            }
-         );
+            $('.export-select:checkbox:checked').each(
+                function() {
+                    let url = $(this).data("url");
+                    let user = $(this).data("user");
 
-         $("#sql-export").click(
-            function() {
-                postit('data-export',{'export_type': 'sqlite'},
-                    function(response, status, xhr) {
-                        content_disp = xhr.getResponseHeader('Content-Disposition');
-                        openSaveFileDialog(response, content_disp.match(/.*filename=(.*)$/)[1]);
+                    if (!(url in selected_urls)) {
+                        selected_urls[url] = [];
                     }
-                );
-            }
-         );
+
+                    selected_urls[url].push(user);
+                });
+
+            return selected_urls;
+        }
+
+
+        $("#json-export").click(
+           function() {
+
+               selected_urls = get_export_selection();
+
+               postit('data-export',{'export_type': 'json', 'selection': selected_urls},
+                   function(result) {
+                       openSaveFileDialog(
+                           JSON.stringify(result['data'], null, 2), result['filename'], 'text/plain');
+                   }
+               );
+           }
+        );
+
+        $("#xml-export").click(
+           function() {
+               selected_urls = get_export_selection();
+
+               postit('data-export',{'export_type': 'xml', 'selection': selected_urls},
+                   function(response, status, xhr) {
+                       content_disp = xhr.getResponseHeader('Content-Disposition');
+                       openSaveFileDialog(response, content_disp.match(/.*filename=(.*)$/)[1]);
+                   }
+               );
+           }
+        );
+
+        $("#sql-export").click(
+           function() {
+               selected_urls = get_export_selection();
+
+               postit('data-export',{'export_type': 'sqlite', 'selection': selected_urls},
+                   function(response, status, xhr) {
+                       content_disp = xhr.getResponseHeader('Content-Disposition');
+                       openSaveFileDialog(response, content_disp.match(/.*filename=(.*)$/)[1]);
+                   }
+               );
+           }
+        );
+
+        $("#export-select-all").click(
+           function() {
+              $(".export-select").prop("checked", true);
+           }
+        );
+
+        $("#export-select-none").click(
+           function() {
+              $(".export-select").prop("checked", false);
+           }
+        );
 
         let url_params = new URLSearchParams(window.location.search);
 
