@@ -106,19 +106,21 @@ function makeAnnotator() {
 
         anno.on('createAnnotation',
             function(annotation, overrideId) {
-                console.log('createAnnotation',annotation);
+                //console.log('createAnnotation',annotation);
                 add_annotation(annotation,
                     function() {
                         update_annotation_list();
                     }
                 );
                 access_manager.restoreReadOnlyState();
+
+                selectUser(access_manager.getUser());
             }
         );
 
         anno.on('deleteAnnotation',
             function(annotation) {
-                console.log('deleteAnnotation',annotation);
+                //console.log('deleteAnnotation',annotation);
                 delete_annotation(annotation['id'],
                     function() {
                         write_permit="";
@@ -151,7 +153,7 @@ function makeAnnotator() {
 
         anno.on('clickAnnotation',
             function(annotation, element) {
-                console.log('clickAnnotation',annotation);
+                //console.log('clickAnnotation',annotation);
 
                 if (!("id" in annotation)) return;
 
@@ -162,7 +164,6 @@ function makeAnnotator() {
         /*anno.on('startSelection',
             function(e) {
                 console.log('startSelection',e);
-
             }
         );*/
 
@@ -171,7 +172,7 @@ function makeAnnotator() {
                 if (!("id" in annotation)) return;
 
                 get_write_permit(annotation["id"]);
-                console.log('selectAnnotation',annotation);
+                //console.log('selectAnnotation',annotation);
             }
         );
 
@@ -266,6 +267,8 @@ function makeAnnotator() {
             function(error) {
                 anno.readOnly=true;
                 write_permit_id="";
+
+                //console.log("anno.readOnly", anno.readOnly, write_permit_id);
             }
         );
     }
@@ -392,7 +395,8 @@ function makeAnnotator() {
                             $(`#anno-item-${anno_id}`).remove();
                         }
                         else {
-                            anno.addAnnotation(anno_info['annotation'], result['read_only']);
+                            //console.log(anno_info['read_only']);
+                            anno.addAnnotation(anno_info['annotation'], anno_info['read_only']);
 
                             (function(anno_id, user) {
                                 setTimeout(
@@ -423,20 +427,20 @@ function makeAnnotator() {
 
                             (function(_anno, _anno_id, anno_user, selection) {
 
-                                $(`#anno-item-${anno_id}`).on('click',
+                                $(`#anno-item-${_anno_id}`).on('click',
                                     function(e) {
                                         refresh(selection);
-
-                                        get_write_permit("#" + _anno_id);
 
                                         anno.panTo("#" + _anno_id);
 
                                         setTimeout(
                                             function() {
-                                                console.log('_anno.selectAnnotation:' + anno_id);
+                                                //console.log('_anno.selectAnnotation:' + anno_id);
 
                                                 _anno.selectAnnotation("#" + _anno_id);
-                                            }, 250);
+
+                                                get_write_permit("#" + _anno_id);
+                                            }, 400);
 
                                         e.preventDefault();
                                     }
@@ -750,7 +754,8 @@ function makeAnnotator() {
             restoreReadOnlyState:
                 function() {
                     anno.readOnly = read_only_state;
-                }
+                },
+            getUser: function() { return basic_auth.getUser(); }
         };
 
         basic_auth.getUser();

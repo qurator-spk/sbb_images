@@ -20,6 +20,7 @@ setup(
     install_requires=install_requires,
     entry_points={
       'console_scripts': [
+        "create-accounts=qurator.sbb_images.webapp.cli:create_accounts",
         "create-database=qurator.sbb_images.cli:create_database",
         "create-thumbnails=qurator.sbb_images.cli:create_thumbnails",
         "model-selection=qurator.sbb_images.cli:model_selection",
