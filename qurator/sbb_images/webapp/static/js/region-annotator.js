@@ -535,25 +535,36 @@ function makeAnnotator() {
                 $.each(results,
                     function(index, result) {
 
-                        let user_badges_html="";
+                        let user_badges_html=`<div class="d-flex">`;
 
                         $.each(result.users,
                             function(user_index, user) {
                                 user_badges_html +=
-                                    `<span class="badge badge-pill badge-light badge-primary float-right  align-self-center">
-                                         ${user}
-                                         <input class="export-select float-right align-self-center ml-2"
+                                    `<span class="d-flex badge badge-pill badge-light badge-primary">
+                                         <span class="align-self-center"> ${user} </span>
+                                         <input class="export-select align-self-center ml-2"
                                         type="checkbox" id="export-select-${index}-${user_index}"/>
                                      </span>`;
                             }
                         );
 
+                        user_badges_html +="</div>";
+
+                        let description_html = "";
+                        if (result.description.length > 0) {
+                            description_html = `<span class="align-self-center ml-3">[${result.description}] </span>`;
+                        }
+
+
                         let item_html=`
-                            <li class="list-group-item list-group-item-action text-left"
+                            <li class="d-flex list-group-item list-group-item-action text-left justify-content-between"
                                 id="export-item-${index}">
+                                <div>
                                 <small>
-                                <span class="mr-2 align-self-center">${result.url}</span>
+                                <span class="align-self-center">${result.url}</span>
+                                ${description_html}
                                 </small>
+                                </div>
                                 ${user_badges_html}
                             </li>
                         `;

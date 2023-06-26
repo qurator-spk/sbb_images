@@ -237,7 +237,9 @@ def add_annotation(user):
     anno_id = annotation['id']
     url = annotation['target']['source']
 
-    if not _match_url(url):
+    matches, description =  _match_url(url)
+
+    if not matches:
         raise BadRequest()
 
     anno_json = json.dumps(annotation)
@@ -367,11 +369,18 @@ def get_annotated_urls(user):
 
     df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
 
+    df_url_patterns = pd.read_sql("SELECT url_pattern, description FROM target_patterns", con=get_db())
+
     ret = []
 
     for url, part in df_anno.groupby("url"):
 
-        ret.append({"url": url, "users": part.user.unique().tolist()})
+        matches, description = _match_url(url, url_patterns=df_url_patterns)
+
+        if not matches:
+            continue
+
+        ret.append({"url": url, "description": description, "users": part.user.unique().tolist()})
 
     return jsonify(ret)
 
@@ -484,15 +493,18 @@ def has_url_pattern(user):
     raise BadRequest()
 
 
-def _match_url(url):
+def _match_url(url, url_patterns=None):
 
-    df_url_patterns = pd.read_sql("SELECT url_pattern, description FROM target_patterns", con=get_db())
+    if url_patterns is None:
+        df_url_patterns = pd.read_sql("SELECT url_pattern, description FROM target_patterns", con=get_db())
+    else:
+        df_url_patterns = url_patterns
 
     for _, (url_pattern, description) in df_url_patterns.iterrows():
         if urlmatch(url_pattern, url):
-            return True
+            return True, description
 
-    return False
+    return False, ""
 
 
 @app.route('/match-url', methods=['POST'])
@@ -501,7 +513,9 @@ def match_url(user):
 
     url = request.json['url']
 
-    if _match_url(url):
+    matches, description = _match_url(url)
+
+    if matches:
         return "OK", 200
 
     raise BadRequest()
