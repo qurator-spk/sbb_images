@@ -536,11 +536,19 @@ def suggestions(user):
 
     df_url_patterns = pd.read_sql("SELECT url_pattern, description FROM target_patterns", con=get_db())
 
-    df_urls = pd.read_sql("SELECT url FROM annotations", con=get_db())
-    df_urls['description'] = ''
-    df_urls = df_urls.rename(columns={'url': 'url_pattern'})
+    df_urls = pd.read_sql("SELECT url FROM annotations", con=get_db()). \
+        drop_duplicates(subset=['url'], keep='first')
 
-    df_url_patterns = pd.concat([df_url_patterns, df_urls]).\
+    df_urls_filtered = []
+    for _, (url,) in df_urls.iterrows():
+        match, description = _match_url(url, url_patterns=df_url_patterns)
+
+        if match:
+            df_urls_filtered.append((url, description))
+
+    df_urls_filtered = pd.DataFrame(df_urls_filtered, columns=['url_pattern', 'description'])
+
+    df_url_patterns = pd.concat([df_url_patterns, df_urls_filtered]).\
         drop_duplicates(subset=['url_pattern'], keep='first')
 
     df_url_patterns['is_generic'] = df_url_patterns.url_pattern.str.contains('\*')
