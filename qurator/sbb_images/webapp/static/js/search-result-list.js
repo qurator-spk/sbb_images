@@ -463,6 +463,13 @@ function setup_search_result_list(configuration, search, next_batch) {
                 function() {
                     select_first = sf;
                     $("#select-images").html(`Select first ${select_first}`);
+
+                    $.each($(".tag-selectable"),
+                        function(index, selectable) {
+                            if (index >= select_first) return;
+
+                            $(selectable).prop("checked", true);
+                        });
                 });
             })(val);
         });
