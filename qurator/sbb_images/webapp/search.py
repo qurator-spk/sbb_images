@@ -912,7 +912,7 @@ def get_spreadsheet(user, data_conf):
 
             df.loc[idx, "tags"] = ",".join(sorted(tags.tag.tolist()))
 
-    df = df.sort_values('file')
+    # df = df.sort_values('file')
 
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='xlsxwriter') as ew:
