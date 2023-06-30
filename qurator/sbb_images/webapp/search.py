@@ -709,6 +709,7 @@ def has_iconclass(user, data_conf):
     del user
     return jsonify(has_table('iconclass', data_conf))
 
+
 @app.route('/hastags/<data_conf>')
 @htpasswd.required
 def has_tags(user, data_conf):
@@ -797,6 +798,7 @@ def get_image_iconclass(user, data_conf, rowid=None):
 
     return jsonify(result)
 
+
 @app.route('/delete-image-tag/<data_conf>', methods=['POST'])
 @htpasswd.required
 def delete_image_tag(user, data_conf):
@@ -828,6 +830,7 @@ def delete_image_tag(user, data_conf):
 
     return "OK", 200
 
+
 @app.route('/add-image-tag/<data_conf>', methods=['POST'])
 @htpasswd.required
 def add_image_tag(user, data_conf):
@@ -853,26 +856,81 @@ def add_image_tag(user, data_conf):
     for image_id in request.json['ids']:
         if conn.execute("select * from tags where image_id=? and tag=?",
                         (image_id, request.json['tag'])).fetchone() is not None:
-            print("continue")
+            # print("continue")
             continue
-
 
         conn.execute('insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)',
                      (image_id,request.json['tag'], user, datetime.now()))
 
-        print("insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)");
+        # print("insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)")
 
     conn.execute('COMMIT TRANSACTION')
 
     return "OK", 200
 
 
+@app.route('/get-spreadsheet/<data_conf>', methods=['POST'])
+@htpasswd.required
+def get_spreadsheet(user, data_conf):
+    del user
+
+    conn = thread_store.get_db(data_conf)
+
+    if "ids" not in request.json:
+        raise BadRequest()
+
+    ids = request.json['ids']
+
+    filename = data_conf + ".xlsx"
+
+    df = []
+    for row_id in ids:
+
+        part = pd.read_sql("SELECT * from images WHERE rowid=?", con=conn, params=(row_id,))
+
+        if len(part) < 1:
+            continue
+
+        df.append(part)
+
+    if len(df) < 1:
+        raise NotFound()
+
+    df = pd.concat(df).rename(columns={'index': 'image_id'})
+
+    df['tags'] = ""
+    df = df[['image_id', 'file', 'tags']].reset_index(drop=True)
+
+    if has_table('tags', data_conf):
+
+        for idx, (image_id, file, tag) in df.iterrows():
+
+            tags = pd.read_sql("SELECT * from tags WHERE image_id=?", con=conn, params=(image_id+1,))
+
+            if len(tags) == 0:
+                continue
+
+            df.loc[idx, "tags"] = ",".join(sorted(tags.tag.tolist()))
+
+    df = df.sort_values('file')
+
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as ew:
+
+        df.to_excel(ew)
+
+    buffer.seek(0)
+
+    response = send_file(buffer, attachment_filename=filename,
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                         as_attachment=True)
+    return response
+
+
 @app.route('/image-tags/<data_conf>/<image_id>')
 @htpasswd.required
 def get_image_tags(user, data_conf, image_id=None):
     del user
-
-    #result = [{'tag' : 'test', 'user': 'klabusch', 'timestamp' : datetime.now()}]
 
     if not has_table('tags', data_conf):
 
@@ -883,7 +941,7 @@ def get_image_tags(user, data_conf, image_id=None):
     result = []
     for _, (index, image_id, tag, user, timestamp) in tag_info.iterrows():
 
-        result.append({ 'tag': tag, 'user': user, 'timestamp': timestamp})
+        result.append({'tag': tag, 'user': user, 'timestamp': timestamp})
 
     return jsonify(result)
 

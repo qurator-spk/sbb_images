@@ -403,7 +403,7 @@ function setup_search_result_list(configuration, search, next_batch) {
             $("#tag-button").html($(this).html());
         });
 
-    $("#tag-button ").click(
+    $("#tag-button").click(
         function() {
             let ids = [];
             $('.tag-selectable:checkbox:checked').each(
@@ -471,6 +471,37 @@ function setup_search_result_list(configuration, search, next_batch) {
          function() {
              $(".tag-selectable").prop("checked", false);
          }
+     );
+
+     $("#get-spreadsheet").click(
+        function() {
+            let ids = [];
+            $('.tag-selectable:checkbox:checked').each(
+                function() {
+                    ids.push($(this).data("image_id"));
+                }
+            );
+
+            (function(ids) {
+            let xhttp = new XMLHttpRequest();
+
+            xhttp.onreadystatechange = function() {
+                    if ((this.readyState !== 4) || (this.status !== 200)) return;
+
+                    let downloadUrl = URL.createObjectURL(xhttp.response);
+                    let alink = document.createElement("a");
+                    document.body.appendChild(alink);
+                    alink.style = "display: none";
+                    alink.href = downloadUrl;
+                    alink.download = xhttp.getResponseHeader("content-disposition").match(/.*filename=(.*)$/)[1];
+                    alink.click();
+            };
+            xhttp.open("POST", "get-spreadsheet/" + configuration.getDataConf(), true);
+            xhttp.setRequestHeader("Content-Type", "application/json");
+            xhttp.responseType = "blob";
+            xhttp.send(JSON.stringify({ "ids" : ids}));
+            })(ids);
+        }
      );
 
     let nextBatchTimeout=null;
