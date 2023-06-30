@@ -897,6 +897,7 @@ def get_spreadsheet(user, data_conf):
         raise NotFound()
 
     df = pd.concat(df).rename(columns={'index': 'image_id'})
+    df['image_id'] += 1
 
     df['tags'] = ""
     df = df[['image_id', 'file', 'tags']].reset_index(drop=True)
@@ -905,7 +906,7 @@ def get_spreadsheet(user, data_conf):
 
         for idx, (image_id, file, tag) in df.iterrows():
 
-            tags = pd.read_sql("SELECT * from tags WHERE image_id=?", con=conn, params=(image_id+1,))
+            tags = pd.read_sql("SELECT * from tags WHERE image_id=?", con=conn, params=(image_id,))
 
             if len(tags) == 0:
                 continue
