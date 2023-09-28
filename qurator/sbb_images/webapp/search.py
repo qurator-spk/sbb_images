@@ -471,17 +471,27 @@ def get_similar_by_filename(user, conf, start=0, count=100):
     search_pattern = request.json['pattern']
     print(search_pattern)
 
-    df_files = pd.read_sql('SELECT rowid, file from images', con=thread_store.get_db(data_conf))
+    img = pd.read_sql('SELECT rowid, file, x,y,width,height from images',
+                      con=thread_store.get_db(data_conf))
+
+    img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
+
+    df_files = img[['rowid', 'file']]
+
+    # df_files = pd.read_sql('SELECT rowid, file from images', con=thread_store.get_db(data_conf))
 
     found = []
-    for _, (rowid, file) in df_files.iterrows():
-        if fnmatch(file, search_pattern):
-            found.append(rowid)
+    for _, row in df_files.iterrows():
+
+        if fnmatch(row.file, search_pattern):
+            found.append(row.rowid)
 
         if len(found) >= start + count:
             break;
 
-    return jsonify({'ids': found[start:start+count]})
+    found = found[start:start+count]
+
+    return jsonify({'ids': found})
 
 
 @app.route('/similar-by-iconclass/<conf>', methods=['POST'])
@@ -694,6 +704,18 @@ def get_image_ids(user, data_conf):
         return jsonify("")
 
     return jsonify(df.rowid.tolist())
+
+
+@app.route('/hassaliencymodel')
+@htpasswd.required
+def hassaliencymodel():
+
+    predict_saliency, predict_transform = thread_store.get_saliency_model()
+
+    if predict_saliency is not None and predict_transform is not None:
+        return jsonify(True)
+
+    return jsonify(False)
 
 
 @app.route('/haslinks/<data_conf>')
