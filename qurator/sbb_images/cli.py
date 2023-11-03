@@ -740,8 +740,8 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     extract_features_orig, extract_transform, normalization = \
         load_extraction_model(model_name, layer_name, layer_output,
-                              vit_model=None if model_name is not "VST" else vit_model,
-                              vst_model=None if model_name is not "VST" else vst_model,
+                              vit_model=None if model_name != "VST" else vit_model,
+                              vst_model=None if model_name != "VST" else vst_model,
                               clip_model=clip_model, ms_clip_model=ms_clip_model)
 
     if use_saliency_mask:
