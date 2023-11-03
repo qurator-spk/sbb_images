@@ -1,4 +1,4 @@
-from multiprocessing import Pool, get_context
+import multiprocessing as mp
 import gc
 
 
@@ -25,7 +25,16 @@ def run(tasks, **kwargs):
 
             return
 
-    with Pool(**kwargs) as pool:
+    if 'method' in kwargs:
+
+        context = mp.get_context(kwargs['method'])
+
+        del kwargs['method']
+
+    else:
+        context = mp.get_context()
+
+    with context.Pool(**kwargs) as pool:
         for it, result in enumerate(pool.imap(_run, tasks)):
 
             yield result
@@ -59,7 +68,16 @@ def run_unordered(tasks, **kwargs):
 
             return
 
-    with Pool(**kwargs) as pool:
+    if 'method' in kwargs:
+
+        context = mp.get_context(kwargs['method'])
+
+        del kwargs['method']
+
+    else:
+        context = mp.get_context()
+
+    with context.Pool(**kwargs) as pool:
 
         for it, result in enumerate(pool.imap_unordered(_run, tasks)):
 

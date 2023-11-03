@@ -28,9 +28,10 @@ from annoy import AnnoyIndex
 
 from flask_cachecontrol import (cache_for)
 
-from fnmatch import fnmatch
+from ..parallel_fnmatch import fnmatch
 
-# from torchvision import transforms
+import iconclass
+
 
 app = flask.Flask(__name__)
 
@@ -53,7 +54,7 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-print(app.config['PASSWD_FILE'])
+# print(app.config['PASSWD_FILE'])
 
 if len(app.config['PASSWD_FILE']) > 0 and os.path.exists(os.path.join(os.getcwd(), app.config['PASSWD_FILE'])):
     app.config['FLASK_HTPASSWD_PATH'] = os.path.join(os.getcwd(), app.config['PASSWD_FILE'])
@@ -65,8 +66,6 @@ else:
 
 htpasswd = HtPasswdAuth(app)
 
-import iconclass
-
 
 class ThreadStore:
 
@@ -75,6 +74,8 @@ class ThreadStore:
         self._connection_map = dict()
         self._model_map = dict()
         self._index_map = dict()
+
+        self._files_map = dict()
 
         self._predict_saliency = None
         self._predict_transform = None
@@ -98,6 +99,19 @@ class ThreadStore:
             self._connection_map[(data_conf, thid)] = conn
 
         return conn
+
+    def get_files(self, data_conf):
+
+        if data_conf not in self._files_map:
+
+            img = pd.read_sql('SELECT rowid, file, x,y,width,height from images',
+                              con=self.get_db(data_conf))
+
+            img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
+
+            self._files_map[data_conf] = img[['rowid', 'file']]
+
+        return self._files_map[data_conf]
 
     def get_thumb_db(self):
 
@@ -471,25 +485,9 @@ def get_similar_by_filename(user, conf, start=0, count=100):
     search_pattern = request.json['pattern']
     print(search_pattern)
 
-    img = pd.read_sql('SELECT rowid, file, x,y,width,height from images',
-                      con=thread_store.get_db(data_conf))
+    df_files = thread_store.get_files(data_conf)
 
-    img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
-
-    df_files = img[['rowid', 'file']]
-
-    # df_files = pd.read_sql('SELECT rowid, file from images', con=thread_store.get_db(data_conf))
-
-    found = []
-    for _, row in df_files.iterrows():
-
-        if fnmatch(row.file, search_pattern):
-            found.append(row.rowid)
-
-        if len(found) >= start + count:
-            break;
-
-    found = found[start:start+count]
+    found = fnmatch(df_files, search_pattern, start, count, batch_size=100)
 
     return jsonify({'ids': found})
 
@@ -825,6 +823,9 @@ def get_image_iconclass(user, data_conf, rowid=None):
 @htpasswd.required
 def delete_image_tag(user, data_conf):
 
+    if user is None:
+        return "Forbidden", 403
+
     if not has_table('tags', data_conf):
         return "OK", 200
 
@@ -857,6 +858,9 @@ def delete_image_tag(user, data_conf):
 @htpasswd.required
 def add_image_tag(user, data_conf):
 
+    if user is None:
+        return "Forbidden", 403
+
     conn = thread_store.get_db(data_conf)
 
     if not has_table('tags', data_conf):
@@ -882,7 +886,7 @@ def add_image_tag(user, data_conf):
             continue
 
         conn.execute('insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)',
-                     (image_id,request.json['tag'], user, datetime.now()))
+                     (image_id, request.json['tag'], user, datetime.now()))
 
         # print("insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)")
 

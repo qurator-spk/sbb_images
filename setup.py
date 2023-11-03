@@ -32,6 +32,8 @@ setup(
         "filter-detections=qurator.sbb_images.cli:filter_detections",
         "image-info=qurator.sbb_images.image_info:cli",
 
+        "saliency-rois=qurator.sbb_images.saliency:saliency_roi_detect",
+
         "iconclass-train=qurator.sbb_images.iconclass.train:train",
         "iconclass-traintestsplit=qurator.sbb_images.iconclass.train:traintestsplit",
         "iconclass-add-table=qurator.sbb_images.iconclass.cli:add_iconclass_table",

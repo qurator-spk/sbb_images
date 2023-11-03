@@ -94,3 +94,54 @@ class AnnotatedDataset(Dataset):
 
     def __len__(self):
         return len(self.samples)
+
+
+class SqliteDataset(Dataset):
+
+    def __init__(self, sqlite_file, table_name=None):
+
+        super(Dataset, self).__init__()
+
+        if table_name is None:
+            self.table_name = "images"
+        else:
+            self.table_name = table_name
+
+        self.conn = None
+        self.sqlite_file = sqlite_file
+
+        with sqlite3.connect(sqlite_file) as conn:
+
+            self.length = conn.execute("SELECT count(*) FROM {}".format(self.table_name)).fetchone()[0]
+
+        print("SQLITE Dataset of size {}.".format(self.length))
+
+    def __getitem__(self, index):
+
+        if self.conn is None:
+            self.conn = sqlite3.connect(self.sqlite_file)
+
+            self.conn.execute('pragma journal_mode=wal')
+
+        result = self.conn.execute("SELECT filename, data, scale_factor FROM {} WHERE rowid=?".format(self.table_name),
+                                   (index,)).fetchone()
+        if result is not None:
+            filename, data, scale_factor = result
+
+            buffer = io.BytesIO(data)
+
+            img = Image.open(buffer).convert('RGB')
+        else:
+            filename = "ERROR-dummy.jpg"
+
+            scale_factor = 1.0
+
+            print('Something went wrong on image {}.'.format(index))
+            print('Providing dummy result ...')
+
+            img = Image.new('RGB', (256, 256))
+
+        return filename, img, scale_factor
+
+    def __len__(self):
+        return self.length
