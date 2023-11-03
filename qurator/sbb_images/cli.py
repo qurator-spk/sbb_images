@@ -716,12 +716,12 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
                                                         " need to provide vit-model and vst-model in that case.")
 @click.option('--pad-to-square', is_flag=False, help="Pad-to-square before application of model image transform"
                                                      " (typically resize + center-crop).")
-@click.option('--thumbnail-sqlite-file', type=str, default='None', help="Do not read the image from the file system"
-                                                                        " but rather try to read them from this sqlite"
-                                                                        " thumbnail file.")
-@click.option('--thumbnail-table-name', type=str, default='None', help="Do not read the image from the file system"
-                                                                       " but rather try to read them from this table"
-                                                                       " in the thumbnail sqlite file.")
+@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
+                                                                      " but rather try to read them from this sqlite"
+                                                                      " thumbnail file.")
+@click.option('--thumbnail-table-name', type=str, default=None, help="Do not read the image from the file system"
+                                                                      " but rather try to read them from this table"
+                                                                      " in the thumbnail sqlite file.")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers, vit_model,
                         vst_model, clip_model, ms_clip_model, layer_name, layer_output, use_saliency_mask,
                         pad_to_square, thumbnail_sqlite_file, thumbnail_table_name):
