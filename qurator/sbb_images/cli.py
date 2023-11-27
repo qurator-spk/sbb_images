@@ -41,7 +41,8 @@ from .saliency import load_saliency_model
 import PIL
 from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageStat
 from torchvision import transforms
-import multiprocessing as mp
+
+from datetime import datetime
 
 
 @click.command()
@@ -227,6 +228,56 @@ def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_j
 
         conn.execute('create index idx_thumb on thumbnails(filename, size);')
         conn.execute('create index idx_thumb_fn on thumbnails(filename);')
+
+
+@click.command()
+@click.argument('page-info-file', type=click.Path(exists=True))
+@click.argument('sqlite-file', type=click.Path(exists=True))
+@click.option('--path-prefix', type=str, default=None)
+def add_page_info_tags(page_info_file, sqlite_file):
+
+    timestamp = str(datetime.now())
+
+    with sqlite3.connect(sqlite_file) as conn:
+
+        df_page_info = pd.read_pickle(page_info_file)
+
+        file_info = df_page_info.fileGrp_DEFAULT_file_FLocat_href.str.\
+            extract('.*/(PPN.*)-([^/]+)/.*').\
+            rename(columns={0: 'path', 1: 'filename'})
+
+        df_page_info = df_page_info.merge(file_info, left_index=True, right_index=True)
+
+        df_page_info['fullpath'] = 'data/' + df_page_info.path + '/' + df_page_info.filename + '.tif'
+
+        df_images = pd.read_sql('select * from images', conn)
+
+        df_images = df_images.merge(df_page_info, left_on='file', right_on='fullpath')
+
+        df_all_tags = []
+
+        for c in df_images.columns:
+            m = re.match('structMap-LOGICAL_TYPE_(.*)', c)
+
+            if not m:
+                continue
+
+            tag = m[1]
+
+            df_tags = \
+                df_images.loc[~df_images[c].isnull()][['index']].\
+                    rename(columns={'index': 'image_id'}).reset_index(drop=True)
+
+            df_tags['tag'] = tag
+            df_tags['user'] = 'page-info'
+            df_tags['timestamp'] = timestamp
+            df_tags['read_only'] = 1
+
+            df_all_tags.append(df_tags)
+
+        df_all_tags = pd.concat(df_all_tags)
+
+        df_all_tags.to_sql('tags', con=conn, if_exists='append')
 
 
 @click.command()
