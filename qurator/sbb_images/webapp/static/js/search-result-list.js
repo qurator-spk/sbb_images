@@ -1,10 +1,12 @@
 function setup_search_result_list(configuration, search, next_batch) {
     let that = null;
     let iconclass_highlighted = [];
+    let tag_highlighted = "";
 
     let has_links  = false;
     let has_tags = false;
     let has_iconclass = false;
+    let region_annotator = "";
 
     function check_for_info(afterwards) {
         $.get("hasiconclass/" + configuration.getDataConf(),
@@ -19,7 +21,15 @@ function setup_search_result_list(configuration, search, next_batch) {
                             function(hasit) {
                                 has_links = hasit;
 
-                                afterwards();
+                                $.get("regionannotator",
+                                    function(reanno) {
+
+                                        console.log(reanno);
+                                        region_annotator = reanno;
+
+                                        afterwards();
+                                    }
+                                );
                             }
                         );
                     }
@@ -74,6 +84,15 @@ function setup_search_result_list(configuration, search, next_batch) {
             }
         );
     };
+
+    function highlight_tags(remove=true) {
+
+        if (remove) {
+            $(".tag-badge").removeClass('selected-6');
+        }
+
+        $(tag_highlighted).addClass('selected-6');
+    }
 
     function highlight_iconclass(remove=true) {
 
@@ -185,14 +204,22 @@ function setup_search_result_list(configuration, search, next_batch) {
                 $.each(results,
                     function(index, result) {
 
+                        let remove_button_html = `
+                            <button type="button" class="btn-sm close ml-2" id="tag-delete-${image_id}-${index}" aria-label="Dismiss">
+                                &times;
+                            </button>
+                        `;
+
+                        if (result.read_only) {
+                            remove_button_html = "";
+                        }
+
                         info_html +=
                             `
                             <a id="tag-badge-${image_id}-${index}" class="" data-toggle="tooltip" title="${result.user} : ${result.timestamp}">
-                                    <span class="badge badge-pill badge-info d-inline-flex mt-2" style="align-items: center">
+                                    <span id="tag-span-${image_id}-${index}" class="tag-badge tag-${result.tag} badge badge-pill badge-info d-inline-flex mt-2" style="align-items: center">
                                         ${result.tag}
-                                        <button type="button" class="btn-sm close ml-2" id="tag-delete-${image_id}-${index}" aria-label="Dismiss">
-                                            &times;
-                                        </button>
+                                        ${remove_button_html}
                                     </span>
                                 </span>
                             </a>`;
@@ -200,10 +227,20 @@ function setup_search_result_list(configuration, search, next_batch) {
                 );
                 $("#card-info-"+ image_id).html(info_html);
 
-                 $.each(results,
+                highlight_tags(false);
+
+                $.each(results,
                     function(index, result) {
                         (function(img_id, tag_id, tag) {
                             $(`#tag-badge-${img_id}-${tag_id}`).tooltip();
+
+                            $(`#tag-span-${img_id}-${tag_id}`).click(
+                                function() {
+                                    tag_highlighted = `.tag-${tag}`;
+
+                                    highlight_tags();
+                                }
+                            );
 
                             $(`#tag-delete-${img_id}-${tag_id}`).click(
                                 function(){
@@ -277,6 +314,18 @@ function setup_search_result_list(configuration, search, next_batch) {
                     valid_ids.push(result_id);
                     result_number += 1
 
+                    let region_annotator_html="";
+
+                    if (region_annotator.length > 0) {
+                        region_annotator_html = `
+                            <a class="btn btn-link" href=""  id="iiif-lnk-${result_id}" target="_blank" rel="noopener noreferrer">
+                                <span class="badge badge-pill badge-light badge-primary mb-1" data-toggle="tooltip" title="Click to annotate regions in this image." onclick="$(this).tooltip('hide')">
+                                    Annotate
+                                </span>
+                            </a>
+                        `;
+                    }
+
                     result_html += `
                          <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                              <div class="card-body">
@@ -288,7 +337,9 @@ function setup_search_result_list(configuration, search, next_batch) {
                                      <span class="badge badge-pill badge-light badge-primary mb-1" data-toggle="tooltip" title="Click to find similar based on this image." onclick="$(this).tooltip('hide')">
                                          More
                                      </span>
-                                 </a><br>
+                                 </a>
+                                 ${region_annotator_html}
+                                 <br>
                                  <a href="image/${configuration.getDataConf()}/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
                                      <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer"/>
                                  </a>
@@ -352,6 +403,18 @@ function setup_search_result_list(configuration, search, next_batch) {
                                     $("#lnk-" + result_id).attr('href', result);
                                 }
                             );
+
+                            if (region_annotator.length > 0) {
+                                $.get("iiif-link/" + configuration.getDataConf() + "/" + result_id).done(
+                                    function(result) {
+                                        if (result.length <= 0) return;
+
+                                        let annotate_lnk = region_annotator + "?image=" + encodeURIComponent(result);
+
+                                        $("#iiif-lnk-" + result_id).attr('href', annotate_lnk);
+                                    }
+                                );
+                            }
 
                             triggerNextImage(valid_ids);
                         }

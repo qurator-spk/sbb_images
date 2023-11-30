@@ -452,9 +452,22 @@ def get_similar_by_tag(user, conf, start=0, count=100):
             ids += df_iconclass['imageid'].tolist()[start:start + count]
 
     if has_table("tags", data_conf):
-        df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag LIKE ?',
-                                   con=thread_store.get_db(data_conf),
-                                   params=(search_tag + "%",))
+        # df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag LIKE ?',
+        #                            con=thread_store.get_db(data_conf),
+        #                            params=(search_tag + "%",))
+
+        df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag = ?',
+                              con=thread_store.get_db(data_conf),
+                              params=(search_tag,))
+
+        df_files = thread_store.get_files(data_conf)
+
+        df_tags = df_tags.merge(df_files, left_on="image_id", right_index=True).\
+            sort_values("image_id").drop_duplicates(subset=['file'], keep='first')
+
+        df_tags = df_tags.drop_duplicates(subset=['image_id'])
+
+        df_tags = df_tags.drop_duplicates(subset=['image_id'])
 
         df_tags = df_tags.drop_duplicates(subset=['image_id'])
 
@@ -704,6 +717,15 @@ def get_image_ids(user, data_conf):
     return jsonify(df.rowid.tolist())
 
 
+@app.route('/regionannotator')
+def regionannotator():
+
+    if "REGION_ANNOTATOR" in app.config:
+        return jsonify(app.config["REGION_ANNOTATOR"])
+
+    return jsonify("")
+
+
 @app.route('/hassaliencymodel')
 @htpasswd.required
 def hassaliencymodel():
@@ -735,6 +757,27 @@ def has_iconclass(user, data_conf):
 def has_tags(user, data_conf):
     del user
     return jsonify(has_table('tags', data_conf))
+
+
+@app.route('/iiif-link/<data_conf>/<image_id>')
+@htpasswd.required
+@cache_for(minutes=10)
+def get_iiif_link(user, data_conf, image_id=None):
+    del user
+
+    if not has_table('iiif_links', data_conf):
+
+        return jsonify("")
+
+    iiif_link = pd.read_sql('select * from iiif_links where image_id=?',
+                            con=thread_store.get_db(data_conf), params=(image_id,))
+
+    if iiif_link is None or len(iiif_link) == 0:
+        return jsonify("")
+
+    url = iiif_link.url.iloc[0]
+
+    return jsonify(url)
 
 
 @app.route('/link/<data_conf>/<image_id>')
@@ -869,6 +912,8 @@ def add_image_tag(user, data_conf):
         conn.execute('create table tags (id integer primary key, image_id integer, '
                      'tag text not null, user text not null, timestamp text not null)')
 
+        conn.execute('create index idx_tags_imageid on tags(image_id)')
+
         conn.execute('COMMIT TRANSACTION')
 
     if "tag" not in request.json:
@@ -966,9 +1011,15 @@ def get_image_tags(user, data_conf, image_id=None):
     tag_info = pd.read_sql('select * from tags where image_id=?', con=thread_store.get_db(data_conf),
                            params=(image_id,))
     result = []
-    for _, (index, image_id, tag, user, timestamp) in tag_info.iterrows():
+    for _, row in tag_info.iterrows():
 
-        result.append({'tag': tag, 'user': user, 'timestamp': timestamp})
+        read_only = False
+        index, image_id, tag, user, timestamp = row[0:5]
+
+        if len(row) == 6:
+            read_only = row[5] == 1
+
+        result.append({'tag': tag, 'user': user, 'timestamp': timestamp, 'read_only': read_only})
 
     return jsonify(result)
 

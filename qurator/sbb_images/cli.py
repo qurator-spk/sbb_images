@@ -231,56 +231,6 @@ def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_j
 
 
 @click.command()
-@click.argument('page-info-file', type=click.Path(exists=True))
-@click.argument('sqlite-file', type=click.Path(exists=True))
-@click.option('--path-prefix', type=str, default=None)
-def add_page_info_tags(page_info_file, sqlite_file):
-
-    timestamp = str(datetime.now())
-
-    with sqlite3.connect(sqlite_file) as conn:
-
-        df_page_info = pd.read_pickle(page_info_file)
-
-        file_info = df_page_info.fileGrp_DEFAULT_file_FLocat_href.str.\
-            extract('.*/(PPN.*)-([^/]+)/.*').\
-            rename(columns={0: 'path', 1: 'filename'})
-
-        df_page_info = df_page_info.merge(file_info, left_index=True, right_index=True)
-
-        df_page_info['fullpath'] = 'data/' + df_page_info.path + '/' + df_page_info.filename + '.tif'
-
-        df_images = pd.read_sql('select * from images', conn)
-
-        df_images = df_images.merge(df_page_info, left_on='file', right_on='fullpath')
-
-        df_all_tags = []
-
-        for c in df_images.columns:
-            m = re.match('structMap-LOGICAL_TYPE_(.*)', c)
-
-            if not m:
-                continue
-
-            tag = m[1]
-
-            df_tags = \
-                df_images.loc[~df_images[c].isnull()][['index']].\
-                    rename(columns={'index': 'image_id'}).reset_index(drop=True)
-
-            df_tags['tag'] = tag
-            df_tags['user'] = 'page-info'
-            df_tags['timestamp'] = timestamp
-            df_tags['read_only'] = 1
-
-            df_all_tags.append(df_tags)
-
-        df_all_tags = pd.concat(df_all_tags)
-
-        df_all_tags.to_sql('tags', con=conn, if_exists='append')
-
-
-@click.command()
 @click.argument('detection-file', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=False))
 @click.option('--replace', type=bool, is_flag=True, default=False, help="Replace the entire image table if specified.")
@@ -345,43 +295,6 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
                                       max_iter=max_iter)
 
     summarized.to_pickle(detection_out_file)
-
-
-@click.command()
-@click.argument('sqlite-file', type=click.Path(exists=True))
-def create_sbb_link_table(sqlite_file):
-    """
-    Special functionality of the SBB (Staatsbibliothek zu Berlin):
-    Creates an link table that links each image in the database to the corresponding webpage within the
-    "digitalisierte Sammlungen".
-
-    SQLITE_FILE: sqlite3 database file that contains the images table.
-    """
-
-    with sqlite3.connect(sqlite_file) as con:
-        images = pd.read_sql('select * from images', con=con)
-
-    links = []
-    for rowid, img in tqdm(images.iterrows(), total=len(images)):
-
-        m = re.match(r'.*/(PPN.+)/([0-9]+)_.*', img.file)
-
-        if m is None:
-            print(img.file)
-            continue
-
-        ppn = m.group(1)
-        phys_id = m.group(2)
-
-        links.append(("https://digital.staatsbibliothek-berlin.de/werkansicht?" +
-                      "PPN={}&PHYSID=PHYS_{}".format(ppn, phys_id), ppn, phys_id, rowid))
-
-    links = pd.DataFrame(links, columns=['url', 'ppn', 'phys_id', 'index']).set_index('index')
-
-    with sqlite3.connect(sqlite_file) as con:
-        links.to_sql('links', con=con, if_exists='replace')
-
-        con.execute("create index ix_links_ppn on links(ppn)")
 
 
 @click.command()
