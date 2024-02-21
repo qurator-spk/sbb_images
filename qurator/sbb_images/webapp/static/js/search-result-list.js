@@ -326,12 +326,19 @@ function setup_search_result_list(configuration, search, next_batch) {
                         `;
                     }
 
+                    let checkbox_html = "";
+
+                    if ((results["user"] !== null)) {
+
+                        checkbox_html = `<input class="justify-content-end tag-selectable" type="checkbox" id="select-${result_id}" />`;
+                    }
+
                     result_html += `
                          <div class="card invisible" id="card-${result_id}" data-toggle="tooltip" data-placement="bottom" title="">
                              <div class="card-body">
                                  <div class="d-flex justify-content-between">
                                     <span class="badge badge-light" id="card-${result_id}-number">${result_number}</span>
-                                    <input class="justify-content-end tag-selectable" type="checkbox" id="select-${result_id}" />
+                                    ${checkbox_html}
                                  </div>
                                  <a id="more-btn-${result_id}" class="btn btn-link" href="">
                                      <span class="badge badge-pill badge-light badge-primary mb-1" data-toggle="tooltip" title="Click to find similar based on this image." onclick="$(this).tooltip('hide')">
