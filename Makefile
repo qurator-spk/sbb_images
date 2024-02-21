@@ -26,6 +26,10 @@ MSCLIP:
 docker-cpu:	MSCLIP VST
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-images-cpu -f Docker.cpu .
 
+docker-cpu-v2:	MSCLIP VST
+	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-images-cpu-v2 -f Docker.cpu .
+
+
 docker-search-iconclass-cpu:	MSCLIP VST
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-search-iconclass-cpu -f DockerSearch.cpu .
 
