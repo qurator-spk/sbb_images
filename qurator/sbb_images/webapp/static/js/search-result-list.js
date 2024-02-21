@@ -447,7 +447,9 @@ function setup_search_result_list(configuration, search, next_batch) {
             iconclass_highlighted=[];
         }
 
-        if (results["ids"].length > 0)  $("#tag-controls").removeClass("d-none");
+        if (results["ids"].length > 0) {
+            if (!(results["user"] === null)) $("#tag-controls").removeClass("d-none");
+        }
     };
 
     let tag_mode = "add";

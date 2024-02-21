@@ -418,7 +418,6 @@ def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
 @cache_for(minutes=10)
 def get_similar_by_tag(user, conf, start=0, count=100):
 
-    del user
     start, count = int(start), int(count)
 
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
@@ -473,7 +472,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
         ids += df_tags['image_id'].tolist()[start:start + count]
 
-    ret = {'ids': ids, 'info': text}
+    ret = {'ids': ids, 'info': text, "user": user}
 
     if len(highlight_labels) > 0:
         ret['highlight_labels'] = highlight_labels
@@ -487,7 +486,6 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 @cache_for(minutes=10)
 def get_similar_by_filename(user, conf, start=0, count=100):
 
-    del user
     start, count = int(start), int(count)
 
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
@@ -502,7 +500,7 @@ def get_similar_by_filename(user, conf, start=0, count=100):
 
     found = fnmatch(df_files, search_pattern, start, count, batch_size=100)
 
-    return jsonify({'ids': found})
+    return jsonify({'ids': found, 'user': user})
 
 
 @app.route('/similar-by-iconclass/<conf>', methods=['POST'])
@@ -511,7 +509,6 @@ def get_similar_by_filename(user, conf, start=0, count=100):
 @cache_for(minutes=10)
 def get_similar_by_iconclass(user, conf, start=0, count=100):
 
-    del user
     start, count = int(start), int(count)
 
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
@@ -537,7 +534,7 @@ def get_similar_by_iconclass(user, conf, start=0, count=100):
 
     result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
-    return jsonify({'ids': result, 'info': text, 'highlight_labels': label_parts})
+    return jsonify({'ids': result, 'info': text, 'highlight_labels': label_parts, "user": user})
 
 
 @app.route('/similar-by-text/<conf>', methods=['POST'])
@@ -555,7 +552,6 @@ def get_similar_by_text(user, conf, start=0, count=100):
 
     text = request.json['text']
 
-    del user
     start, count = int(start), int(count)
 
     extract_features, extract_transform = thread_store.get_extraction_model(model_conf)
@@ -566,7 +562,7 @@ def get_similar_by_text(user, conf, start=0, count=100):
 
     result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
-    return jsonify({'ids': result, 'info': '"{}"'.format(text)})
+    return jsonify({'ids': result, 'info': '"{}"'.format(text), "user": user})
 
 
 @app.route('/similar-by-image/<conf>', methods=['GET', 'POST'])
@@ -579,7 +575,6 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
     model_conf = app.config["CONFIGURATION"][conf]["MODEL_CONF"]
 
-    del user
     start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
 
     search_id = request.args.get('search_id', default=None, type=int)
@@ -680,7 +675,7 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
     if x < 0 and y < 0 and width < 0 and height < 0:
         x, y, width, height = 0.0, 0.0, 1.0, 1.0
 
-    return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height})
+    return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height, 'user': user})
 
 
 def has_table(table_name, data_conf):
