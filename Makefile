@@ -25,9 +25,14 @@ MSCLIP:
 
 docker-cpu:	MSCLIP VST
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-images-cpu -f Docker.cpu .
+	rm webapp-sbb-images-cpu.tar
+	docker save qurator/webapp-sbb-images-cpu -o webapp-sbb-images-cpu.tar
+
 
 docker-cpu-v2:	MSCLIP VST
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-images-cpu-v2 -f Docker.cpu .
+	rm webapp-sbb-images-cpu-v2.tar
+	docker save qurator/webapp-sbb-images-cpu-v2 -o webapp-sbb-images-cpu-v2.tar
 
 
 docker-search-iconclass-cpu:	MSCLIP VST
@@ -158,3 +163,5 @@ iconclass-msclip-search-index-test:
 
 iconclass-msclip-search-index-train:
 	create-search-index iconclass-train.sqlite iconclass-train-msclip-search-index.ann --ms-clip-model=$(MSCLIP_PATH)/experiments/model/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+rm webapp-sbb-search-cpu-v2.tar
+docker save qurator/webapp-sbb-images-cpu-v2 -o webapp-sbb-search-cpu-v2.tar
