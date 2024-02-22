@@ -23,8 +23,9 @@ module.exports = {
   },
   devServer: {
     static: './public',
-    port: 3000,
+    port: 4714,
     historyApiFallback: true,
+    allowedHosts: "all"
   },
   resolve: {
     extensions: ['.js', '.jsx'],
