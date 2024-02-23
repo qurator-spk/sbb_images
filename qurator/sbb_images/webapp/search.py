@@ -1053,15 +1053,20 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
     width = sample.width.iloc[0]
     height = sample.height.iloc[0]
 
-    if not os.path.exists(filename):
+    raw_file = filename
+    if not os.path.exists(raw_file):
 
         parts = filename.split('.')
 
-        filename = ".".join(parts[:-1]) + ".jpeg"
+        raw_file = ".".join(parts[:-1]) + ".jpeg"
 
-        if not os.path.exists(filename):
+        if not os.path.exists(raw_file):
 
-            return "NOT FOUND", 404
+            raw_file = None
+
+    last_mtime = None
+    if raw_file is not None:
+        last_mtime = os.path.getmtime(filename)
 
     if version == 'resize':
 
@@ -1080,7 +1085,11 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
                 img = Image.open(buffer)
 
         if img is None:
-            img = Image.open(filename).convert('RGB')
+
+            if raw_file is None:
+                return "NOT FOUND", 404
+
+            img = Image.open(raw_file).convert('RGB')
 
             max_size = float(max(img.size[0], img.size[1]))
 
@@ -1098,7 +1107,10 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
             height = int((float(height) * scale_factor))
 
     elif version == 'full':
-        img = Image.open(filename).convert('RGB')
+        if raw_file is None:
+            return "NOT FOUND", 404
+
+        img = Image.open(raw_file).convert('RGB')
     else:
         return "BAD PARAMS <version>: full/resize", 400
 
@@ -1119,7 +1131,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
     img.save(buffer, "JPEG")
     buffer.seek(0)
 
-    return send_file(buffer, mimetype='image/jpeg', last_modified=os.path.getmtime(filename))
+    return send_file(buffer, mimetype='image/jpeg', last_modified=last_mtime)
 
 
 @app.route('/<path:path>')

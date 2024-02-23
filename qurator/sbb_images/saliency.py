@@ -186,11 +186,14 @@ class SaliencyROITask:
     predict_saliency = None
     predict_saliency_transform = None
 
-    def __init__(self, filename, scale_factor, img):
+    def __init__(self, filename, scale_factor, img, optimize_contrast=False, optimize_sharpness=False):
 
         self.img = img
         self.filename = filename
         self.scale_factor = scale_factor
+
+        self.optimize_contrast = optimize_contrast
+        self.optimize_sharpness = optimize_sharpness
 
     def __call__(self, *args, **kwargs):
 
@@ -202,6 +205,12 @@ class SaliencyROITask:
                 search_regions.append(
                     (min([1.0, offset]), min([1.0, offset]),
                      max([0.0, 1.0 - 2 * offset]), max([0.0, 1.0 - 2 * offset]), 0.0))
+
+            if self.optimize_contrast:
+                pass
+
+            if self.optimize_sharpness:
+                pass
 
             search_regions = pd.DataFrame(search_regions, columns=['x', 'y', 'width', 'height', 'area'])
 
@@ -230,13 +239,15 @@ class SaliencyROITask:
               help='Vision transformer pytorch model file (required by Visual Saliency Transformer).')
 @click.option('--vst-model', type=click.Path(exists=True), default=None,
               help='Visual saliency transformer pytorch model file.')
-@click.option('--pad-to-square', is_flag=False, help="Pad-to-square before application of model image transform"
-                                                     " (typically resize + center-crop).")
+@click.option('--pad-to-square', is_flag=True, default=False,
+              help="Pad-to-square before application of model image transform (typically resize + center-crop).")
 @click.option('--thumbnail-table-name', type=str, default='None', help="Do not read the image from the file system"
                                                                        " but rather try to read them from this table"
                                                                        " in the thumbnail sqlite file.")
+@click.option('--optimize-contrast', is_flag=True, default=False, help="")
+@click.option('--optimize-sharpness', is_flag=True, default=False, help="")
 def saliency_roi_detect(sqlite_file, detections_file, batch_size, num_workers, vit_model, vst_model, pad_to_square,
-                        thumbnail_table_name, save_interval=100):
+                        thumbnail_table_name, optimize_contrast, optimize_sharpness, save_interval=100):
     """
 
     """
