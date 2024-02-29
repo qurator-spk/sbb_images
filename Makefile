@@ -24,7 +24,16 @@ MSCLIP:
 	git clone https://github.com/labusch/MSCLIP.git
 
 docker-cpu:	MSCLIP VST
+	rm -f webapp-sbb-images-cpu.tar
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-images-cpu -f Docker.cpu .
+	docker save qurator/webapp-sbb-images-cpu -o webapp-sbb-images-cpu.tar
+
+
+docker-cpu-v2:	MSCLIP VST
+	rm -f webapp-sbb-images-cpu-v2.tar
+	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-images-cpu-v2 -f Docker.cpu .
+	docker save qurator/webapp-sbb-images-cpu-v2 -o webapp-sbb-images-cpu-v2.tar
+
 
 docker-search-iconclass-cpu:	MSCLIP VST
 	docker build --build-arg http_proxy=$(http_proxy)  -t qurator/webapp-sbb-search-iconclass-cpu -f DockerSearch.cpu .

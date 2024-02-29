@@ -28,9 +28,10 @@ from annoy import AnnoyIndex
 
 from flask_cachecontrol import (cache_for)
 
-from fnmatch import fnmatch
+from ..parallel_fnmatch import fnmatch
 
-# from torchvision import transforms
+import iconclass
+
 
 app = flask.Flask(__name__)
 
@@ -53,7 +54,7 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-print(app.config['PASSWD_FILE'])
+# print(app.config['PASSWD_FILE'])
 
 if len(app.config['PASSWD_FILE']) > 0 and os.path.exists(os.path.join(os.getcwd(), app.config['PASSWD_FILE'])):
     app.config['FLASK_HTPASSWD_PATH'] = os.path.join(os.getcwd(), app.config['PASSWD_FILE'])
@@ -65,8 +66,6 @@ else:
 
 htpasswd = HtPasswdAuth(app)
 
-import iconclass
-
 
 class ThreadStore:
 
@@ -75,6 +74,8 @@ class ThreadStore:
         self._connection_map = dict()
         self._model_map = dict()
         self._index_map = dict()
+
+        self._files_map = dict()
 
         self._predict_saliency = None
         self._predict_transform = None
@@ -98,6 +99,19 @@ class ThreadStore:
             self._connection_map[(data_conf, thid)] = conn
 
         return conn
+
+    def get_files(self, data_conf):
+
+        if data_conf not in self._files_map:
+
+            img = pd.read_sql('SELECT rowid, file, x,y,width,height from images',
+                              con=self.get_db(data_conf))
+
+            img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
+
+            self._files_map[data_conf] = img[['rowid', 'file']]
+
+        return self._files_map[data_conf]
 
     def get_thumb_db(self):
 
@@ -404,7 +418,6 @@ def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
 @cache_for(minutes=10)
 def get_similar_by_tag(user, conf, start=0, count=100):
 
-    del user
     start, count = int(start), int(count)
 
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
@@ -438,15 +451,28 @@ def get_similar_by_tag(user, conf, start=0, count=100):
             ids += df_iconclass['imageid'].tolist()[start:start + count]
 
     if has_table("tags", data_conf):
-        df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag LIKE ?',
-                                   con=thread_store.get_db(data_conf),
-                                   params=(search_tag + "%",))
+        # df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag LIKE ?',
+        #                            con=thread_store.get_db(data_conf),
+        #                            params=(search_tag + "%",))
+
+        df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag = ?',
+                              con=thread_store.get_db(data_conf),
+                              params=(search_tag,))
+
+        df_files = thread_store.get_files(data_conf)
+
+        df_tags = df_tags.merge(df_files, left_on="image_id", right_index=True).\
+            sort_values("image_id").drop_duplicates(subset=['file'], keep='first')
+
+        df_tags = df_tags.drop_duplicates(subset=['image_id'])
+
+        df_tags = df_tags.drop_duplicates(subset=['image_id'])
 
         df_tags = df_tags.drop_duplicates(subset=['image_id'])
 
         ids += df_tags['image_id'].tolist()[start:start + count]
 
-    ret = {'ids': ids, 'info': text}
+    ret = {'ids': ids, 'info': text, "user": user}
 
     if len(highlight_labels) > 0:
         ret['highlight_labels'] = highlight_labels
@@ -460,7 +486,6 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 @cache_for(minutes=10)
 def get_similar_by_filename(user, conf, start=0, count=100):
 
-    del user
     start, count = int(start), int(count)
 
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
@@ -471,17 +496,11 @@ def get_similar_by_filename(user, conf, start=0, count=100):
     search_pattern = request.json['pattern']
     print(search_pattern)
 
-    df_files = pd.read_sql('SELECT rowid, file from images', con=thread_store.get_db(data_conf))
+    df_files = thread_store.get_files(data_conf)
 
-    found = []
-    for _, (rowid, file) in df_files.iterrows():
-        if fnmatch(file, search_pattern):
-            found.append(rowid)
+    found = fnmatch(df_files, search_pattern, start, count, batch_size=100)
 
-        if len(found) >= start + count:
-            break;
-
-    return jsonify({'ids': found[start:start+count]})
+    return jsonify({'ids': found, 'user': user})
 
 
 @app.route('/similar-by-iconclass/<conf>', methods=['POST'])
@@ -490,7 +509,6 @@ def get_similar_by_filename(user, conf, start=0, count=100):
 @cache_for(minutes=10)
 def get_similar_by_iconclass(user, conf, start=0, count=100):
 
-    del user
     start, count = int(start), int(count)
 
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
@@ -516,7 +534,7 @@ def get_similar_by_iconclass(user, conf, start=0, count=100):
 
     result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
-    return jsonify({'ids': result, 'info': text, 'highlight_labels': label_parts})
+    return jsonify({'ids': result, 'info': text, 'highlight_labels': label_parts, "user": user})
 
 
 @app.route('/similar-by-text/<conf>', methods=['POST'])
@@ -534,7 +552,6 @@ def get_similar_by_text(user, conf, start=0, count=100):
 
     text = request.json['text']
 
-    del user
     start, count = int(start), int(count)
 
     extract_features, extract_transform = thread_store.get_extraction_model(model_conf)
@@ -545,7 +562,7 @@ def get_similar_by_text(user, conf, start=0, count=100):
 
     result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
-    return jsonify({'ids': result, 'info': '"{}"'.format(text)})
+    return jsonify({'ids': result, 'info': '"{}"'.format(text), "user": user})
 
 
 @app.route('/similar-by-image/<conf>', methods=['GET', 'POST'])
@@ -558,7 +575,6 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
     model_conf = app.config["CONFIGURATION"][conf]["MODEL_CONF"]
 
-    del user
     start, count, x, y, width, height = int(start), int(count), float(x), float(y), float(width), float(height)
 
     search_id = request.args.get('search_id', default=None, type=int)
@@ -659,7 +675,7 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
     if x < 0 and y < 0 and width < 0 and height < 0:
         x, y, width, height = 0.0, 0.0, 1.0, 1.0
 
-    return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height})
+    return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height, 'user': user})
 
 
 def has_table(table_name, data_conf):
@@ -696,6 +712,27 @@ def get_image_ids(user, data_conf):
     return jsonify(df.rowid.tolist())
 
 
+@app.route('/regionannotator')
+def regionannotator():
+
+    if "REGION_ANNOTATOR" in app.config:
+        return jsonify(app.config["REGION_ANNOTATOR"])
+
+    return jsonify("")
+
+
+@app.route('/hassaliencymodel')
+@htpasswd.required
+def hassaliencymodel():
+
+    predict_saliency, predict_transform = thread_store.get_saliency_model()
+
+    if predict_saliency is not None and predict_transform is not None:
+        return jsonify(True)
+
+    return jsonify(False)
+
+
 @app.route('/haslinks/<data_conf>')
 @htpasswd.required
 def has_links(user, data_conf):
@@ -709,11 +746,33 @@ def has_iconclass(user, data_conf):
     del user
     return jsonify(has_table('iconclass', data_conf))
 
+
 @app.route('/hastags/<data_conf>')
 @htpasswd.required
 def has_tags(user, data_conf):
     del user
     return jsonify(has_table('tags', data_conf))
+
+
+@app.route('/iiif-link/<data_conf>/<image_id>')
+@htpasswd.required
+@cache_for(minutes=10)
+def get_iiif_link(user, data_conf, image_id=None):
+    del user
+
+    if not has_table('iiif_links', data_conf):
+
+        return jsonify("")
+
+    iiif_link = pd.read_sql('select * from iiif_links where image_id=?',
+                            con=thread_store.get_db(data_conf), params=(image_id,))
+
+    if iiif_link is None or len(iiif_link) == 0:
+        return jsonify("")
+
+    url = iiif_link.url.iloc[0]
+
+    return jsonify(url)
 
 
 @app.route('/link/<data_conf>/<image_id>')
@@ -802,9 +861,13 @@ def get_image_iconclass(user, data_conf, rowid=None):
 
     return jsonify(result)
 
+
 @app.route('/delete-image-tag/<data_conf>', methods=['POST'])
 @htpasswd.required
 def delete_image_tag(user, data_conf):
+
+    if user is None:
+        return "Forbidden", 403
 
     if not has_table('tags', data_conf):
         return "OK", 200
@@ -833,9 +896,13 @@ def delete_image_tag(user, data_conf):
 
     return "OK", 200
 
+
 @app.route('/add-image-tag/<data_conf>', methods=['POST'])
 @htpasswd.required
 def add_image_tag(user, data_conf):
+
+    if user is None:
+        return "Forbidden", 403
 
     conn = thread_store.get_db(data_conf)
 
@@ -844,6 +911,8 @@ def add_image_tag(user, data_conf):
 
         conn.execute('create table tags (id integer primary key, image_id integer, '
                      'tag text not null, user text not null, timestamp text not null)')
+
+        conn.execute('create index idx_tags_imageid on tags(image_id)')
 
         conn.execute('COMMIT TRANSACTION')
 
@@ -858,26 +927,82 @@ def add_image_tag(user, data_conf):
     for image_id in request.json['ids']:
         if conn.execute("select * from tags where image_id=? and tag=?",
                         (image_id, request.json['tag'])).fetchone() is not None:
-            print("continue")
+            # print("continue")
             continue
 
-
         conn.execute('insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)',
-                     (image_id,request.json['tag'], user, datetime.now()))
+                     (image_id, request.json['tag'], user, datetime.now()))
 
-        print("insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)");
+        # print("insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)")
 
     conn.execute('COMMIT TRANSACTION')
 
     return "OK", 200
 
 
+@app.route('/get-spreadsheet/<data_conf>', methods=['POST'])
+@htpasswd.required
+def get_spreadsheet(user, data_conf):
+    del user
+
+    conn = thread_store.get_db(data_conf)
+
+    if "ids" not in request.json:
+        raise BadRequest()
+
+    ids = request.json['ids']
+
+    filename = data_conf + ".xlsx"
+
+    df = []
+    for row_id in ids:
+
+        part = pd.read_sql("SELECT * from images WHERE rowid=?", con=conn, params=(row_id,))
+
+        if len(part) < 1:
+            continue
+
+        df.append(part)
+
+    if len(df) < 1:
+        raise NotFound()
+
+    df = pd.concat(df).rename(columns={'index': 'image_id'})
+    df['image_id'] += 1
+
+    df['tags'] = ""
+    df = df[['image_id', 'file', 'tags']].reset_index(drop=True)
+
+    if has_table('tags', data_conf):
+
+        for idx, (image_id, file, tag) in df.iterrows():
+
+            tags = pd.read_sql("SELECT * from tags WHERE image_id=?", con=conn, params=(image_id,))
+
+            if len(tags) == 0:
+                continue
+
+            df.loc[idx, "tags"] = ",".join(sorted(tags.tag.tolist()))
+
+    # df = df.sort_values('file')
+
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as ew:
+
+        df.to_excel(ew)
+
+    buffer.seek(0)
+
+    response = send_file(buffer, attachment_filename=filename,
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                         as_attachment=True)
+    return response
+
+
 @app.route('/image-tags/<data_conf>/<image_id>')
 @htpasswd.required
 def get_image_tags(user, data_conf, image_id=None):
     del user
-
-    #result = [{'tag' : 'test', 'user': 'klabusch', 'timestamp' : datetime.now()}]
 
     if not has_table('tags', data_conf):
 
@@ -886,9 +1011,15 @@ def get_image_tags(user, data_conf, image_id=None):
     tag_info = pd.read_sql('select * from tags where image_id=?', con=thread_store.get_db(data_conf),
                            params=(image_id,))
     result = []
-    for _, (index, image_id, tag, user, timestamp) in tag_info.iterrows():
+    for _, row in tag_info.iterrows():
 
-        result.append({ 'tag': tag, 'user': user, 'timestamp': timestamp})
+        read_only = False
+        index, image_id, tag, user, timestamp = row[0:5]
+
+        if len(row) == 6:
+            read_only = row[5] == 1
+
+        result.append({'tag': tag, 'user': user, 'timestamp': timestamp, 'read_only': read_only})
 
     return jsonify(result)
 
@@ -927,15 +1058,20 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
     width = sample.width.iloc[0]
     height = sample.height.iloc[0]
 
-    if not os.path.exists(filename):
+    raw_file = filename
+    if not os.path.exists(raw_file):
 
         parts = filename.split('.')
 
-        filename = ".".join(parts[:-1]) + ".jpeg"
+        raw_file = ".".join(parts[:-1]) + ".jpeg"
 
-        if not os.path.exists(filename):
+        if not os.path.exists(raw_file):
 
-            return "NOT FOUND", 404
+            raw_file = None
+
+    last_mtime = None
+    if raw_file is not None:
+        last_mtime = os.path.getmtime(filename)
 
     if version == 'resize':
 
@@ -954,7 +1090,11 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
                 img = Image.open(buffer)
 
         if img is None:
-            img = Image.open(filename).convert('RGB')
+
+            if raw_file is None:
+                return "NOT FOUND", 404
+
+            img = Image.open(raw_file).convert('RGB')
 
             max_size = float(max(img.size[0], img.size[1]))
 
@@ -972,7 +1112,10 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
             height = int((float(height) * scale_factor))
 
     elif version == 'full':
-        img = Image.open(filename).convert('RGB')
+        if raw_file is None:
+            return "NOT FOUND", 404
+
+        img = Image.open(raw_file).convert('RGB')
     else:
         return "BAD PARAMS <version>: full/resize", 400
 
@@ -993,7 +1136,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
     img.save(buffer, "JPEG")
     buffer.seek(0)
 
-    return send_file(buffer, mimetype='image/jpeg', last_modified=os.path.getmtime(filename))
+    return send_file(buffer, mimetype='image/jpeg', last_modified=last_mtime)
 
 
 @app.route('/<path:path>')

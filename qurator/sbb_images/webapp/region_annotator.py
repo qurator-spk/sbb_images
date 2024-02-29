@@ -588,14 +588,14 @@ def data_export(user):
     if "export_type" not in request.json:
         raise BadRequest()
 
+    export_type = request.json['export_type']
+
     if "selection" not in request.json:
         raise BadRequest()
 
-    export_type = request.json['export_type']
-
     selection = request.json["selection"]
 
-    if export_type is not "sqlite" and len(selection) == 0:
+    if export_type != "sqlite" and len(selection) == 0:
         raise BadRequest()
 
     get_db().execute("VACUUM")
