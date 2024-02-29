@@ -3,6 +3,11 @@ import React, { useRef, useEffect, useState } from 'react';
 
 const ImageSearch = ({updateResults, searchState, setSearchState}) => {
 
+  if (!('imgUrl' in searchState)) {
+    searchState['imgUrl'] = '';
+    setSearchState(searchState);
+  }
+
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
 
