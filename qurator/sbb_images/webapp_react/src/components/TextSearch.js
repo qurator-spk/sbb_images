@@ -1,12 +1,51 @@
 //Sketch
-import React, { useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
-const TextSearch = () => {
+const TextSearch = ({updateResults}) => {
   const [searchText, setSearchText] = useState('');
 
-  const handleSearch = () => {
-    // search logic 
+  const counter = useRef(0);
+
+  const searchByText = async() => {
+    const params = {
+        text: searchText
+    };
+
+    const response = await fetch('api/similar-by-text/DIGISAM-MSCLIP-B32-LAION/0/100',
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params)
+        }
+    );
+
+    const result = await response.json();
+
+    updateResults(result.ids);
   };
+
+  useEffect( () =>  {
+
+    counter.current += 1;
+
+    ((scounter) => {
+        // search logic
+        setTimeout(
+            () => {
+                if (searchText === '') return;
+                if (counter.current > scounter) return;
+
+                console.log(searchText, scounter, counter.current);
+
+                searchByText();
+            }, 750);
+
+    })(counter.current);
+
+  },[searchText]);
+
+  //const handleSearch = () => {
+  //};
 
   return (
     <div>
@@ -16,7 +55,7 @@ const TextSearch = () => {
         onChange={(e) => setSearchText(e.target.value)}
         placeholder="Enter text"
       />
-      <button onClick={handleSearch}>Search</button>
+      {/* <button onClick={handleSearch}>Search</button> */}
     </div>
   );
 };

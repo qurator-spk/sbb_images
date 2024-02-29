@@ -2,7 +2,10 @@ import React, { useState, useRef } from 'react';
 import Modal from './Modal';
 import './SearchTabs.css';
 
-const SearchTabs = () => {
+import TextSearch from './TextSearch'
+import PPNSearch from './PPNSearch'
+
+const SearchTabs = ({updateResults}) => {
   const [activeTab, setActiveTab] = useState('image');
   const [showModal, setShowModal] = useState(false);
   const inputRef = useRef(null);
@@ -13,7 +16,7 @@ const SearchTabs = () => {
 
   const handleSearch = () => {
     // search logic here
-    console.log('Searching...');
+    console.log('Searching...', activeTab);
   };
 
   const handleImageUpload = () => {
@@ -27,6 +30,10 @@ const SearchTabs = () => {
 
   const closeModal = () => {
     setShowModal(false);
+  };
+
+  const handleTextInput = (text_input) => {
+    console.log(text_input);
   };
 
   return (
@@ -64,15 +71,11 @@ const SearchTabs = () => {
               Upload Image
             </label>
           ) : (
-            <>
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder={`Enter ${activeTab} here...`}
-                onChange={(e) => console.log(e.target.value)} // Handle input changes as needed
-              />
-              <input type="submit" value="Search" onClick={handleSearch} />
-            </>
+            activeTab === 'text' ? (
+            <TextSearch updateResults={updateResults} />
+            ) : (
+            <PPNSearch updateResults={updateResults} />
+            )
           )}
         </div>
         {activeTab === 'image' && (
