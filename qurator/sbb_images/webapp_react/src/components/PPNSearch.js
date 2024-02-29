@@ -3,19 +3,31 @@ import React, { useRef, useEffect, useState } from 'react';
 
 const PPNSearch = ({updateResults}) => {
   const [searchPPN, setSearchPPN] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const counter = useRef(0);
 
   const searchByPPN = async() => {
 
+    setIsSearching(true);
+
     const response = await fetch('api/ppn/DIGISAM/PPN' + searchPPN);
 
     const result = await response.json();
 
+    console.log(result);
+
     updateResults(result.ids);
+
+    setIsSearching(false);
   };
 
   useEffect( () =>  {
+
+    if (searchPPN === '') {
+        updateResults([]);
+        return;
+    }
 
     counter.current += 1;
 
@@ -23,7 +35,6 @@ const PPNSearch = ({updateResults}) => {
         // search logic
         setTimeout(
             () => {
-                if (searchPPN === '') return;
                 if (counter.current > scounter) return;
 
                 console.log(searchPPN, scounter, counter.current);
@@ -35,9 +46,6 @@ const PPNSearch = ({updateResults}) => {
 
   },[searchPPN]);
 
-//  const handleSearch = () => {
-//    // ppn search logic here
-//  };
 
   return (
     <div>
@@ -47,6 +55,7 @@ const PPNSearch = ({updateResults}) => {
         onChange={(e) => setSearchPPN(e.target.value)}
         placeholder="Enter number"
       />
+      { isSearching ? (<h4> Searching ... </h4>) : ( <> </> ) }
       {/*<button onClick={handleSearch}>Search</button>*/}
     </div>
   );

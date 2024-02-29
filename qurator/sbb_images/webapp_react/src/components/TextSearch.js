@@ -26,13 +26,18 @@ const TextSearch = ({updateResults}) => {
 
   useEffect( () =>  {
 
+    if (searchText === '') {
+        updateResults([]);
+        return;
+    }
+
     counter.current += 1;
 
     ((scounter) => {
-        // search logic
+
         setTimeout(
             () => {
-                if (searchText === '') return;
+
                 if (counter.current > scounter) return;
 
                 console.log(searchText, scounter, counter.current);

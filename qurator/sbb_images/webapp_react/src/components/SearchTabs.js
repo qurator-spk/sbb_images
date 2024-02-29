@@ -4,6 +4,7 @@ import './SearchTabs.css';
 
 import TextSearch from './TextSearch'
 import PPNSearch from './PPNSearch'
+import ImageSearch from './ImageSearch'
 
 const SearchTabs = ({updateResults}) => {
   const [activeTab, setActiveTab] = useState('image');
@@ -79,13 +80,7 @@ const SearchTabs = ({updateResults}) => {
           )}
         </div>
         {activeTab === 'image' && (
-          <input
-            id="image-upload"
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={handleImageUpload}
-          />
+            <ImageSearch updateResults={updateResults}/>
         )}
       </div>
 
