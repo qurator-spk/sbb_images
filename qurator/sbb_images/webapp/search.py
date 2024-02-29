@@ -746,10 +746,15 @@ def get_ppn_images(user, data_conf, ppn=None):
 
         return jsonify("")
 
-    links = pd.read_sql('select links.rowid from links join predictions on predictions.rowid=links.rowid '
-                        'where links.ppn=? and '
-                        '(predictions.label="Abbildung" or predictions.label="Photo" or predictions.label="Karte")',
-                        con=thread_store.get_db(data_conf), params=(ppn,))
+
+    if not has_table('predictions', data_conf):
+        links = pd.read_sql('select links.rowid from links where links.ppn=?',
+                            con=thread_store.get_db(data_conf), params=(ppn,))
+    else:
+        links = pd.read_sql('select links.rowid from links join predictions on predictions.rowid=links.rowid '
+                            'where links.ppn=? and '
+                            '(predictions.label="Abbildung" or predictions.label="Photo" or predictions.label="Karte")',
+                            con=thread_store.get_db(data_conf), params=(ppn,))
 
     if links is None or len(links) == 0:
         return jsonify("")
