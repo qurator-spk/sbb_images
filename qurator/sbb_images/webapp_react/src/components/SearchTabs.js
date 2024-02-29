@@ -10,24 +10,13 @@ const SearchTabs = ({updateResults, activeTab, setActiveTab,
                     searchState, setSearchState}) => {
 
   const [showModal, setShowModal] = useState(false);
-  const inputRef = useRef(null);
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
   };
 
-  const handleSearch = () => {
-    // search logic here
-    console.log('Searching...', activeTab);
-  };
-
   const selectImageTab = () => {
     handleTabClick('image');
-  };
-
-  const handleImageUpload = () => {
-    // image upload logic here
-    console.log('Uploading image...');
   };
 
   const handleInfoButtonClick = () => {
@@ -36,10 +25,6 @@ const SearchTabs = ({updateResults, activeTab, setActiveTab,
 
   const closeModal = () => {
     setShowModal(false);
-  };
-
-  const handleTextInput = (text_input) => {
-    console.log(text_input);
   };
 
   return (
