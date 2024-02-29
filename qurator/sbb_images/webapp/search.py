@@ -580,8 +580,6 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
     search_id = request.args.get('search_id', default=None, type=int)
     search_id_from = request.args.get('search_id_from', default=data_conf)
 
-    # import ipdb;ipdb.set_trace();
-
     if request.method == 'GET' and search_id is not None:
 
         sample = pd.read_sql('select * from images where rowid=?',

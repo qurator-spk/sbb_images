@@ -1,9 +1,14 @@
 //Sketch
 import React, { useRef, useEffect, useState } from 'react';
 
-const PPNSearch = ({updateResults}) => {
-  const [searchPPN, setSearchPPN] = useState('');
+const PPNSearch = ({updateResults, searchState, setSearchState}) => {
+
   const [isSearching, setIsSearching] = useState(false);
+
+  if (!('ppn' in searchState)) {
+    searchState['ppn'] = '';
+    setSearchState(searchState);
+  }
 
   const counter = useRef(0);
 
@@ -11,7 +16,7 @@ const PPNSearch = ({updateResults}) => {
 
     setIsSearching(true);
 
-    const response = await fetch('api/ppn/DIGISAM/PPN' + searchPPN);
+    const response = await fetch('api/ppn/DIGISAM/PPN' + searchState.ppn);
 
     const result = await response.json();
 
@@ -24,8 +29,7 @@ const PPNSearch = ({updateResults}) => {
 
   useEffect( () =>  {
 
-    if (searchPPN === '') {
-        updateResults([]);
+    if (searchState.ppn === '') {
         return;
     }
 
@@ -37,26 +41,25 @@ const PPNSearch = ({updateResults}) => {
             () => {
                 if (counter.current > scounter) return;
 
-                console.log(searchPPN, scounter, counter.current);
+                console.log(searchState.ppn, scounter, counter.current);
 
                 searchByPPN();
             }, 750);
 
     })(counter.current);
 
-  },[searchPPN]);
+  },[searchState]);
 
 
   return (
     <div>
       <input
         type="number"
-        value={searchPPN}
-        onChange={(e) => setSearchPPN(e.target.value)}
+        value={searchState.ppn}
+        onChange={(e) => setSearchState({ppn: e.target.value})}
         placeholder="Enter number"
       />
       { isSearching ? (<h4> Searching ... </h4>) : ( <> </> ) }
-      {/*<button onClick={handleSearch}>Search</button>*/}
     </div>
   );
 };

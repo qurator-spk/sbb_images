@@ -1,10 +1,7 @@
 //Sketch
 import React, { useRef, useEffect, useState } from 'react';
 
-const ImageSearch = ({updateResults}) => {
-  const [selectedImage, setSelectedImage] = useState(null);
-
-  const formData = useRef(null);
+const ImageSearch = ({updateResults, searchState, setSearchState}) => {
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -12,34 +9,41 @@ const ImageSearch = ({updateResults}) => {
     let fd = new FormData();
     fd.append('file', file);
 
-    formData.current = fd;
-
-    setSelectedImage(URL.createObjectURL(file));
+    setSearchState({ imgUrl: URL.createObjectURL(file), formData: fd} );
   };
 
   const searchByImage = async() => {
 
-    const response = await fetch('api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100',
-        {
-            method: 'POST',
-            body: formData.current
-        }
-    );
+    if ('formData' in searchState) {
 
-    const result = await response.json();
+        const response = await fetch('api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100',
+            {
+                method: 'POST',
+                body: searchState.formData
+            }
+        );
 
-    updateResults(result.ids);
+        const result = await response.json();
+
+        updateResults(result.ids);
+    }
+    else if ('img_id' in searchState) {
+
+        const response =
+            await fetch('api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100?search_id=' +
+                        searchState.img_id + '&search_id_from=DIGISAM'
+        );
+        const result = await response.json();
+
+        updateResults(result.ids);
+    }
   };
 
   useEffect( () =>  {
 
-    if (formData.current===null) {
-        updateResults([]);
-        return;
-    }
-
     searchByImage();
-  },[selectedImage]);
+
+  },[searchState]);
 
   return (
     <div>
@@ -50,7 +54,7 @@ const ImageSearch = ({updateResults}) => {
             style={{ display: 'none' }}
             onChange={handleImageUpload}
           />
-      {selectedImage && <img src={selectedImage} alt="Uploaded" />}
+      {searchState.imgUrl && <img src={searchState.imgUrl} alt="Uploaded" />}
     </div>
   );
 };

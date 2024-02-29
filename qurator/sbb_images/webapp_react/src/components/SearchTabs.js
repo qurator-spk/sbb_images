@@ -6,8 +6,9 @@ import TextSearch from './TextSearch'
 import PPNSearch from './PPNSearch'
 import ImageSearch from './ImageSearch'
 
-const SearchTabs = ({updateResults}) => {
-  const [activeTab, setActiveTab] = useState('image');
+const SearchTabs = ({updateResults, activeTab, setActiveTab,
+                    searchState, setSearchState}) => {
+
   const [showModal, setShowModal] = useState(false);
   const inputRef = useRef(null);
 
@@ -18,6 +19,10 @@ const SearchTabs = ({updateResults}) => {
   const handleSearch = () => {
     // search logic here
     console.log('Searching...', activeTab);
+  };
+
+  const selectImageTab = () => {
+    handleTabClick('image');
   };
 
   const handleImageUpload = () => {
@@ -43,19 +48,19 @@ const SearchTabs = ({updateResults}) => {
       <div className="label-container">
         <div
           className={`tab-label ${activeTab === 'image' ? 'active' : ''}`}
-          onClick={() => handleTabClick('image')}
+          onClick={() => setActiveTab('image')}
         >
           Image
         </div>
         <div
           className={`tab-label ${activeTab === 'text' ? 'active' : ''}`}
-          onClick={() => handleTabClick('text')}
+          onClick={() => setActiveTab('text')}
         >
           Description
         </div>
         <div
           className={`tab-label ${activeTab === 'number' ? 'active' : ''}`}
-          onClick={() => handleTabClick('number')}
+          onClick={() => setActiveTab('number')}
         >
           PPN
         </div>
@@ -73,14 +78,19 @@ const SearchTabs = ({updateResults}) => {
             </label>
           ) : (
             activeTab === 'text' ? (
-            <TextSearch updateResults={updateResults} />
+            <TextSearch updateResults={updateResults} searchState={searchState}
+                setSearchState={setSearchState}/>
             ) : (
-            <PPNSearch updateResults={updateResults} />
+            <PPNSearch updateResults={updateResults} searchState={searchState}
+                setSearchState={setSearchState}/>
             )
           )}
         </div>
         {activeTab === 'image' && (
-            <ImageSearch updateResults={updateResults}/>
+            <ImageSearch
+                updateResults={updateResults}
+                searchState={searchState}
+                setSearchState={setSearchState}/>
         )}
       </div>
 
