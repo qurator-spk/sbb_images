@@ -15,10 +15,6 @@ const SearchTabs = ({updateResults, activeTab, setActiveTab,
     setActiveTab(tab);
   };
 
-  const selectImageTab = () => {
-    handleTabClick('image');
-  };
-
   const handleInfoButtonClick = () => {
     setShowModal(true);
   };

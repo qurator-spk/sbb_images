@@ -3,18 +3,13 @@ import React, { useRef, useEffect, useState } from 'react';
 
 const ImageSearch = ({updateResults, searchState, setSearchState}) => {
 
-  if (!('imgUrl' in searchState)) {
-    searchState['imgUrl'] = '';
-    setSearchState(searchState);
-  }
-
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
 
     let fd = new FormData();
     fd.append('file', file);
 
-    setSearchState({ imgUrl: URL.createObjectURL(file), formData: fd} );
+    setSearchState(searchState.setImgUrlWithFormData(URL.createObjectURL(file), fd));
   };
 
   const searchByImage = async() => {

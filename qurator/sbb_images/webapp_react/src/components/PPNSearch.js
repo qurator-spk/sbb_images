@@ -5,11 +5,6 @@ const PPNSearch = ({updateResults, searchState, setSearchState}) => {
 
   const [isSearching, setIsSearching] = useState(false);
 
-  if (!('ppn' in searchState)) {
-    searchState['ppn'] = '';
-    setSearchState(searchState);
-  }
-
   const counter = useRef(0);
 
   const searchByPPN = async() => {
@@ -19,8 +14,6 @@ const PPNSearch = ({updateResults, searchState, setSearchState}) => {
     const response = await fetch('api/ppn/DIGISAM/PPN' + searchState.ppn);
 
     const result = await response.json();
-
-    console.log(result);
 
     updateResults(result.ids);
 
@@ -41,8 +34,6 @@ const PPNSearch = ({updateResults, searchState, setSearchState}) => {
             () => {
                 if (counter.current > scounter) return;
 
-                console.log(searchState.ppn, scounter, counter.current);
-
                 searchByPPN();
             }, 750);
 
@@ -56,7 +47,7 @@ const PPNSearch = ({updateResults, searchState, setSearchState}) => {
       <input
         type="number"
         value={searchState.ppn}
-        onChange={(e) => setSearchState({ppn: e.target.value})}
+        onChange={(e) => setSearchState(searchState.setPPN(e.target.value))}
         placeholder="Enter number"
       />
       { isSearching ? (<h4> Searching ... </h4>) : ( <> </> ) }

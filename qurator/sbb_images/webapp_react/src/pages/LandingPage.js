@@ -6,6 +6,8 @@ import SearchTabs from '../components/SearchTabs';
 import SearchResults from '../components/SearchResults';
 import Introduction from '../components/Introduction';
 
+import { makeSearchState }  from '../components/SearchState';
+
 const LandingPage = () => {
   console.log("Landing Page is rendered");
 
@@ -13,18 +15,16 @@ const LandingPage = () => {
 
   const [activeTab, setActiveTab] = useState('image');
 
-  const [searchState, setSearchState] = useState({ imgUrl: ''});
+  const [searchState, setSearchState] = useState(makeSearchState());
 
   const updateResults = (ids) => {
     setIds(ids);
   }
 
   const searchMore = (img_id) => {
-        console.log("Search More: ", img_id);
-
         setActiveTab("image");
 
-        setSearchState({imgUrl: "api/image/DIGISAM/" + img_id, img_id: img_id});
+        setSearchState(searchState.setImgUrlWithID("api/image/DIGISAM/" + img_id, img_id));
   };
 
   return (

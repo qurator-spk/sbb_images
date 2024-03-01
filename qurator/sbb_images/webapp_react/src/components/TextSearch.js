@@ -5,11 +5,6 @@ const TextSearch = ({updateResults, searchState, setSearchState}) => {
 
   const counter = useRef(0);
 
-  if (!('description' in searchState)) {
-    searchState['description'] = '';
-    setSearchState(searchState);
-  }
-
   const searchByText = async() => {
     const params = {
         text: searchState.description
@@ -23,9 +18,9 @@ const TextSearch = ({updateResults, searchState, setSearchState}) => {
         }
     );
 
-    const result = await response.json();
+    let result = await response.json();
 
-    updateResults(result.ids);
+    return result.ids;
   };
 
   useEffect( () =>  {
@@ -39,13 +34,17 @@ const TextSearch = ({updateResults, searchState, setSearchState}) => {
     ((scounter) => {
 
         setTimeout(
-            () => {
+            async () => {
 
                 if (counter.current > scounter) return;
 
                 console.log(searchState.description, scounter, counter.current);
 
-                searchByText();
+                const ids = await searchByText();
+
+                if (counter.current > scounter) return;
+
+                updateResults(ids);
             }, 750);
 
     })(counter.current);
@@ -57,7 +56,7 @@ const TextSearch = ({updateResults, searchState, setSearchState}) => {
       <input
         type="text"
         value={searchState.description}
-        onChange={(e) => setSearchState({ description: e.target.value})}
+        onChange={(e) => setSearchState(searchState.setDescription(e.target.value))}
         placeholder="Enter text"
       />
     </div>
