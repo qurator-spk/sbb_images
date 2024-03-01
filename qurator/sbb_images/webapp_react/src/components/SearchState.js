@@ -1,6 +1,8 @@
 
 export const makeSearchState = () => {
 
+    console.log("makeSearchState");
+
     let setImgUrlWithID = null;
     let setImgUrlWithFormData = null;
     let setDescription = null;
@@ -12,6 +14,8 @@ export const makeSearchState = () => {
         state['setImgUrlWithFormData'] = setImgUrlWithFormData;
         state['setDescription'] = setDescription;
         state['setPPN'] = setPPN;
+
+        console.log("state:", state);
 
         return state;
     }

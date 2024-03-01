@@ -3,11 +3,14 @@ import React, { useRef, useState, useEffect } from 'react';
 
 const TextSearch = ({updateResults, searchState, setSearchState}) => {
 
+  const [description, setDescription] = useState(searchState.description);
+
   const counter = useRef(0);
 
   const searchByText = async() => {
+
     const params = {
-        text: searchState.description
+        text: description
     };
 
     const response = await fetch('api/similar-by-text/DIGISAM-MSCLIP-B32-LAION/0/100',
@@ -25,7 +28,7 @@ const TextSearch = ({updateResults, searchState, setSearchState}) => {
 
   useEffect( () =>  {
 
-    if (searchState.description === '') {
+    if (description === '') {
         return;
     }
 
@@ -38,25 +41,27 @@ const TextSearch = ({updateResults, searchState, setSearchState}) => {
 
                 if (counter.current > scounter) return;
 
-                console.log(searchState.description, scounter, counter.current);
+                console.log(description, scounter, counter.current);
 
                 const ids = await searchByText();
 
                 if (counter.current > scounter) return;
 
-                updateResults(ids);
+                setSearchState(searchState.setDescription(description));
+
+                updateResults({ type: "text" , ids: ids});
             }, 750);
 
     })(counter.current);
 
-  },[searchState]);
+  },[description]);
 
   return (
     <div>
       <input
         type="text"
-        value={searchState.description}
-        onChange={(e) => setSearchState(searchState.setDescription(e.target.value))}
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
         placeholder="Enter text"
       />
     </div>

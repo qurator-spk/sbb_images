@@ -25,7 +25,7 @@ const ImageSearch = ({updateResults, searchState, setSearchState}) => {
 
         const result = await response.json();
 
-        updateResults(result.ids);
+        updateResults({type: "image", ids: result.ids});
     }
     else if ('img_id' in searchState) {
 
@@ -35,7 +35,7 @@ const ImageSearch = ({updateResults, searchState, setSearchState}) => {
         );
         const result = await response.json();
 
-        updateResults(result.ids);
+        updateResults({type: "image", ids: result.ids});
     }
   };
 
@@ -44,6 +44,8 @@ const ImageSearch = ({updateResults, searchState, setSearchState}) => {
     searchByImage();
 
   },[searchState]);
+
+  console.log(searchState);
 
   return (
     <div>
