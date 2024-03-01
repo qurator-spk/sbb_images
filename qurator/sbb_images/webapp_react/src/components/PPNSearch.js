@@ -15,9 +15,9 @@ const PPNSearch = ({updateResults, searchState, setSearchState}) => {
 
     const result = await response.json();
 
-    updateResults(result.ids);
-
     setIsSearching(false);
+
+    return result.ids;
   };
 
   useEffect( () =>  {
@@ -31,10 +31,14 @@ const PPNSearch = ({updateResults, searchState, setSearchState}) => {
     ((scounter) => {
         // search logic
         setTimeout(
-            () => {
+            async ()  => {
                 if (counter.current > scounter) return;
 
-                searchByPPN();
+                const ids = await searchByPPN();
+
+                if (counter.current > scounter) return;
+
+                updateResults(ids);
             }, 750);
 
     })(counter.current);
