@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Modal from './Modal';
 
-const SearchResult = ({searchMore, img_id, loadPos, searchResult, activeTab}) => {
+const SearchResult = ({searchMore, img_id, loadPos, searchResult, activeTab, pos}) => {
 
-    const minLoadInterval = 100;
+    const minLoadInterval = 200;
 
     const [ isLoaded, setIsLoaded] = useState(false);
 
@@ -21,15 +21,21 @@ const SearchResult = ({searchMore, img_id, loadPos, searchResult, activeTab}) =>
         const imgUrl = URL.createObjectURL(img);
 
         setImgSrc(imgUrl);
-
-        loadPos.current = loadPos.current + 1;
     };
 
+    const exitCondition = (sresult) => {
+        if (sresult != searchResult) return true;
+        if (searchResult.type !== activeTab) return true;
+
+        if (loadPos.current > pos) return true;
+        if (loadPos.current >= searchResult.ids.length) return true;
+
+        return false;
+    }
+
     const loadWaiter = async(sresult) => {
-            if (sresult != searchResult) return;
-            if (searchResult.type !== activeTab) return;
-            if (isLoaded) return;
-            if (loadPos.current >= searchResult.ids.length) return;
+
+            if (exitCondition(sresult)) return;
 
             if (searchResult.ids[loadPos.current] !== img_id) {
                 setTimeout(() => { loadWaiter(sresult) }, minLoadInterval);
@@ -37,6 +43,9 @@ const SearchResult = ({searchMore, img_id, loadPos, searchResult, activeTab}) =>
             }
 
             imageLoader();
+
+            if (exitCondition(sresult)) return;
+            loadPos.current = loadPos.current + 1;
         };
 
     useEffect(() => {
@@ -69,10 +78,10 @@ const SearchResults = ({searchResult, searchMore, activeTab}) => {
 
     return (
         <div style={{height: "55vh", overflowY: "scroll"}}>
-            {searchResult.ids.map((imgID) => (
+            {searchResult.ids.map((imgID, pos) => (
                 <SearchResult key={imgID} searchMore={searchMore} img_id={imgID}
                     loadPos={loadPos} searchResult={searchResult}
-                    activeTab={activeTab}/>
+                    activeTab={activeTab} pos={pos}/>
             ))}
         </div>
     );
