@@ -41,7 +41,8 @@ from .saliency import load_saliency_model
 import PIL
 from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageStat
 from torchvision import transforms
-import multiprocessing as mp
+
+from datetime import datetime
 
 
 @click.command()
@@ -50,11 +51,17 @@ import multiprocessing as mp
 @click.option('--pattern', type=str, default="*.jpg", help="File pattern to search for. Default: *.jpg")
 @click.option('--follow-symlinks', type=bool, is_flag=True, default=False)
 @click.option('--subset-json', type=click.Path(exists=True), default=None)
-def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_json):
+@click.option('--subset-dirs-json', type=click.Path(exists=True), default=None)
+def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_json, subset_dirs_json):
     """
     DIRECTORY: Recursively enlist all the image files in this directory.
     Write the file list into the images table of SQLITE_FILE that is a sqlite3 database file.
     """
+
+    subset_dirs = None
+    if subset_dirs_json is not None:
+        with open(subset_dirs_json, 'r') as sdf:
+            subset_dirs = set(json.load(sdf))
 
     def file_it(to_scan):
 
@@ -62,6 +69,10 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_jso
 
             try:
                 if f.is_dir(follow_symlinks=follow_symlinks):
+
+                    if subset_dirs is not None and f.path not in subset_dirs:
+                        continue
+
                     for g in file_it(f):
                         yield g
                 else:
@@ -107,6 +118,7 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_jso
         conn.execute('create index idx_user on annotations(user);')
         conn.execute('create index idx_label on annotations(label);')
 
+
 class ThumbTask:
 
     def __init__(self, filename, max_img_size):
@@ -116,20 +128,24 @@ class ThumbTask:
 
     def __call__(self, *args, **kwargs):
 
-        img = Image.open(self._filename).convert('RGB')
+        # noinspection PyBroadException
+        try:
+            img = Image.open(self._filename).convert('RGB')
 
-        max_size = float(max(img.size[0], img.size[1]))
+            max_size = float(max(img.size[0], img.size[1]))
 
-        scale_factor = 1.0 if max_size <= self._max_img_size else self._max_img_size / max_size
+            scale_factor = 1.0 if max_size <= self._max_img_size else self._max_img_size / max_size
 
-        hsize = int((float(img.size[0]) * scale_factor))
-        vsize = int((float(img.size[1]) * scale_factor))
+            hsize = int((float(img.size[0]) * scale_factor))
+            vsize = int((float(img.size[1]) * scale_factor))
 
-        img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+            img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
 
-        buffer = io.BytesIO()
-        img.save(buffer, "JPEG")
-        buffer.seek(0)
+            buffer = io.BytesIO()
+            img.save(buffer, "JPEG")
+            buffer.seek(0)
+        except:
+            return None, None, None
 
         return self._filename, buffer, scale_factor
 
@@ -140,20 +156,30 @@ class ThumbTask:
 @click.option('--pattern', type=str, default="*.jpg", help="File pattern to search for. Default: *.jpg")
 @click.option('--follow-symlinks', type=bool, is_flag=True, default=False)
 @click.option('--subset-json', type=click.Path(exists=True), default=None)
+@click.option('--subset-dirs-json', type=click.Path(exists=True), default=None)
 @click.option('--max-img-size', type=int, default=250)
 @click.option('--processes', type=int, default=8)
-def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_json, max_img_size, processes):
+def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_json, subset_dirs_json, max_img_size,
+                      processes):
     """
     DIRECTORY: Recursively enlist all the image files in this directory and add them to the thumbnail database.
     Write the thumbnail information to the thumbnails table of SQLITE_FILE that is a sqlite3 database file.
     """
 
+    subset_dirs = None
+    if subset_dirs_json is not None:
+        with open(subset_dirs_json, 'r') as sdf:
+            subset_dirs = set(json.load(sdf))
+
     def file_it(to_scan):
 
         for f in os.scandir(to_scan):
-
             try:
                 if f.is_dir(follow_symlinks=follow_symlinks):
+
+                    if subset_dirs is not None and f.path not in subset_dirs:
+                        continue
+
                     for g in file_it(f):
                         yield g
                 else:
@@ -167,8 +193,8 @@ def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_j
 
     subset = None
     if subset_json is not None:
-        with open(subset_json, 'r') as f:
-            subset = json.load(f)
+        with open(subset_json, 'r') as sjf:
+            subset = json.load(sjf)
 
     print("Scanning for {} files ...".format(pattern))
     images = []
@@ -181,11 +207,11 @@ def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_j
         images.append(p)
         _file_it.set_description("Scanning ... [{}]".format(len(images)))
 
-    def get_thumbs(images):
+    def get_thumbs(imgs):
 
-        for filename in tqdm(images, desc="Creating thumbnails..."):
+        for fname in tqdm(imgs, desc="Creating thumbnails..."):
 
-            yield ThumbTask(filename, max_img_size)
+            yield ThumbTask(fname, max_img_size)
 
     with sqlite3.connect(sqlite_file) as conn:
 
@@ -194,10 +220,15 @@ def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_j
 
         for idx, (filename, buffer, scale_factor) in enumerate(prun(get_thumbs(images), processes=processes)):
 
+            if filename is None or buffer is None or scale_factor is None:
+                continue
+
             conn.execute('INSERT INTO thumbnails VALUES(?,?,?,?,?)',
                          (idx, filename, sqlite3.Binary(buffer.read()), max_img_size, scale_factor))
 
         conn.execute('create index idx_thumb on thumbnails(filename, size);')
+        conn.execute('create index idx_thumb_fn on thumbnails(filename);')
+
 
 @click.command()
 @click.argument('detection-file', type=click.Path(exists=True))
@@ -220,6 +251,14 @@ def add_detections(detection_file, sqlite_file, replace):
     detections['num_annotations'] = 0
 
     with sqlite3.connect(sqlite_file) as conn:
+
+        img = pd.read_sql('select * from images', con=conn, index_col="index")
+
+        img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
+
+        detections = detections.loc[detections.file.isin(img.file)]
+
+        detections = detections[img.columns].reset_index(drop=True)
 
         max_rowid = pd.read_sql('select max(rowid) from images', con=conn).iloc[0, 0]
 
@@ -256,43 +295,6 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
                                       max_iter=max_iter)
 
     summarized.to_pickle(detection_out_file)
-
-
-@click.command()
-@click.argument('sqlite-file', type=click.Path(exists=True))
-def create_sbb_link_table(sqlite_file):
-    """
-    Special functionality of the SBB (Staatsbibliothek zu Berlin):
-    Creates an link table that links each image in the database to the corresponding webpage within the
-    "digitalisierte Sammlungen".
-
-    SQLITE_FILE: sqlite3 database file that contains the images table.
-    """
-
-    with sqlite3.connect(sqlite_file) as con:
-        images = pd.read_sql('select * from images', con=con)
-
-    links = []
-    for rowid, img in tqdm(images.iterrows(), total=len(images)):
-
-        m = re.match(r'.*/(PPN.+)/([0-9]+)_.*', img.file)
-
-        if m is None:
-            print(img.file)
-            continue
-
-        ppn = m.group(1)
-        phys_id = m.group(2)
-
-        links.append(("https://digital.staatsbibliothek-berlin.de/werkansicht?" +
-                      "PPN={}&PHYSID=PHYS_{}".format(ppn, phys_id), ppn, phys_id, rowid))
-
-    links = pd.DataFrame(links, columns=['url', 'ppn', 'phys_id', 'index']).set_index('index')
-
-    with sqlite3.connect(sqlite_file) as con:
-        links.to_sql('links', con=con, if_exists='replace')
-
-        con.execute("create index ix_links_ppn on links(ppn)")
 
 
 @click.command()
@@ -658,26 +660,35 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
 @click.argument('sqlite-file', type=click.Path(exists=True))
 @click.argument('index-file', type=click.Path(exists=False))
 @click.option('--model-name', type=str, default='resnet18', help='PyTorch name of NN-model. default: "resnet18".\n'
-              'Automatically set to "VST" if vit-model and vst-model given.')
+              'Set to "VST" if you want Visual Saliency Transformer features for the search index.'
+              ' Note in that case you also have to provide vit-model and vst-model.')
 @click.option('--batch-size', type=int, default=32, help="Process batch-size. default: 32.")
 @click.option('--dist-measure', type=str, default='angular', help="Distance measure of the approximate nearest"
-              "neighbour index. default: angular.")
+              " neighbour index. default: angular.")
 @click.option('--n-trees', type=int, default=10, help="Number of search trees. Default 10.")
 @click.option('--num-workers', type=int, default=8, help="Number of parallel workers during index creation."
                                                          "Default 8.")
 @click.option('--vit-model', type=click.Path(exists=True), default=None,
-              help='Vision transformer pytorch model file.')
+              help='Vision transformer pytorch model file (required by Visual Saliency Transformer).')
 @click.option('--vst-model', type=click.Path(exists=True), default=None,
               help='Visual saliency transformer pytorch model file.')
 @click.option('--clip-model', type=str, default=None, help='CLIP model.')
 @click.option('--ms-clip-model', type=str, default=None, help='MSCLIP model configuration file.')
 @click.option('--layer-name', type=str, default='fc', help="Name of feature layer. default: fc")
 @click.option('--layer-output', is_flag=True, help="User output of layer rather than its input.")
-@click.option('--use-saliency-mask', is_flag=True, help="Mask images by saliency before feature computation.")
-@click.option('--vst-features', is_flag=True, help="")
+@click.option('--use-saliency-mask', is_flag=True, help="Mask images by saliency before feature computation. Note: you"
+                                                        " need to provide vit-model and vst-model in that case.")
+@click.option('--pad-to-square', is_flag=False, help="Pad-to-square before application of model image transform"
+                                                     " (typically resize + center-crop).")
+@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
+                                                                      " but rather try to read them from this sqlite"
+                                                                      " thumbnail file.")
+@click.option('--thumbnail-table-name', type=str, default=None, help="Do not read the image from the file system"
+                                                                      " but rather try to read them from this table"
+                                                                      " in the thumbnail sqlite file.")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers, vit_model,
                         vst_model, clip_model, ms_clip_model, layer_name, layer_output, use_saliency_mask,
-                        vst_features):
+                        pad_to_square, thumbnail_sqlite_file, thumbnail_table_name):
     """
 
     Creates a CNN-features based similarity search index.
@@ -693,8 +704,8 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     extract_features_orig, extract_transform, normalization = \
         load_extraction_model(model_name, layer_name, layer_output,
-                              vit_model=None if not vst_features else vit_model,
-                              vst_model=None if not vst_features else vst_model,
+                              vit_model=None if model_name != "VST" else vit_model,
+                              vst_model=None if model_name != "VST" else vst_model,
                               clip_model=clip_model, ms_clip_model=ms_clip_model)
 
     if use_saliency_mask:
@@ -743,7 +754,7 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
             # img = ImageOps.autocontrast(img_orig)
             # img = img.filter(ImageFilter.UnsharpMask(radius=2))
 
-            return (extract_transform(img_orig),)
+            return extract_transform(img_orig),
 
         transform = default_image_transform
 
@@ -753,7 +764,8 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
         extract_features = default_extract_features
 
-    dataset = AnnotatedDataset(samples=X, targets=None, transform=transform)
+    dataset = AnnotatedDataset(samples=X, targets=None, transform=transform, pad_to_square=pad_to_square,
+                               thumbnail_sqlite_file=thumbnail_sqlite_file, table_name=thumbnail_table_name)
 
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 

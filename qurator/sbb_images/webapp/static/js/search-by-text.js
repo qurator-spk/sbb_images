@@ -219,7 +219,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                 if (    (!configuration.acceptsText())
                     && ((text_search_mode==="desc") || (text_search_mode==="iconclass"))) {
 
-                    text_search_mode = "filename";
+                    text_search_mode = "tag";
                 }
 
                 url_params.set('text_search_mode', text_search_mode);
