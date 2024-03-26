@@ -325,7 +325,9 @@ def has_annotations(user):
     else:
         count = pd.read_sql("SELECT COUNT(*) FROM annotations WHERE url=? AND user=?", con=get_db(), params=(url, user))
 
-    return "OK", 200
+    count = count['COUNT(*)'][0] if count is not None and len(count) > 0 else 0
+
+    return jsonify({"count": int(count)})
 
 
 @app.route('/get-annotations', methods=['POST'])

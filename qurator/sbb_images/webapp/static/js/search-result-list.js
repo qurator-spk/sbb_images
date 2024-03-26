@@ -24,7 +24,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                                 $.get("regionannotator",
                                     function(reanno) {
 
-                                        console.log(reanno);
+                                        // console.log(reanno);
                                         region_annotator = reanno;
 
                                         afterwards();
@@ -262,7 +262,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                                             type: "POST",
                                             contentType: "application/json"
                                         };
-                                    $.ajax(request);
+                                        $.ajax(request);
                                     })(tag_id);
                                 }
                              );
@@ -319,7 +319,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                     if (region_annotator.length > 0) {
                         region_annotator_html = `
                             <a class="btn btn-link" href=""  id="iiif-lnk-${result_id}" target="_blank" rel="noopener noreferrer">
-                                <span class="badge badge-pill badge-light badge-primary mb-1" data-toggle="tooltip" title="Click to annotate regions in this image." onclick="$(this).tooltip('hide')">
+                                <span class="badge badge-pill badge-light badge-primary mb-1" id="badge-annotations-${result_id}" data-toggle="tooltip" title="Click to annotate regions in this image." onclick="$(this).tooltip('hide')">
                                     Annotate
                                 </span>
                             </a>
@@ -419,6 +419,28 @@ function setup_search_result_list(configuration, search, next_batch) {
                                         let annotate_lnk = region_annotator + "?image=" + encodeURIComponent(result);
 
                                         $("#iiif-lnk-" + result_id).attr('href', annotate_lnk);
+
+                                        let region_annotator_path =
+                                            region_annotator.substring(0, region_annotator.lastIndexOf('/'));
+
+                                        let request =
+                                        {
+                                            success:
+                                                function(annotations_result){
+
+                                                    if (annotations_result["count"] <= 0) return;
+
+                                                    $(`#badge-annotations-${result_id}`).removeClass("badge-light");
+                                                    $(`#badge-annotations-${result_id}`).addClass("badge-success");
+                                                },
+                                            error: function(){},
+                                            url: region_annotator_path + "/has-annotations",
+                                            data: JSON.stringify({ "url": result }),
+                                            type: "POST",
+                                            contentType: "application/json"
+                                        };
+                                        $.ajax(request);
+
                                     }
                                 );
                             }
