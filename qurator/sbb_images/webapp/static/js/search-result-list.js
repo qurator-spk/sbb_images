@@ -482,10 +482,20 @@ function setup_search_result_list(configuration, search, next_batch) {
     };
 
     let tag_mode = "add";
+    let clear_selection = false;
 
     $("#tag-select-add").click(
         function() {
             tag_mode = "add";
+            clear_selection = false;
+
+            $("#tag-button").html($(this).html());
+        });
+
+    $("#tag-select-add-deselect").click(
+        function() {
+            tag_mode = "add";
+            clear_selection = true;
 
             $("#tag-button").html($(this).html());
         });
@@ -493,6 +503,7 @@ function setup_search_result_list(configuration, search, next_batch) {
     $("#tag-select-remove").click(
         function() {
             tag_mode = "remove";
+            clear_selection = false;
 
             $("#tag-button").html($(this).html());
         });
@@ -513,6 +524,10 @@ function setup_search_result_list(configuration, search, next_batch) {
                         $.each(update_ids,
                             function(idx, uid) {
                                 add_tag_info(uid);
+
+                                if (clear_selection) {
+                                    $(".tag-selectable").prop("checked", false);
+                                }
                             }
                         );
                     },
