@@ -314,6 +314,20 @@ def delete_annotation(user):
     return "OK", 200
 
 
+@app.route('/has-annotations', methods=['POST'])
+@htpasswd.required
+def has_annotations(user):
+
+    url = request.json['url']
+
+    if user in app.config['ADMIN_USERS'] or app.config['COOPERATIVE_ACCESS']:
+        count = pd.read_sql("SELECT COUNT(*) FROM annotations WHERE url=?", con=get_db(), params=(url,))
+    else:
+        count = pd.read_sql("SELECT COUNT(*) FROM annotations WHERE url=? AND user=?", con=get_db(), params=(url, user))
+
+    return "OK", 200
+
+
 @app.route('/get-annotations', methods=['POST'])
 @htpasswd.required
 def get_annotations(user):
