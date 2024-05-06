@@ -2,23 +2,17 @@ import React, { useState, useRef } from 'react';
 import Modal from './Modal';
 import './SearchTabs.css';
 
-const SearchTabs = () => {
-  const [activeTab, setActiveTab] = useState('image');
+import TextSearch from './TextSearch'
+import PPNSearch from './PPNSearch'
+import ImageSearch from './ImageSearch'
+
+const SearchTabs = ({updateResults, activeTab, setActiveTab,
+                    searchState, setSearchState}) => {
+
   const [showModal, setShowModal] = useState(false);
-  const inputRef = useRef(null);
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
-  };
-
-  const handleSearch = () => {
-    // search logic here
-    console.log('Searching...');
-  };
-
-  const handleImageUpload = () => {
-    // image upload logic here
-    console.log('Uploading image...');
   };
 
   const handleInfoButtonClick = () => {
@@ -35,19 +29,19 @@ const SearchTabs = () => {
       <div className="label-container">
         <div
           className={`tab-label ${activeTab === 'image' ? 'active' : ''}`}
-          onClick={() => handleTabClick('image')}
+          onClick={() => setActiveTab('image')}
         >
           Image
         </div>
         <div
           className={`tab-label ${activeTab === 'text' ? 'active' : ''}`}
-          onClick={() => handleTabClick('text')}
+          onClick={() => setActiveTab('text')}
         >
           Description
         </div>
         <div
           className={`tab-label ${activeTab === 'number' ? 'active' : ''}`}
-          onClick={() => handleTabClick('number')}
+          onClick={() => setActiveTab('number')}
         >
           PPN
         </div>
@@ -64,25 +58,20 @@ const SearchTabs = () => {
               Upload Image
             </label>
           ) : (
-            <>
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder={`Enter ${activeTab} here...`}
-                onChange={(e) => console.log(e.target.value)} // Handle input changes as needed
-              />
-              <input type="submit" value="Search" onClick={handleSearch} />
-            </>
+            activeTab === 'text' ? (
+            <TextSearch updateResults={updateResults} searchState={searchState}
+                setSearchState={setSearchState}/>
+            ) : (
+            <PPNSearch updateResults={updateResults} searchState={searchState}
+                setSearchState={setSearchState}/>
+            )
           )}
         </div>
         {activeTab === 'image' && (
-          <input
-            id="image-upload"
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={handleImageUpload}
-          />
+            <ImageSearch
+                updateResults={updateResults}
+                searchState={searchState}
+                setSearchState={setSearchState}/>
         )}
       </div>
 

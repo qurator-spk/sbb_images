@@ -1,19 +1,62 @@
 //Sketch
-import React, { useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
-const ImageSearch = () => {
-  const [selectedImage, setSelectedImage] = useState(null);
+const ImageSearch = ({updateResults, searchState, setSearchState}) => {
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
-    setSelectedImage(URL.createObjectURL(file));
-    // image search logic here
+
+    let fd = new FormData();
+    fd.append('file', file);
+
+    setSearchState(searchState.setImgUrlWithFormData(URL.createObjectURL(file), fd));
   };
+
+  const searchByImage = async() => {
+
+    if ('formData' in searchState) {
+
+        const response = await fetch('api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100',
+            {
+                method: 'POST',
+                body: searchState.formData
+            }
+        );
+
+        const result = await response.json();
+
+        updateResults({type: "image", ids: result.ids});
+    }
+    else if ('img_id' in searchState) {
+
+        const response =
+            await fetch('api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100?search_id=' +
+                        searchState.img_id + '&search_id_from=DIGISAM'
+        );
+        const result = await response.json();
+
+        updateResults({type: "image", ids: result.ids});
+    }
+  };
+
+  useEffect( () =>  {
+
+    searchByImage();
+
+  },[searchState]);
+
+  console.log(searchState);
 
   return (
     <div>
-      <input type="file" onChange={handleImageUpload} />
-      {selectedImage && <img src={selectedImage} alt="Uploaded" />}
+       <input
+            id="image-upload"
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleImageUpload}
+          />
+      {searchState.imgUrl && <img src={searchState.imgUrl} alt="Uploaded" />}
     </div>
   );
 };
