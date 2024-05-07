@@ -1,17 +1,18 @@
 import sqlite3
 import click
 import re
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
 
 
 @click.command()
-@click.argument('wzis-csv-file', type=click.Path(exists=True))
+@click.argument('smb-csv-file', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=True))
 @click.option('--path-prefix', type=str, default=None)
 @click.option('--append', type=bool, is_flag=True, default=False)
-def cli(wzis_csv_file, sqlite_file, path_prefix, append):
+def cli(smb_csv_file, sqlite_file, path_prefix, append):
     """
         PAGE_INFO_FILE:
         SQLITE_FILE: sqlite3 database file that contains the images table.
@@ -40,22 +41,20 @@ def cli(wzis_csv_file, sqlite_file, path_prefix, append):
         if not append:
             conn.execute('delete from tags where user="page-info"')
 
-        print("Reading WZIS info ...")
+        print("Reading SMB info ...")
 
-        df_wzis = pd.read_csv(wzis_csv_file, sep=";")
+        df_smb = pd.read_csv(smb_csv_file)
 
         print("done")
 
-        df_wzis['path'] = \
-            df_wzis.Path.str.extract(".*?([0-9]+).*?").rename(columns={0: 'Path'}).Path + \
-            '/' + df_wzis.IDwmarks.astype(str) + '.png'
+        df_smb['path'] = 'ID-' + df_smb['Objekt.ID'].astype(str) + '.jpg'
 
         if path_prefix is not None:
             prefix = path_prefix + '/'
         else:
             prefix = ''
 
-        df_wzis['fullpath'] = prefix + df_wzis.path
+        df_smb['fullpath'] = prefix + df_smb.path
 
         print("Reading image table from database ...")
 
@@ -63,9 +62,9 @@ def cli(wzis_csv_file, sqlite_file, path_prefix, append):
 
         print("done.")
 
-        print("Merging WZIS meta-data ...")
+        print("Merging SMB meta-data ...")
 
-        df_images = df_images.merge(df_wzis, left_on='file', right_on='fullpath')
+        df_images = df_images.merge(df_smb, left_on='file', right_on='fullpath')
 
         print("done.")
 
@@ -75,21 +74,34 @@ def cli(wzis_csv_file, sqlite_file, path_prefix, append):
 
         df_all_tags = []
 
-        author = "WZIS-Meta-Data"
+        author = "SMB-Meta-Data"
+
+        def clean_str(s):
+            if np.isnan(s):
+                return ""
+
+            return s.strip()
 
         for _, row in tqdm(df_images.iterrows(), total=len(df_images)):
 
-            df_all_tags.append((row.rowid, row.Refnumber, author, timestamp, 1))
-            df_all_tags.append((row.rowid, "IDMo_" + str(row.IDmotif), author, timestamp, 1))
-            df_all_tags.append((row.rowid, row.Method_de, author, timestamp, 1))
+            df_all_tags.append((row.rowid, clean_str(row.Sammlung), author, timestamp, 1))
+            df_all_tags.append((row.rowid, clean_str(row['Objekt.Bereich']), author, timestamp, 1))
+            df_all_tags.append((row.rowid, clean_str(row['Institution.ISIL']), author, timestamp, 1))
+            df_all_tags.append((row.rowid, clean_str(row['Urheber.in.Fotograf.in']), author, timestamp, 1))
+            df_all_tags.append((row.rowid, clean_str(row['Bildrechte']), author, timestamp, 1))
+            df_all_tags.append((row.rowid, clean_str(row['Objekt.Beteiligte']), author, timestamp, 1))
+            df_all_tags.append((row.rowid, clean_str(row['Objekt.Datierung']), author, timestamp, 1))
+            df_all_tags.append((row.rowid, clean_str(row['Objekt.Geogr..Bezüge']), author, timestamp, 1))
 
-            tags = [re.sub(r'\s+', '_', re.sub(r'[,()-]', ' ', s).strip())
-                    for s in row.Motiflong_de.split('/')]
+            sbg = clean_str(row['Objekt.Sachbegriff'])
+            sbgs = re.sub(r'[,()-]', ' ', sbg).strip().split(" ")
 
-            for tag in tags:
-                df_all_tags.append((row.rowid, tag, author, timestamp, 1))
+            for sbg in sbgs:
+                df_all_tags.append((row.rowid, sbg, author, timestamp, 1))
 
         df_all_tags = pd.DataFrame(df_all_tags, columns=['image_id', 'tag', 'user', 'timestamp', 'read_only'])
+
+        df_all_tags = df_all_tags.loc[df_all_tags.tag.len > 0]
 
         if len(df_all_tags) == 0:
             print("No tags added.")
