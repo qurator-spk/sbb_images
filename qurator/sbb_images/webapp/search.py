@@ -430,15 +430,29 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     if not search_tag.startswith("|") and not search_tag.startswith("&"):
 
-        search_tag = "|" + search_tag
+        search_tag = "&" + search_tag
 
     clauses = re.findall(r"\s*([&|])\s*([!]*[^\s|&]+)+\s*", search_tag)
+
+    or_clauses = []
+    and_clauses = []
+    filter_clauses = []
+    for pos, (bool_op, pattern) in enumerate(clauses):
+        if bool_op == "|":
+            or_clauses.append((bool_op, pattern, pos))
+        elif bool_op == "&":
+            if pattern.startswith("!"):
+                filter_clauses.append((bool_op, pattern, pos))
+            else:
+                and_clauses.append((bool_op, pattern, pos))
+
+    clauses = or_clauses + and_clauses + filter_clauses
 
     df_ids = None
     highlight_labels = []
     text = []
 
-    for bool_op, pattern in clauses:
+    for bool_op, pattern, pos in clauses:
 
         df_pattern = None
 
@@ -457,7 +471,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
                 text.append(part_text)
 
-                if negate and bool_op == "|":
+                if (negate and bool_op == "|") or (negate and df_ids is None):
                     df_pattern = pd.read_sql('SELECT imageid, FROM iconclass WHERE label NOT LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
                 else:
@@ -473,7 +487,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
         if has_table("tags", data_conf):
 
-            if negate and bool_op == "|":
+            if (negate and bool_op == "|") or (negate and df_ids is None):
                 df_pattern = pd.read_sql('SELECT image_id FROM tags WHERE tag NOT GLOB ?',
                                          con=thread_store.get_db(data_conf), params=(pattern,))
             else:
@@ -486,7 +500,6 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         df_pattern = df_pattern.drop_duplicates(subset=['image_id'])
 
         if df_ids is None:
-
             df_ids = df_pattern
 
         elif bool_op == "&":
