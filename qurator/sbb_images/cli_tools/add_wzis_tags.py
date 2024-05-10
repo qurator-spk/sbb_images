@@ -38,7 +38,7 @@ def cli(wzis_csv_file, sqlite_file, path_prefix, append):
             pass
 
         if not append:
-            conn.execute('delete from tags where user="page-info"')
+            conn.execute('delete from tags where user="WZIS-Meta-Data"')
 
         print("Reading WZIS info ...")
 

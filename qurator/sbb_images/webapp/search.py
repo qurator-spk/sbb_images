@@ -31,6 +31,7 @@ from flask_cachecontrol import (cache_for)
 from ..parallel_fnmatch import fnmatch
 
 import iconclass
+import re
 
 
 app = flask.Flask(__name__)
@@ -425,52 +426,88 @@ def get_similar_by_tag(user, conf, start=0, count=100):
     if "tag" not in request.json:
         raise BadRequest("tag missing.")
 
-    search_tag = request.json['tag']
-    ids = []
+    search_tag = request.json['tag'].strip()
+
+    if not search_tag.startswith("|") and not search_tag.startswith("&"):
+
+        search_tag = "|" + search_tag
+
+    clauses = re.findall(r"\s*([&|])\s*([!]*[^\s|&]+)+\s*", search_tag)
+
+    df_ids = None
     highlight_labels = []
-    text = ""
+    text = []
 
-    if has_table("iconclass", data_conf):
+    for bool_op, pattern in clauses:
 
-        highlight_labels = [search_tag]
+        df_pattern = None
 
-        text = IconClassDataset.get_text(search_tag)
+        negate = False
+        if pattern.startswith("!"):
+            negate = True
+            pattern = pattern[1:]
 
-        if text is not None:
+        if has_table("iconclass", data_conf):
 
-            df_iconclass = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label LIKE ?', con=thread_store.get_db(data_conf),
-                                       params=(search_tag+"%",))
+            part_text = IconClassDataset.get_text(pattern)
 
-            df_iconclass = df_iconclass.drop_duplicates(subset=['imageid'])
+            if part_text is not None:
 
-            label_parts = iconclass.get_parts(search_tag)
+                highlight_labels.append(pattern)
 
-            if len(label_parts) > 0:
-                highlight_labels = label_parts
+                text.append(part_text)
 
-            ids += df_iconclass['imageid'].tolist()[start:start + count]
+                if negate and bool_op == "|":
+                    df_pattern = pd.read_sql('SELECT imageid, FROM iconclass WHERE label NOT LIKE ?',
+                                             con=thread_store.get_db(data_conf), params=(pattern + "%",))
+                else:
+                    df_pattern = pd.read_sql('SELECT imageid, FROM iconclass WHERE label LIKE ?',
+                                             con=thread_store.get_db(data_conf), params=(pattern + "%",))
 
-    if has_table("tags", data_conf):
-        # df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag LIKE ?',
-        #                            con=thread_store.get_db(data_conf),
-        #                            params=(search_tag + "%",))
+                df_pattern = df_pattern.rename(columns={'imageid': 'image_id'})
 
-        df_tags = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag = ?',
-                              con=thread_store.get_db(data_conf),
-                              params=(search_tag,))
+                label_parts = iconclass.get_parts(search_tag)
 
-        df_files = thread_store.get_files(data_conf)
+                if len(label_parts) > 0 and len(df_pattern) > 0:
+                    highlight_labels += label_parts
 
-        df_tags = df_tags.merge(df_files, left_on="image_id", right_index=True).\
-            sort_values("image_id").drop_duplicates(subset=['file'], keep='first')
+        if has_table("tags", data_conf):
 
-        df_tags = df_tags.drop_duplicates(subset=['image_id'])
+            if negate and bool_op == "|":
+                df_pattern = pd.read_sql('SELECT image_id FROM tags WHERE tag NOT GLOB ?',
+                                         con=thread_store.get_db(data_conf), params=(pattern,))
+            else:
+                df_pattern = pd.read_sql('SELECT image_id FROM tags WHERE tag GLOB ?',
+                                         con=thread_store.get_db(data_conf), params=(pattern,))
 
-        df_tags = df_tags.drop_duplicates(subset=['image_id'])
+        if df_pattern is None or len(df_pattern) <= 0:
+            continue
 
-        df_tags = df_tags.drop_duplicates(subset=['image_id'])
+        df_pattern = df_pattern.drop_duplicates(subset=['image_id'])
 
-        ids += df_tags['image_id'].tolist()[start:start + count]
+        if df_ids is None:
+
+            df_ids = df_pattern
+
+        elif bool_op == "&":
+
+            if negate:
+                df_ids = df_ids.loc[~df_ids.image_id.isin(df_pattern.image_id)]
+            else:
+                df_ids = df_ids.merge(df_pattern, on="image_id")
+        elif bool_op == "|":
+            df_ids = pd.concat([df_ids, df_pattern]).drop_duplicates(subset=['image_id'])
+        else:
+            raise RuntimeError("Unknown operation")
+
+    df_files = thread_store.get_files(data_conf)
+
+    df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True).\
+        sort_values("image_id").drop_duplicates(subset=['file'], keep='first')
+
+    ids = df_ids['image_id'].tolist()
+
+    ids = ids[start: start + count]
 
     ret = {'ids': ids, 'info': text, "user": user}
 

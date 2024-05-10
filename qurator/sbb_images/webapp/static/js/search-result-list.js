@@ -24,7 +24,6 @@ function setup_search_result_list(configuration, search, next_batch) {
                                 $.get("regionannotator",
                                     function(reanno) {
 
-                                        // console.log(reanno);
                                         region_annotator = reanno;
 
                                         afterwards();
@@ -135,6 +134,9 @@ function setup_search_result_list(configuration, search, next_batch) {
 
     function iconclass_sanitize(part) {
         part = part.replace(/\+/g,"p");
+        part = part.replace(/</g,"sm");
+        part = part.replace(/>/g,"gr");
+        part = part.replace(/\?/g,"que");
         part = part.replace(/\(/g,"bo");
         part = part.replace(/\)/g,"bc");
         part = part.replace(/:/g,"col");
@@ -176,7 +178,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                         iconclass_badges.push(label_classes);
                     }
                 );
-                $("#card-info-"+ image_id).html(info_html);
+                $("#card-info-"+ image_id).append(info_html);
 
                 highlight_iconclass(false);
 
@@ -185,6 +187,9 @@ function setup_search_result_list(configuration, search, next_batch) {
                             $(`#icon-badge-${image_id}-${badge_index}`).click(
                                 function() {
                                     iconclass_highlighted = label_classes;
+                                    tag_highlighted = "";
+
+                                    highlight_tags();
                                     highlight_iconclass();
                                 }
                             );
@@ -217,7 +222,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                         info_html +=
                             `
                             <a id="tag-badge-${image_id}-${index}" class="" data-toggle="tooltip" title="${result.user} : ${result.timestamp}">
-                                    <span id="tag-span-${image_id}-${index}" class="tag-badge tag-${result.tag} badge badge-pill badge-info d-inline-flex mt-2" style="align-items: center">
+                                    <span id="tag-span-${image_id}-${index}" class="tag-badge tag-${result.tag} badge badge-pill badge-info d-inline-flex mt-2" style="align-items: center;max-width:100%">
                                         ${result.tag}
                                         ${remove_button_html}
                                     </span>
@@ -225,7 +230,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                             </a>`;
                     }
                 );
-                $("#card-info-"+ image_id).html(info_html);
+                $("#card-info-"+ image_id).prepend(info_html);
 
                 highlight_tags(false);
 
@@ -237,7 +242,8 @@ function setup_search_result_list(configuration, search, next_batch) {
                             $(`#tag-span-${img_id}-${tag_id}`).click(
                                 function() {
                                     tag_highlighted = `.tag-${tag}`;
-
+                                    iconclass_highlighted = [];
+                                    highlight_iconclass();
                                     highlight_tags();
                                 }
                             );
@@ -456,10 +462,14 @@ function setup_search_result_list(configuration, search, next_batch) {
 
                     add_file_info(result_id);
                     //add_ppn_info(next_one);
-                    if (has_iconclass) add_iconclass_info(result_id);
 
                     if (has_tags) {
                         add_tag_info(result_id);
+
+                    }
+
+                    if (has_iconclass) {
+                        add_iconclass_info(result_id);
                     }
 
                  })(next_one);
@@ -471,9 +481,6 @@ function setup_search_result_list(configuration, search, next_batch) {
 
         if ("highlight_labels" in results) {
             that.highlightIconclass(results["highlight_labels"]);
-        }
-        else {
-            iconclass_highlighted=[];
         }
 
         if (results["ids"].length > 0) {
