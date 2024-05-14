@@ -449,7 +449,8 @@ def get_similar_by_tag(user, conf, start=0, count=100):
     clauses = or_clauses + and_clauses + filter_clauses
 
     df_ids = None
-    highlight_labels = []
+    highlight_iconclass = []
+    highlight_tags = []
     text = []
 
     for bool_op, pattern, pos in clauses:
@@ -467,7 +468,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
             if part_text is not None:
 
-                highlight_labels.append(pattern)
+                highlight_iconclass.append(pattern)
 
                 text.append(part_text)
 
@@ -483,7 +484,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                 label_parts = iconclass.get_parts(search_tag)
 
                 if len(label_parts) > 0 and len(df_pattern) > 0:
-                    highlight_labels += label_parts
+                    highlight_iconclass += label_parts
 
         if has_table("tags", data_conf):
 
@@ -491,8 +492,13 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                 df_pattern = pd.read_sql('SELECT image_id FROM tags WHERE tag NOT GLOB ?',
                                          con=thread_store.get_db(data_conf), params=(pattern,))
             else:
-                df_pattern = pd.read_sql('SELECT image_id FROM tags WHERE tag GLOB ?',
+                df_pattern = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag GLOB ?',
                                          con=thread_store.get_db(data_conf), params=(pattern,))
+
+                if df_pattern is not None and len(df_pattern) > 0:
+                    highlight_tags += list(set().union(df_pattern.tag.tolist()))
+
+                    df_pattern = df_pattern[['image_id']]
 
         if df_pattern is None or len(df_pattern) <= 0:
             continue
@@ -527,8 +533,11 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     ret = {'ids': ids, 'info': text, "user": user}
 
-    if len(highlight_labels) > 0:
-        ret['highlight_labels'] = highlight_labels
+    if len(highlight_iconclass) > 0:
+        ret['highlight_iconclass'] = list(set().union(highlight_iconclass))
+
+    if len(highlight_tags) > 0:
+        ret['highlight_tags'] = list(set().union(highlight_tags))
 
     return jsonify(ret)
 

@@ -1,7 +1,7 @@
 function setup_search_result_list(configuration, search, next_batch) {
     let that = null;
     let iconclass_highlighted = [];
-    let tag_highlighted = "";
+    let tags_highlighted = [];
 
     let has_links  = false;
     let has_tags = false;
@@ -90,7 +90,12 @@ function setup_search_result_list(configuration, search, next_batch) {
             $(".tag-badge").removeClass('selected-6');
         }
 
-        $(tag_highlighted).addClass('selected-6');
+        $.each(tags_highlighted,
+            function(idx, tag) {
+                $(`.${tag}`).addClass('selected-6');
+                console.log(tag);
+            }
+        );
     }
 
     function highlight_iconclass(remove=true) {
@@ -132,7 +137,7 @@ function setup_search_result_list(configuration, search, next_batch) {
         );
     }
 
-    function iconclass_sanitize(part) {
+    function css_sanitize(part) {
         part = part.replace(/\+/g,"p");
         part = part.replace(/</g,"sm");
         part = part.replace(/>/g,"gr");
@@ -159,7 +164,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                         let label_classes=[];
                         $.each(result.parts,
                             function(index, part){
-                                part = iconclass_sanitize(part)
+                                part = css_sanitize(part)
 
                                 label_classes_joined += " icon-" + part;
                                 label_classes.push("icon-"+part);
@@ -187,7 +192,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                             $(`#icon-badge-${image_id}-${badge_index}`).click(
                                 function() {
                                     iconclass_highlighted = label_classes;
-                                    tag_highlighted = "";
+                                    tags_highlighted = [];
 
                                     highlight_tags();
                                     highlight_iconclass();
@@ -222,7 +227,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                         info_html +=
                             `
                             <a id="tag-badge-${image_id}-${index}" class="" data-toggle="tooltip" title="${result.user} : ${result.timestamp}">
-                                    <span id="tag-span-${image_id}-${index}" class="tag-badge tag-${result.tag} badge badge-pill badge-info d-inline-flex mt-2" style="align-items: center;max-width:100%">
+                                    <span id="tag-span-${image_id}-${index}" class="tag-badge tag-${css_sanitize(result.tag)} badge badge-pill badge-info d-inline-flex mt-2" style="align-items: center;max-width:100%">
                                         ${result.tag}
                                         ${remove_button_html}
                                     </span>
@@ -237,11 +242,12 @@ function setup_search_result_list(configuration, search, next_batch) {
                 $.each(results,
                     function(index, result) {
                         (function(img_id, tag_id, tag) {
+
                             $(`#tag-badge-${img_id}-${tag_id}`).tooltip();
 
                             $(`#tag-span-${img_id}-${tag_id}`).click(
                                 function() {
-                                    tag_highlighted = `.tag-${tag}`;
+                                    tags_highlighted = [`tag-${tag}`];
                                     iconclass_highlighted = [];
                                     highlight_iconclass();
                                     highlight_tags();
@@ -272,7 +278,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                                     })(tag_id);
                                 }
                              );
-                        })(image_id, index, result.tag);
+                        })(image_id, index, css_sanitize(result.tag));
                     }
                  );
             }
@@ -479,8 +485,18 @@ function setup_search_result_list(configuration, search, next_batch) {
 
         })(request_counter, batches.pop()["ids"]);
 
-        if ("highlight_labels" in results) {
-            that.highlightIconclass(results["highlight_labels"]);
+        if ("highlight_iconclass" in results) {
+            that.highlightIconclass(results["highlight_iconclass"]);
+        }
+        else {
+            that.highlightIconclass([]);
+        }
+
+        if ("highlight_tags" in results) {
+            that.highlightTags(results["highlight_tags"]);
+        }
+        else {
+            that.highlightTags([]);
         }
 
         if (results["ids"].length > 0) {
@@ -660,11 +676,24 @@ function setup_search_result_list(configuration, search, next_batch) {
 
                 $.each(labels,
                     function(index, label) {
-                        label = iconclass_sanitize(label);
+                        label = css_sanitize(label);
                         iconclass_highlighted.push("icon-" + label);
                     });
 
                 highlight_iconclass();
+            },
+         highlightTags:
+            function(tags) {
+
+                tags_highlighted = [];
+
+                $.each(tags,
+                    function(index, tag) {
+                        tag = css_sanitize(tag);
+                        tags_highlighted.push("tag-" + tag);
+                    });
+
+                highlight_tags();
             }
     };
 
