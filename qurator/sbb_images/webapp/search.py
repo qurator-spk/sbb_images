@@ -470,23 +470,25 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
                 highlight_iconclass.append(pattern)
 
+                part_text = " " + bool_op + part_text if len(text) > 0 else part_text
+
                 text.append(part_text)
 
                 if negate and bool_op == "|":
-                    df_pattern = pd.read_sql('SELECT imageid, FROM iconclass WHERE label NOT LIKE ?',
+                    df_pattern = pd.read_sql('SELECT imageid FROM iconclass WHERE label NOT LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
                 else:
-                    df_pattern = pd.read_sql('SELECT imageid, FROM iconclass WHERE label LIKE ?',
+                    df_pattern = pd.read_sql('SELECT imageid FROM iconclass WHERE label LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
 
                 df_pattern = df_pattern.rename(columns={'imageid': 'image_id'})
 
-                label_parts = iconclass.get_parts(search_tag)
+                label_parts = iconclass.get_parts(pattern)
 
                 if len(label_parts) > 0 and len(df_pattern) > 0:
                     highlight_iconclass += label_parts
 
-        if has_table("tags", data_conf):
+        if has_table("tags", data_conf) and df_pattern is None:
 
             if negate and bool_op == "|":
                 df_pattern = pd.read_sql('SELECT image_id FROM tags WHERE tag NOT GLOB ?',
