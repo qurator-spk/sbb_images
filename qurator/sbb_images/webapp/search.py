@@ -430,7 +430,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     if not search_tag.startswith("|") and not search_tag.startswith("&"):
 
-        search_tag = "&" + search_tag
+        search_tag = "|" + search_tag
 
     clauses = re.findall(r"\s*([&|])\s*([!]*[^\s|&]+)+\s*", search_tag)
 
@@ -471,7 +471,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
                 text.append(part_text)
 
-                if (negate and bool_op == "|") or (negate and df_ids is None):
+                if negate and bool_op == "|":
                     df_pattern = pd.read_sql('SELECT imageid, FROM iconclass WHERE label NOT LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
                 else:
@@ -487,7 +487,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
         if has_table("tags", data_conf):
 
-            if (negate and bool_op == "|") or (negate and df_ids is None):
+            if negate and bool_op == "|":
                 df_pattern = pd.read_sql('SELECT image_id FROM tags WHERE tag NOT GLOB ?',
                                          con=thread_store.get_db(data_conf), params=(pattern,))
             else:
@@ -513,14 +513,17 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         else:
             raise RuntimeError("Unknown operation")
 
-    df_files = thread_store.get_files(data_conf)
+    if df_ids is not None:
+        df_files = thread_store.get_files(data_conf)
 
-    df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True).\
-        sort_values("image_id").drop_duplicates(subset=['file'], keep='first')
+        df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True).\
+            sort_values("image_id").drop_duplicates(subset=['file'], keep='first')
 
-    ids = df_ids['image_id'].tolist()
+        ids = df_ids['image_id'].tolist()
 
-    ids = ids[start: start + count]
+        ids = ids[start: start + count]
+    else:
+        ids = []
 
     ret = {'ids': ids, 'info': text, "user": user}
 
