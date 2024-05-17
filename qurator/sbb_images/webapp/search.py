@@ -508,6 +508,10 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                     highlight_tags += list(set().union(df_pattern.tag.tolist()))
 
         if df_pattern is None or len(df_pattern) <= 0:
+
+            if bool_op == "&":
+                df_ids = None
+
             continue
 
         df_pattern['order'] = pos
@@ -612,6 +616,10 @@ def get_similar_by_filename(user, conf, start=0, count=100):
                                      con=thread_store.get_db(data_conf), params=(pattern,))
 
         if df_pattern is None or len(df_pattern) <= 0:
+
+            if bool_op == "&":
+                df_ids = None
+                
             continue
 
         df_pattern = df_pattern.rename(columns={'rowid': 'image_id'})
