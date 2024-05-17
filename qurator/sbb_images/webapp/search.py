@@ -453,6 +453,13 @@ def get_similar_by_tag(user, conf, start=0, count=100):
     highlight_tags = []
     text = []
 
+    def merge_filter(row):
+
+        if row.order_y < row.order:
+            row.order, row.tag = row.order_y, row.tag_y
+
+        return row
+
     for bool_op, pattern, pos in clauses:
 
         df_pattern = None
@@ -475,13 +482,13 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                 text.append(part_text)
 
                 if negate and bool_op == "|":
-                    df_pattern = pd.read_sql('SELECT imageid FROM iconclass WHERE label NOT LIKE ?',
+                    df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label NOT LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
                 else:
-                    df_pattern = pd.read_sql('SELECT imageid FROM iconclass WHERE label LIKE ?',
+                    df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
 
-                df_pattern = df_pattern.rename(columns={'imageid': 'image_id'})
+                df_pattern = df_pattern.rename(columns={'imageid': 'image_id', 'label': 'tag'})
 
                 label_parts = iconclass.get_parts(pattern)
 
@@ -500,12 +507,10 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                 if df_pattern is not None and len(df_pattern) > 0:
                     highlight_tags += list(set().union(df_pattern.tag.tolist()))
 
-                    df_pattern = df_pattern[['image_id']]
-
         if df_pattern is None or len(df_pattern) <= 0:
             continue
 
-        df_pattern = df_pattern.drop_duplicates(subset=['image_id'])
+        df_pattern['order'] = pos
 
         if df_ids is None:
             df_ids = df_pattern
@@ -515,9 +520,14 @@ def get_similar_by_tag(user, conf, start=0, count=100):
             if negate:
                 df_ids = df_ids.loc[~df_ids.image_id.isin(df_pattern.image_id)]
             else:
-                df_ids = df_ids.merge(df_pattern, on="image_id")
+                df_ids = df_ids.merge(df_pattern, on="image_id", suffixes=(None, '_y')).\
+                    apply(merge_filter, axis=1).\
+                    drop(columns=['order_y', 'tag_y'], errors='ignore')
+
         elif bool_op == "|":
-            df_ids = pd.concat([df_ids, df_pattern]).drop_duplicates(subset=['image_id'])
+            df_ids = pd.concat([df_ids, df_pattern]).\
+                sort_values(by=['image_id', 'order']).\
+                drop_duplicates(subset=['image_id'])
         else:
             raise RuntimeError("Unknown operation")
 
@@ -525,7 +535,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         df_files = thread_store.get_files(data_conf)
 
         df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True).\
-            sort_values("image_id").drop_duplicates(subset=['file'], keep='first')
+            sort_values(by=["order", "tag"]).drop_duplicates(subset=['file'], keep='first')
 
         ids = df_ids['image_id'].tolist()
 
@@ -558,13 +568,89 @@ def get_similar_by_filename(user, conf, start=0, count=100):
         raise BadRequest("pattern missing.")
 
     search_pattern = request.json['pattern']
-    print(search_pattern)
 
-    df_files = thread_store.get_files(data_conf)
+    if not search_pattern.startswith("|") and not search_pattern.startswith("&"):
+        search_pattern = "|" + search_pattern
 
-    found = fnmatch(df_files, search_pattern, start, count, batch_size=100)
+    clauses = re.findall(r"\s*([&|])\s*([!]*[^\s|&]+)+\s*", search_pattern)
 
-    return jsonify({'ids': found, 'user': user})
+    or_clauses = []
+    and_clauses = []
+    filter_clauses = []
+    for pos, (bool_op, pattern) in enumerate(clauses):
+        if bool_op == "|":
+            or_clauses.append((bool_op, pattern, pos))
+        elif bool_op == "&":
+            if pattern.startswith("!"):
+                filter_clauses.append((bool_op, pattern, pos))
+            else:
+                and_clauses.append((bool_op, pattern, pos))
+
+    clauses = or_clauses + and_clauses + filter_clauses
+
+    df_ids = None
+
+    def merge_filter(row):
+
+        if row.order_y < row.order:
+            row.order, row.file = row.order_y, row.file_y
+
+        return row
+
+    for bool_op, pattern, pos in clauses:
+
+        negate = False
+        if pattern.startswith("!"):
+            negate = True
+            pattern = pattern[1:]
+
+        if negate and bool_op == "|":
+            df_pattern = pd.read_sql('SELECT rowid,file FROM images WHERE file NOT GLOB ?',
+                                     con=thread_store.get_db(data_conf), params=(pattern,))
+        else:
+            df_pattern = pd.read_sql('SELECT rowid,file FROM images WHERE file GLOB ?',
+                                     con=thread_store.get_db(data_conf), params=(pattern,))
+
+        if df_pattern is None or len(df_pattern) <= 0:
+            continue
+
+        df_pattern = df_pattern.rename(columns={'rowid': 'image_id'})
+
+        df_pattern['order'] = pos
+
+        if df_ids is None:
+            df_ids = df_pattern
+
+        elif bool_op == "&":
+
+            if negate:
+                df_ids = df_ids.loc[~df_ids.image_id.isin(df_pattern.image_id)]
+            else:
+                df_ids = df_ids.merge(df_pattern, on="image_id", suffixes=(None, '_y')).\
+                    apply(merge_filter, axis=1).\
+                    drop(columns=['order_y', 'file_y'], errors='ignore')
+
+        elif bool_op == "|":
+            df_ids = pd.concat([df_ids, df_pattern]). \
+                sort_values(by=['image_id', 'order']). \
+                drop_duplicates(subset=['image_id'], keep='first')
+        else:
+            raise RuntimeError("Unknown operation")
+
+    if df_ids is not None:
+
+        df_ids = df_ids.sort_values(by=["order", "file"]).\
+            drop_duplicates(subset=['file'], keep='first')
+
+        ids = df_ids['image_id'].tolist()
+
+        ids = ids[start: start + count]
+    else:
+        ids = []
+
+    ret = {'ids': ids, "user": user}
+
+    return jsonify(ret)
 
 
 @app.route('/similar-by-iconclass/<conf>', methods=['POST'])
@@ -643,8 +729,6 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
 
     search_id = request.args.get('search_id', default=None, type=int)
     search_id_from = request.args.get('search_id_from', default=data_conf)
-
-    # import ipdb;ipdb.set_trace();
 
     if request.method == 'GET' and search_id is not None:
 

@@ -146,6 +146,8 @@ function setup_search_result_list(configuration, search, next_batch) {
         part = part.replace(/\)/g,"bc");
         part = part.replace(/:/g,"col");
         part = part.replace(/\./g,"dot");
+        part = part.replace(/\^/g,"hat");
+        part = part.replace(/=/g,"eq");
 
         return part;
     }

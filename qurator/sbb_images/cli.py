@@ -111,6 +111,7 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_jso
         images.to_sql('images', con=conn, if_exists='replace')
 
         conn.execute('create index idx_num_annotations on images(num_annotations);')
+        conn.execute('create index idx_file on images(file);')
 
         conn.execute('create table if not exists "annotations"("index" integer primary key, "user" TEXT, "label" TEXT,'
                      '"IMAGE" integer)')
