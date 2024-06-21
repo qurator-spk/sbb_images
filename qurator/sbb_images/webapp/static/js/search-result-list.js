@@ -146,8 +146,19 @@ function setup_search_result_list(configuration, search, next_batch) {
         part = part.replace(/\)/g,"bc");
         part = part.replace(/:/g,"col");
         part = part.replace(/\./g,"dot");
+        part = part.replace(/\,/g,"comma");
+        part = part.replace(/\;/g,"semikolon");
         part = part.replace(/\^/g,"hat");
         part = part.replace(/=/g,"eq");
+        part = part.replace(/\*/g,"star");
+        part = part.replace(/&/g,"and");
+        part = part.replace(/\!/g,"excl");
+        part = part.replace(/\?/g,"quest");
+        part = part.replace(/\$/g,"dol");
+        part = part.replace(/\§/g,"par");
+        part = part.replace(/\%/g,"perc");
+        part = part.replace(/\//g,"sl");
+        part = part.replace(/\"/g,"dhyph");
 
         return part;
     }
