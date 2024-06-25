@@ -159,6 +159,7 @@ function setup_search_result_list(configuration, search, next_batch) {
         part = part.replace(/\%/g,"perc");
         part = part.replace(/\//g,"sl");
         part = part.replace(/\"/g,"dhyph");
+        part = part.replace(/\'/g,"hyph");
 
         return part;
     }
