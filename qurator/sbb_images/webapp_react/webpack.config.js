@@ -19,11 +19,22 @@ module.exports = {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
+      {
+        test: /\.svg$/,
+        use: [
+          {
+            loader: 'svg-url-loader',
+            options: {
+              limit: 10000,
+            },
+          },
+        ],
+      },
     ],
   },
   devServer: {
     static: './public',
-    port: 4714,
+    port: 4747,
     historyApiFallback: true,
     allowedHosts: "all",
   },
