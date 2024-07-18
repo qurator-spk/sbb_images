@@ -48,10 +48,10 @@ Start region-annotator instance:
 ```commandline
 gunicorn --timeout 600 --chdir . --bind 0.0.0.0:4713 qurator.sbb_images.webapp.wsgi_region_annotator:app
 ```
-Now, region-annotator is available on localhost:4713 .
+Now, region-annotator is available on localhost:4713 . In order to annotate URLs they have to be configured. See section below.
 Since region-annotator uses basic-auth authentication its direct use is only recommend in a trusted environment
 like a VPN or other private network. If you want to access it through an untrusted network you should put it behind 
-an https proxy suchs nginx or apache.
+an https proxy such as nginx or apache.
 
 Here a template of an example nginx configuration that makes region-annotator available at https://your.host.name/region-annotator/ :
 ```nginx
@@ -119,5 +119,12 @@ PrivateTmp=true
 * COOPERATIVE_ACCESS: If true then all users can see the annotations of all other users.
 * COOPERATIVE_MODIFICATION: If true then all users can modify the annotations of all other users. Otherwise each user can only modify its own annotations.
 
-## URL-Set configuration
+## Configuration Page
+
+Admin users can access the configuration page:
+
+![sbb-ner-demo example](screenshots/region-annotator-admin-detail1.png?raw=true)
+
+![sbb-ner-demo example](screenshots/region-annotator-configuration.png?raw=true)
+
 
