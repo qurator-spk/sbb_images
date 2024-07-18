@@ -67,8 +67,6 @@ server {
     ssl_ciphers "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4";
     ssl_prefer_server_ciphers on;
 
-    client_max_body_size 2048M;
-
     root /srv/public_html;
  
     location /region-annotator/ {
@@ -77,8 +75,9 @@ server {
 }
                  
 ```
-In order to automatically start the region-annotator instance, we recommend to add a systemd service file 
-to /etc/systemd/system . Here an example template (with pyenv):
+In order to automatically start the region-annotator instance, 
+we recommend to add a systemd service file /etc/systemd/system/region-annotator.service. 
+Here an example template (with pyenv):
 ```systemd
 [Unit]
 Description=Region Annotator
@@ -97,7 +96,14 @@ TimeoutStopSec=5
 PrivateTmp=true
 
 ```
-
+The service has to enabled permanently with
+```commandline
+systemctl enable region-annotator.service
+```
+and than started:
+```commandline
+systemctl restart region-annotator.service
+```
 
 ## Configuration file
 ```json
@@ -138,6 +144,12 @@ Configuration example:
 ![region-annotator-configuration](screenshots/region-annotator-configuration.png?raw=true)
 
 ## Data Export Page
+
+Admin users can access the data export page.
+
+![region-annotator-admin-detail1](screenshots/region-annotator-admin-detail1.png?raw=true)
+
+Data export example:
 
 ![region-annotator-export](screenshots/region-annotator-export.png?raw=true)
 
