@@ -121,9 +121,22 @@ PrivateTmp=true
 
 ## Configuration Page
 
-Admin users can access the configuration page:
+Admin users can access the configuration page.
 
 ![region-annotator-admin-detail1](screenshots/region-annotator-admin-detail1.png?raw=true)
+
+URLs of images that are to be annotated need to be configured in the configuration page. 
+The tool will load only those image-URLs that match either a configured pattern or a configured complete URL. 
+Complete URLs or URL-patterns can be added together with an optional description.
+
+An example of an URL-pattern:
+
+https://content.staatsbibliothek-berlin.de/dms/PPN*/1200/0/*.jpg
+
+Any image URL that matches this pattern can be loaded into the tool.
+
+Configuration example:
+
 
 ![region-annotator-configuration](screenshots/region-annotator-configuration.png?raw=true)
 
