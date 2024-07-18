@@ -117,7 +117,7 @@ systemctl restart region-annotator.service
 }
 ```
 * PASSWD_FILE: htpasswd file that contains user login information
-* AUTH_REALM: Used by the web browser to manage login information
+* AUTH_REALM: Used by the web browser to manage login information - if region-annotator is used in connection with the image search the same auth realm can be used so that users have to enter their login credentials only once.
 * SQLITE_FILE: sqlite database where the instance stores all the annotation data. That file will be newly created if it is not already present.
 * ADMIN_USERS: List of admin users. Admin users are allowed to view and edit all annotations and have access to the configuration and data export pages.
 * COOPERATIVE_ACCESS: If true then all users can see the annotations of all other users.
