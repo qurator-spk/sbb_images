@@ -42,7 +42,7 @@ htpasswd .htpasswd username_B
 ...
 ```
 
-Create a JSON configuration file (see below).
+Create a JSON configuration file named "region-annotator-config.json" (content see below).
 
 Start region-annotator instance:
 ```commandline
