@@ -135,7 +135,9 @@ Complete URLs or URL-patterns can be added together with an optional description
 
 An example of an URL-pattern:
 
+```text
 https://content.staatsbibliothek-berlin.de/dms/PPN*/1200/0/*.jpg
+```
 
 Configuration example:
 
