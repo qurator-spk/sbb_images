@@ -8,7 +8,7 @@ This package currently provides:
 * [A tool that implements an image similarity search](doc/image-search.md) on the basis of an image classifier.
 
 A main design goal of this package is to provide simple separate tools that each solve a simple constrained problem 
-while allowing for interaction between these tools in loosely coupled way.
+while allowing for interaction between these tools in a loosely coupled way.
 
 ## Installation
 
