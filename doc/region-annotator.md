@@ -159,5 +159,5 @@ Data export example:
 
 See 
 [The labours of the months in medieval manuscripts: Image Annotations with ICONCLASS](https://zenodo.org/records/8358608)
-for example results that have been obtained with region annotator.
-In that case the generic XML data has been transformed into TEI by means of an XSLT-transformation. 
+for example results that have been obtained with region annotator during a datathon in the [Stabi-Lab](https://lab.sbb.berlin/datenset-datathon/).
+In that case the generic XML data has been transformed into TEI by means of an [XSLT-transformation](region-annotator-TEI.xsl). 
