@@ -158,6 +158,6 @@ Data export example:
 ![region-annotator-export](screenshots/region-annotator-export.png?raw=true)
 
 See 
-[Monatsarbeiten in mittelalterlichen Handschriften: Bildannotationen mit ICONCLASS](https://zenodo.org/records/8358608).
+[The labours of the months in medieval manuscripts: Image Annotations with ICONCLASS](https://zenodo.org/records/8358608).
 for example results that have been obtained with region annotator.
 In that case the generic XML data has been transformed into TEI by means of an XSLT-transformation. 
