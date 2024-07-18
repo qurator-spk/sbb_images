@@ -1,6 +1,6 @@
 # An image annotation tool based on [annotorious openseadragon](https://github.com/annotorious/annotorious-openseadragon)
 
-![sbb-ner-demo example](screenshots/region-annotator-example.png?raw=true)
+![region-annotator-example](screenshots/region-annotator-example.png?raw=true)
 
 ## Features
 
@@ -123,8 +123,8 @@ PrivateTmp=true
 
 Admin users can access the configuration page:
 
-![sbb-ner-demo example](screenshots/region-annotator-admin-detail1.png?raw=true)
+![region-annotator-admin-detail1](screenshots/region-annotator-admin-detail1.png?raw=true)
 
-![sbb-ner-demo example](screenshots/region-annotator-configuration.png?raw=true)
+![region-annotator-configuration](screenshots/region-annotator-configuration.png?raw=true)
 
 
