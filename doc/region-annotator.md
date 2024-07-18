@@ -137,7 +137,10 @@ Any image URL that matches this pattern can be loaded into the tool.
 
 Configuration example:
 
-
 ![region-annotator-configuration](screenshots/region-annotator-configuration.png?raw=true)
+
+## Data Export Page
+
+![region-annotator-export](screenshots/region-annotator-export.png?raw=true)
 
 
