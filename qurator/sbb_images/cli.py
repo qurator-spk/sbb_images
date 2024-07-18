@@ -50,8 +50,10 @@ from datetime import datetime
 @click.argument('sqlite-file', type=click.Path(exists=False))
 @click.option('--pattern', type=str, default="*.jpg", help="File pattern to search for. Default: *.jpg")
 @click.option('--follow-symlinks', type=bool, is_flag=True, default=False)
-@click.option('--subset-json', type=click.Path(exists=True), default=None)
-@click.option('--subset-dirs-json', type=click.Path(exists=True), default=None)
+@click.option('--subset-json', type=click.Path(exists=True), default=None,
+              help="Consider only the subset of image files defined in this json file.")
+@click.option('--subset-dirs-json', type=click.Path(exists=True), default=None,
+              help="Recursively search only through a subset of sub-directories as defined in this json file.")
 def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_json, subset_dirs_json):
     """
     DIRECTORY: Recursively enlist all the image files in this directory.
@@ -156,10 +158,14 @@ class ThumbTask:
 @click.argument('sqlite-file', type=click.Path(exists=False))
 @click.option('--pattern', type=str, default="*.jpg", help="File pattern to search for. Default: *.jpg")
 @click.option('--follow-symlinks', type=bool, is_flag=True, default=False)
-@click.option('--subset-json', type=click.Path(exists=True), default=None)
-@click.option('--subset-dirs-json', type=click.Path(exists=True), default=None)
-@click.option('--max-img-size', type=int, default=250)
-@click.option('--processes', type=int, default=8)
+@click.option('--subset-json', type=click.Path(exists=True), default=None,
+              help="Consider only the subset of image files defined in this json file.")
+@click.option('--subset-dirs-json', type=click.Path(exists=True), default=None,
+              help="Recursively search only through a subset of sub-directories as defined in this json file.")
+@click.option('--max-img-size', type=int, default=250,
+              help="Scale all the images before storing such that the maximum of their width and height is equal to this values (default 250).")
+@click.option('--processes', type=int, default=8,
+              help="Number of parallel processes to be used.")
 def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_json, subset_dirs_json, max_img_size,
                       processes):
     """

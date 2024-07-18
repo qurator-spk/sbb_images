@@ -6,7 +6,7 @@ with open('requirements.txt') as fp:
 
 setup(
     name="sbb-images",
-    version="0.0.1",
+    version="0.0.2",
     author="The Qurator Team",
     author_email="qurator@sbb.spk-berlin.de",
     description="An image search engine plus some tool to label images.",
@@ -41,7 +41,7 @@ setup(
         "iconclass-evaluation=qurator.sbb_images.iconclass.evaluation:evaluate"
         ]
     },
-    python_requires='>=3.6.0',
+    python_requires='>=3.8.0',
     tests_require=['pytest'],
     classifiers=[
           'Intended Audience :: Science/Research',

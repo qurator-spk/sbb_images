@@ -11,20 +11,42 @@ Usage: create-search-index [OPTIONS] SQLITE_FILE INDEX_FILE
 
   Creates a CNN-features based similarity search index.
 
-  SQLITE_FILE: Image database (see create-database). INDEX_FILE: Storage
-  file for search index.
+  SQLITE_FILE: Image database (see create-database). INDEX_FILE: Storage file
+  for search index.
 
 Options:
-  --model-name TEXT      PyTorch name of NN-model. default: resnet18
-  --batch-size INTEGER   Process batch-size. default: 32.
-  --dist-measure TEXT    Distance measure of the approximative
-                         nearestneighbour index. default: angular.
-
-  --n-trees INTEGER      Number of search trees. Default 10.
-  --num-workers INTEGER  Number of parallel workers during index
-                         creation.Default 8.
-
-  --help                 Show this message and exit.
+  --model-name TEXT             PyTorch name of NN-model. default: "resnet18".
+                                Set to "VST" if you want Visual Saliency
+                                Transformer features for the search index.
+                                Note in that case you also have to provide
+                                vit-model and vst-model.
+  --batch-size INTEGER          Process batch-size. default: 32.
+  --dist-measure TEXT           Distance measure of the approximate nearest
+                                neighbour index. default: angular.
+  --n-trees INTEGER             Number of search trees. Default 10.
+  --num-workers INTEGER         Number of parallel workers during index
+                                creation.Default 8.
+  --vit-model PATH              Vision transformer pytorch model file
+                                (required by Visual Saliency Transformer).
+  --vst-model PATH              Visual saliency transformer pytorch model
+                                file.
+  --clip-model TEXT             CLIP model.
+  --ms-clip-model TEXT          MSCLIP model configuration file.
+  --layer-name TEXT             Name of feature layer. default: fc
+  --layer-output                User output of layer rather than its input.
+  --use-saliency-mask           Mask images by saliency before feature
+                                computation. Note: you need to provide vit-
+                                model and vst-model in that case.
+  --pad-to-square TEXT          Pad-to-square before application of model
+                                image transform (typically resize + center-
+                                crop).
+  --thumbnail-sqlite-file TEXT  Do not read the image from the file system but
+                                rather try to read them from this sqlite
+                                thumbnail file.
+  --thumbnail-table-name TEXT   Do not read the image from the file system but
+                                rather try to read them from this table in the
+                                thumbnail sqlite file.
+  --help                        Show this message and exit.
 
 ```
 
