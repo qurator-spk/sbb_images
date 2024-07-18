@@ -137,8 +137,6 @@ An example of an URL-pattern:
 
 https://content.staatsbibliothek-berlin.de/dms/PPN*/1200/0/*.jpg
 
-Any image URL that matches this pattern can be loaded into the tool.
-
 Configuration example:
 
 ![region-annotator-configuration](screenshots/region-annotator-configuration.png?raw=true)
