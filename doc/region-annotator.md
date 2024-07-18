@@ -73,8 +73,6 @@ server {
  
     location /region-annotator/ {
      proxy_pass http://localhost:4713/;
-     proxy_connect_timeout       360000s;
-     proxy_send_timeout          360000s;
     }
 }
                  
