@@ -1,4 +1,4 @@
-# An image annotation tool based on [annotorious openseadragon](https://github.com/annotorious/annotorious-openseadragon)
+# An Image Annotation Tool based on [Annotorious Openseadragon](https://github.com/annotorious/annotorious-openseadragon)
 
 ![region-annotator-example](screenshots/region-annotator-example.png?raw=true)
 
