@@ -149,6 +149,10 @@ Admin users can access the data export page.
 
 ![region-annotator-admin-detail1](screenshots/region-annotator-admin-detail1.png?raw=true)
 
+The data export page provides functionality to download the annotation data of particular users/URLs either 
+in JSON or generic XML. Additionally a sqlite database backup can be downloaded which contains the entire state of the tool 
+and enables the complete restore of the setup (apart from the user login information that is stored in the htpasswd file).
+
 Data export example:
 
 ![region-annotator-export](screenshots/region-annotator-export.png?raw=true)
