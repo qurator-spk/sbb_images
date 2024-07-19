@@ -20,7 +20,7 @@ Please look into the [setup doc](image-search-setup.md).
 ## Settings Section
 
 Multiple image databases and models can be configured. The settings section is used to switch between image sets/databases 
-and/or models. The [setup doc](image-search-setup.md) for how to configure multiple databases/models.
+and/or models. See [setup doc](image-search-setup.md) for how to configure multiple databases/models.
 
 ## Search by Image
 
