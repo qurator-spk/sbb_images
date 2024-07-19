@@ -11,6 +11,7 @@
 * Export of annotation data as JSON and generic XML.
 * The tool only requires access to the images via HTTP/HTTPS URLs. These can be IIIF-URLs but other URL schemas are possible. What type of URLs can be loaded into the tool can be pre-configured/restricted.
 * Simple user rights system, i.e. normal users and administrators.
+* Can be used in tandem with [SBB image search](image-search.md)
 
 ## Setup
 
