@@ -11,7 +11,7 @@
 * Search by boolean expression on filename
 * Search by Iconclass label (if supported by configured model)
 * Tagging of images / export of tag-sets as Excel file
-* Can be connection to region-annotation tool
+* Can be connected to [region-annotation tool](region-annotator.md)
 
 ## Setup 
 
