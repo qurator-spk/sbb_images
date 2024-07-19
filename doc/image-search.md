@@ -85,7 +85,7 @@ At [SBB](https://staatsbibliothek-berlin.de/),
 we performed [experiments](https://dl.acm.org/doi/abs/10.1145/3604951.3605516) to adapt published image-text similarity models
 such as [MSCLIP](https://github.com/Hxyou/MSCLIP) to specific domains like [Iconclass](https://iconclass.org/).
 
-For Iconclass, we implemented a special configuration mode that uses the [Iconclass package ](https://pypi.org/project/iconclass/)
+For Iconclass, we implemented a special search mode that uses the [Iconclass package ](https://pypi.org/project/iconclass/)
 in order to translate a given Iconclass label into its corresponding textual equivalent. The textual equivalent is then 
 fed into the model and used for similarity search. 
 
