@@ -1,0 +1,102 @@
+
+{
+  "PASSWD_FILE": "",
+  "AUTH_REALM": "digisam",
+  "MAX_IMG_SIZE": 250,
+  "THUMBNAILS": "stabi-thumbnails.sqlite",
+  "MS_CLIP_MODEL_CONFIG": {
+    "B16-YFCC-ORIG" : {
+      "YAML" : "MSCLIP/original/config/b16-yfcc-msclips.yaml",
+      "TOKENIZER" : "MSCLIP/tokenizer/bpe_simple_vocab_16e6.txt.gz"
+    },
+    "B32-YFCC-ORIG" : {
+      "YAML" : "MSCLIP/original/config/b32-yfcc-msclips.yaml",
+      "TOKENIZER" : "MSCLIP/tokenizer/bpe_simple_vocab_16e6.txt.gz"
+    },
+    "B32-LAION-ORIG" : {
+      "YAML" : "MSCLIP/original/config/b32-laion-msclips.yaml",
+      "TOKENIZER" : "MSCLIP/tokenizer/bpe_simple_vocab_16e6.txt.gz"
+    }
+   },
+  "MODEL_CONFIGURATION":
+    {
+      "INCEPTION": {
+        "MODEL_NAME": "googlenet",
+        "FRIENDLY_NAME": "Inception v1",
+        "DESCRIPTION": "GoogLeNet (Inception v1) model architecture from \"Going Deeper with Convolutions.\" IMPORTANT: Model supports only search by image!",
+        "ACCEPTS_TEXT": false,
+	"ACCEPTS_ICONCLASS": false
+      },
+      "MSCLIP-B16-YFCC-ORIG": {
+        "MS_CLIP_MODEL_CONFIG": "B16-YFCC-ORIG",
+        "FRIENDLY_NAME": "MSCLIP-b16-yfcc",
+        "DESCRIPTION": "Modality-Shared-CLIP-model (b16-yfcc) as published",
+        "ACCEPTS_TEXT": true,
+	"ACCEPTS_ICONCLASS": false
+      },
+      "MSCLIP-B32-YFCC-ORIG": {
+        "MS_CLIP_MODEL_CONFIG": "B32-YFCC-ORIG",
+        "FRIENDLY_NAME": "MSCLIP-b32-yfcc",
+        "DESCRIPTION": "Modality-Shared-CLIP-model (b32-yfcc) as published",
+        "ACCEPTS_TEXT": true,
+	"ACCEPTS_ICONCLASS": false
+      },
+      "MSCLIP-B32-LAION-ORIG": {
+        "MS_CLIP_MODEL_CONFIG": "B32-LAION-ORIG",
+        "FRIENDLY_NAME": "MSCLIP-b32-laion",
+        "DESCRIPTION": "Modality-Shared-CLIP-model (b32-laion) as published",
+        "ACCEPTS_TEXT": true,
+	"ACCEPTS_ICONCLASS": false
+      }
+  },
+  "SQLITE_FILES": {
+    "DIGISAM": "stabi-illustrations.sqlite"
+  },
+  "DATA_CONFIGURATION": {
+    "DIGISAM": {
+          "FRIENDLY_NAME": "Digitalisierte Sammlungen",
+          "DESCRIPTION": "Bilder aus den digitalisierten Sammlungen der Staatsbibliothek Berlin."
+      }
+  },
+  "INDEX_CONFIGURATION": {
+    "DIGISAM-INCEPTION": {
+      "INDEX_FILE": "stabi-illustrations-NT50-googlenet.ann",
+      "DIST_MEASURE": "angular"
+    },
+    "DIGISAM-MSCLIP-B16-YFCC": {
+      "INDEX_FILE": "stabi-illustrations-NT50-msclip-index-b16-yfcc.ann",
+      "DIST_MEASURE": "angular"
+    },
+    "DIGISAM-MSCLIP-B32-LAION": {
+      "INDEX_FILE": "stabi-illustrations-NT50-msclip-index-b32-laion.ann",
+      "DIST_MEASURE": "angular"
+    },
+    "DIGISAM-MSCLIP-B32-YFCC": {
+      "INDEX_FILE": "stabi-illustrations-NT50-msclip-index-b32-yfcc.ann",
+      "DIST_MEASURE": "angular"
+    }
+  },
+  "CONFIGURATION":
+    {
+      "DIGISAM-INCEPTION": {
+          "DATA_CONF": "DIGISAM",
+          "MODEL_CONF": "INCEPTION",
+          "DEFAULT": false
+      },
+      "DIGISAM-MSCLIP-B16-YFCC": {
+          "DATA_CONF": "DIGISAM",
+          "MODEL_CONF": "MSCLIP-B16-YFCC-ORIG",
+          "DEFAULT": false 
+      },
+      "DIGISAM-MSCLIP-B32-LAION": {
+          "DATA_CONF": "DIGISAM",
+          "MODEL_CONF": "MSCLIP-B32-LAION-ORIG",
+          "DEFAULT": true
+      },
+      "DIGISAM-MSCLIP-B32-YFCC": {
+          "DATA_CONF": "DIGISAM",
+          "MODEL_CONF": "MSCLIP-B32-YFCC-ORIG",
+          "DEFAULT": false
+      }
+    }
+}

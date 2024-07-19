@@ -15,11 +15,11 @@ while allowing for interaction between these tools in a loosely coupled way.
 Required python version is 3.8. 
 Consider use of [pyenv](https://github.com/pyenv/pyenv) if that python version is not available on your system. 
 
-Activate virtual environment:
+Activate virtual environment (virtualenv):
 ```
 source venv/bin/activate
 ```
-or
+or (pyenv):
 ```
 pyenv activate my-python-3.8-virtualenv
 ```
