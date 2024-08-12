@@ -218,6 +218,16 @@ function setup_search_result_list(configuration, search, next_batch) {
         );
     };
 
+    function refresh_tag_info(image_id) {
+        $("#card-info-"+ image_id).html("");
+
+        if (has_tags) add_tag_info(image_id);
+        if (has_iconclass) add_iconclass_info(image_id);
+
+        highlight_tags();
+        highlight_iconclass();
+    }
+
     function add_tag_info (image_id) {
 
         $.get("image-tags/"+ configuration.getDataConf() + "/"  + image_id,
@@ -279,11 +289,8 @@ function setup_search_result_list(configuration, search, next_batch) {
                                         let request =
                                         {
                                             success:
-                                                function(){
-                                                    $("#card-info-"+ img_id).html("");
-
-                                                    if (has_tags) add_tag_info(img_id);
-                                                    if (has_iconclass) add_iconclass_info(img_id);
+                                                function() {
+                                                    refresh_tag_info(img_id);
                                                 },
                                             error: function(){},
                                             url: "delete-image-tag/"+ configuration.getDataConf(),
@@ -564,10 +571,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                         $.each(update_ids,
                             function(idx, uid) {
 
-                                $("#card-info-"+ uid).html("");
-
-                                if (has_tags) add_tag_info(uid);
-                                if (has_iconclass) add_iconclass_info(uid);
+                                refresh_tag_info(uid);
 
                                 if (clear_selection) {
                                     $(".tag-selectable").prop("checked", false);
