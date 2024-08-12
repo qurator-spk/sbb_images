@@ -280,7 +280,10 @@ function setup_search_result_list(configuration, search, next_batch) {
                                         {
                                             success:
                                                 function(){
-                                                    add_tag_info(img_id);
+                                                    $("#card-info-"+ img_id).html("");
+
+                                                    if (has_tags) add_tag_info(img_id);
+                                                    if (has_iconclass) add_iconclass_info(img_id);
                                                 },
                                             error: function(){},
                                             url: "delete-image-tag/"+ configuration.getDataConf(),
