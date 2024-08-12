@@ -560,7 +560,11 @@ function setup_search_result_list(configuration, search, next_batch) {
                     function(){
                         $.each(update_ids,
                             function(idx, uid) {
-                                add_tag_info(uid);
+
+                                $("#card-info-"+ uid).html("");
+
+                                if (has_tags) add_tag_info(uid);
+                                if (has_iconclass) add_iconclass_info(uid);
 
                                 if (clear_selection) {
                                     $(".tag-selectable").prop("checked", false);
