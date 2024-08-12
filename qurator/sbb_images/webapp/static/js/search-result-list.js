@@ -224,8 +224,8 @@ function setup_search_result_list(configuration, search, next_batch) {
         if (has_tags) add_tag_info(image_id);
         if (has_iconclass) add_iconclass_info(image_id);
 
-        highlight_tags();
-        highlight_iconclass();
+        highlight_tags(false);
+        highlight_iconclass(false);
     }
 
     function add_tag_info (image_id) {
