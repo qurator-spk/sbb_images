@@ -279,9 +279,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                             );
 
                             $(`#tag-delete-${img_id}-${tag_id}`).click(
-                                function(evt){
-
-                                    evt.stopPropagation();
+                                function(){
 
                                     $(`#tag-badge-${img_id}-${tag_id}`).tooltip('hide');
 
