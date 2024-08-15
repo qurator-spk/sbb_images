@@ -142,7 +142,7 @@ def cli(mods_info_file, sqlite_file, append):
             print("No tags added.")
             return
 
-        df_all_tags.to_sql('tags', con=conn, if_exists='append', index=False)
+        df_all_tags.to_sql('tags', con=conn, if_exists='append' if append else 'replace', index=False)
 
 
 if __name__ == '__main__':
