@@ -9,9 +9,8 @@ import ast
 @click.command()
 @click.argument('mods-info-file', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=True))
-@click.option('--path-prefix', type=str, default=None)
 @click.option('--append', type=bool, is_flag=True, default=False)
-def cli(mods_info_file, sqlite_file, path_prefix, append):
+def cli(mods_info_file, sqlite_file, append):
     """
         Special functionality of the SBB (Staatsbibliothek zu Berlin):
 
