@@ -46,6 +46,8 @@ def cli(mods_info_file, sqlite_file, append):
         df_images = pd.read_sql('select rowid,file from images', conn).\
             rename(columns={'rowid':'image_id'})
 
+        print("Number of images: {}".format(len(df_images)))
+
         ppn_info = \
             df_images.file.str.\
                 extract('.*/(PPN.*?)/').\
@@ -54,6 +56,8 @@ def cli(mods_info_file, sqlite_file, append):
         df_images = \
             df_images.merge(ppn_info, left_index=True, right_index=True).\
             sort_values(by=['ppn'])
+
+        print("Number of images with MODS-data: {}".format(len(df_images)))
 
         print("Reading MODS info ...")
 
@@ -142,7 +146,7 @@ def cli(mods_info_file, sqlite_file, append):
             print("No tags added.")
             return
 
-        df_all_tags.to_sql('tags', con=conn, if_exists='append' if append else 'replace', index=False)
+        df_all_tags.to_sql('tags', con=conn, if_exists='append', index=False)
 
 
 if __name__ == '__main__':
