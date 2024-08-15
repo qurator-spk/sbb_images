@@ -12,7 +12,7 @@ $(DATA_DIR)/$(IMAGE_DATA_BASE):
 	create-database --pattern="*.jpg" $(IMAGE_BASE_DIR) $(IMAGE_DATA_BASE)
 
 googlenet-index:
-	create-search-index --model-name=googlenet --n-trees=$(N_TREES) $(IMAGE_DATA_BASE) $(INDEX_PREFIX)-googlenet.ann
+	create-search-index --model-name=googlenet --n-trees=$(N_TREES) $(IMAGE_DATA_BASE) $(INDEX_PREFIX)-googlenet.ann --num-workers $(NUM_WORKERS) --thumbnail-sqlite-file $(THUMBNAIL_FILE) --thumbnail-table-name thumbnails
 
 %-msclip-index-b16-yfcc.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
 	create-search-index $< $@ --ms-clip-model=MSCLIP/original/config/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS) --thumbnail-sqlite-file $(THUMBNAIL_FILE) --thumbnail-table-name thumbnails
