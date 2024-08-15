@@ -52,7 +52,7 @@ from zenodo and extract the image archives. Arrange everthing such that you obta
 Note: Stabi-Illustrationen is the folder obtained from the zenodo archives.
 [Makefile](../digisam/Makefile) and [search-config.json](../digisam/search-config.json) are located in the digisam subfolder of this project.
 The MSCLIP checkpoints (*.pth) and YAML files can be download from the [MSCLIP repo](https://github.com/Hxyou/MSCLIP/blob/main/README.md).
-You might have to edit the YAML files in order to adapt the path information in these files.
+You might have to edit the YAML files in order to adapt the path information in these files, i.e., it is the PRETRAINED_MODEL entry in the YAML files that has to be set to the correct relative path.
 
 Enter your working directory that has the file structure shown above. 
 Create the image database (Note: You might have to add the --follow-symlinks option to the create-database call in the Makefile if your image directory structure contains symlinks) :
