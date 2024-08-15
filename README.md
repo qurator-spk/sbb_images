@@ -1,14 +1,14 @@
 # sbb-images:
 
+A main design goal of this package is to provide simple separate tools that each solve a simple constrained problem 
+while allowing for interaction between these tools in a loosely coupled way.
+
 This package currently provides:
 
+* [A tool that implements an image similarity search](doc/image-search.md) on the basis of a neural network model that provides image features.
 * [A tool to annotate multiple regions in an image with multiple tags.](doc/region-annotator.md)
 * [A tool to annotate images with on unique label per image.](doc/annotator.md) 
 * [A tool that trains an image classifier](doc/classifier.md) on the basis of the annotations. 
-* [A tool that implements an image similarity search](doc/image-search.md) on the basis of an image classifier.
-
-A main design goal of this package is to provide simple separate tools that each solve a simple constrained problem 
-while allowing for interaction between these tools in a loosely coupled way.
 
 ## Installation
 
