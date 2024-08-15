@@ -55,11 +55,11 @@ The MSCLIP checkpoints (*.pth) and YAML files can be download from the [MSCLIP r
 You might have to edit the YAML files in order to adapt the path information in these files.
 
 Enter your working directory that has the file structure shown above. 
-Create the image database:
+Create the image database (Note: You might have to add the --follow-symlinks option to the create-database call in the Makefile if your image directory structure contains symlinks) :
 ```commandline
 make ./stabi-illustrations.sqlite
 ```
-Create the thumbnail database:
+Create the thumbnail database (Note: You might have to add the --follow-symlinks option to the create-thumbnails call in the Makefile if your image directory structure contains symlinks):
 ```commandline
 make thumbnails
 ```
