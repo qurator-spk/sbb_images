@@ -31,17 +31,16 @@ pip install -e ./
 
 Create a new working directory and download the [Extracted Illustrations of the Berlin State Library's Digitized Collections](https://zenodo.org/records/2602431)
 from zenodo and extract the image archives. This can be done with the Makefile.
-Copy the [Makefile](../digisam/Makefile)  into the download storage location and run the download target 
-(this takes probably several hours - depending on your internet connection - 
+Copy the [Makefile](../digisam/Makefile)  into the working directory and run the "download" target. 
+That step takes probably several hours - depending on your internet connection. 
 NOTE: Due to the space requirements of the zip extraction process and the size of the download image data, 
-you need roughly 500GB free space at that storage location):
+you need roughly 500GB free space for the working directory.
+Run:
 ```commandline
 make download
 ```
-
-
-Arrange everthing such that you obtain the following directory structure:
-
+After running the download target and copying the [configuration file](../digisam/search-config.json) into the storage folder, you should end up 
+with the following directory structure:
 ```commandline
 ├── Makefile
 ├── search-config.json
@@ -59,10 +58,10 @@ Arrange everthing such that you obtain the following directory structure:
 │       └── bpe_simple_vocab_16e6.txt.gz
 ├── Stabi-Illustrationen
 ```
-Note: Stabi-Illustrationen is the folder obtained from the zenodo archives.
+Note: Stabi-Illustrationen is the folder obtained from the zenodo archives - created by the download target.
 [Makefile](../digisam/Makefile) and [search-config.json](../digisam/search-config.json) are located in the digisam subfolder of this project.
-The MSCLIP checkpoints (*.pth) and YAML files can be download from the [MSCLIP repo](https://github.com/Hxyou/MSCLIP/blob/main/README.md).
-You might have to edit the YAML files in order to adapt the path information in these files, i.e., it is the PRETRAINED_MODEL entry in the YAML files that has to be set to the correct relative path.
+The MS-CLIP checkpoints (*.pth) and YAML files can also be downloaded from the [MSCLIP repo](https://github.com/Hxyou/MSCLIP/blob/main/README.md) - though this should not be necessary.
+Only if you download their YAML files you might have to adapt the path information in these files, i.e., it is the PRETRAINED_MODEL entry in the YAML files that has to be set to the correct relative path.
 
 Enter your working directory that has the file structure shown above. 
 Create the image database (Note: You might have to add the --follow-symlinks option to the create-database call in the Makefile if your image directory structure contains symlinks) :

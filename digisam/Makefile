@@ -49,3 +49,5 @@ download:
 	rm -f extracted_images.zip.*
 	for i in Stabi-Illustrationen/*;do tar -xf $$i/`basename $$i`.tar --strip-components 3 --directory Stabi-Illustrationen 2> /dev/null;done
 	find Stabi-Illustrationen -name "*.tar" -exec rm -f {} \;
+	curl https://ravius.sbb.berlin/MS-CLIP/MS-CLIP.tar.gz -o MS-CLIP.tar.gz
+	tar -xzf MS-CLIP.tar.gz
