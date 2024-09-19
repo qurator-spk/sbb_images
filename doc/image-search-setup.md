@@ -30,7 +30,17 @@ pip install -e ./
 ```
 
 Create a new working directory and download the [Extracted Illustrations of the Berlin State Library's Digitized Collections](https://zenodo.org/records/2602431)
-from zenodo and extract the image archives. Arrange everthing such that you obtain the following directory structure:
+from zenodo and extract the image archives. This can be done with the Makefile.
+Copy the [Makefile](../digisam/Makefile)  into the download storage location and run the download target 
+(this takes probably several hours - depending on your internet connection - 
+NOTE: Due to the space requirements of the zip extraction process and the size of the download image data, 
+you need roughly 500GB free space at that storage location):
+```commandline
+make download
+```
+
+
+Arrange everthing such that you obtain the following directory structure:
 
 ```commandline
 ├── Makefile

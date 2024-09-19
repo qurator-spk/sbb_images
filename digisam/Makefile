@@ -32,3 +32,20 @@ run-service-debug:
 run-service-production:
 	gunicorn --timeout 600 --chdir . --bind 0.0.0.0:4716 qurator.sbb_images.webapp.wsgi_search:app
 
+download:
+	curl -V https://zenodo.org/api/records/2602431/files-archive -o part1.zip
+	7z e part1.zip
+	rm -f part1.zip
+	curl -V https://zenodo.org/api/records/2598145/files-archive -o part2.zip
+	7z e part2.zip
+	rm -f part2.zip
+	curl -V https://zenodo.org/api/records/2598261/files-archive -o part3.zip
+	7z e part3.zip
+	rm -f part3.zip
+	curl -V https://zenodo.org/api/records/2598270/files-archive -o part4.zip
+	7z e part4.zip
+	rm part4.zip
+	7z x extracted_images.zip.001 -oStabi-Illustrationen
+	rm -f extracted_images.zip.*
+	for i in Stabi-Illustrationen/*;do tar -xf $$i/`basename $$i`.tar --strip-components 3 --directory Stabi-Illustrationen 2> /dev/null;done
+	find Stabi-Illustrationen -name "*.tar" -exec rm -f {} \;
