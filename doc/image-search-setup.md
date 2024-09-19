@@ -70,7 +70,7 @@ Create the image database (Note: You might have to add the --follow-symlinks opt
 ```commandline
 make ./stabi-illustrations.sqlite
 ```
-Create the thumbnail database (Note: You might have to add the --follow-symlinks option to the create-thumbnails call in the Makefile if your image directory structure contains symlinks):
+Create the thumbnail database (Note: You might have to add the --follow-symlinks option to the create-thumbnails call in the Makefile if your image directory structure contains symlinks which should not be the case by default):
 ```commandline
 make thumbnails
 ```
