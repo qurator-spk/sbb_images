@@ -32,8 +32,8 @@ pip install -e ./
 ```
 
 Create a new working directory and download the [Extracted Illustrations of the Berlin State Library's Digitized Collections](https://zenodo.org/records/2602431)
-from zenodo and extract the image archives. This can be done with the Makefile.
-Copy the [Makefile](../digisam/Makefile)  into the working directory and run the "download" target. 
+from zenodo and extract the image archives. This can be done with the [Makefile](../digisam/Makefile).
+Copy the [Makefile](../digisam/Makefile) into the working directory and run the "download" target. 
 That step takes probably several hours - depending on your internet connection. 
 NOTE: Due to the space requirements of the zip extraction process and the size of the download image data, 
 you need roughly 500GB free space for the working directory.
@@ -41,7 +41,7 @@ Run:
 ```commandline
 make download
 ```
-After running the download target and copying the [configuration file](../digisam/search-config.json) into the storage folder, you should end up 
+After running the download target and copying the [Makefile](../digisam/Makefile) and [configuration file](../digisam/search-config.json) into the working directory, you should end up 
 with the following directory structure:
 ```commandline
 ├── Makefile
@@ -61,9 +61,9 @@ with the following directory structure:
 ├── Stabi-Illustrationen
 ```
 Note: Stabi-Illustrationen is the folder obtained from the zenodo archives - created by the download target.
-[Makefile](../digisam/Makefile) and [search-config.json](../digisam/search-config.json) are located in the digisam subfolder of this project.
-The MS-CLIP checkpoints (*.pth) and YAML files can also be downloaded from the [MSCLIP repo](https://github.com/Hxyou/MSCLIP/blob/main/README.md) - though this should not be necessary.
-Only if you download their YAML files you might have to adapt the path information in these files, i.e., it is the PRETRAINED_MODEL entry in the YAML files that has to be set to the correct relative path.
+[Makefile](../digisam/Makefile) and [search-config.json](../digisam/search-config.json) are located in the [digisam](../digisam/) subfolder of this project.
+The original MS-CLIP checkpoints (*.pth) and YAML files can also be downloaded from the [MSCLIP repo](https://github.com/Hxyou/MSCLIP/blob/main/README.md) - though this should not be necessary since they should have been downloaded automatically.
+Only if you download the original YAML files you might have to adapt the path information in these files, i.e., it is the PRETRAINED_MODEL entry in the YAML files that has to be set to the correct relative path.
 
 Enter your working directory that has the file structure shown above. 
 Create the image database (Note: You might have to add the --follow-symlinks option to the create-database call in the Makefile if your image directory structure contains symlinks) :
