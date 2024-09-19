@@ -6,6 +6,8 @@ that can be downloaded from zenodo. We provide a [Makefile](../digisam/Makefile)
 and a [configuration file](../digisam/search-config.json) that can be used as a starting point 
 for other deployments.
 
+# Step-by-Step recipe
+
 Create a python 3.8 virtual environment named digisam-3.8 either using virtualenv or [pyenv](https://github.com/pyenv/pyenv) depending on your system.
 
 Clone the [sbb-images](https://github.com/qurator-spk/sbb_images) repository.
