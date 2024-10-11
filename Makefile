@@ -163,3 +163,5 @@ iconclass-msclip-search-index-test:
 
 iconclass-msclip-search-index-train:
 	create-search-index iconclass-train.sqlite iconclass-train-msclip-search-index.ann --ms-clip-model=$(MSCLIP_PATH)/experiments/model/b16-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS)
+
+
