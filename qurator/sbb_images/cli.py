@@ -680,7 +680,10 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
 @click.option('--vst-model', type=click.Path(exists=True), default=None,
               help='Visual saliency transformer pytorch model file.')
 @click.option('--clip-model', type=str, default=None, help='CLIP model.')
-@click.option('--ms-clip-model', type=str, default=None, help='MSCLIP model configuration file.')
+@click.option('--open-clip-model', type=str, default=None, help='OpenCLIP model.')
+@click.option('--open-clip-pretrained', type=str, default=None, help='OpenCLIP pretrained checkpoint.')
+@click.option('--ms-clip-model', type=str, default=None, help='Modality Shared CLIP model configuration file.')
+@click.option('--multi-lang-clip-model', type=str, default=None, help='Multi Language CLIP model.')
 @click.option('--layer-name', type=str, default='fc', help="Name of feature layer. default: fc")
 @click.option('--layer-output', is_flag=True, help="User output of layer rather than its input.")
 @click.option('--use-saliency-mask', is_flag=True, help="Mask images by saliency before feature computation. Note: you"
@@ -694,8 +697,8 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
                                                                       " but rather try to read them from this table"
                                                                       " in the thumbnail sqlite file.")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers, vit_model,
-                        vst_model, clip_model, ms_clip_model, layer_name, layer_output, use_saliency_mask,
-                        pad_to_square, thumbnail_sqlite_file, thumbnail_table_name):
+                        vst_model, clip_model, open_clip_model, open_clip_pretrained, ms_clip_model,
+                        multi_lang_clip_model, layer_name, layer_output, use_saliency_mask, pad_to_square, thumbnail_sqlite_file, thumbnail_table_name):
     """
 
     Creates a CNN-features based similarity search index.
@@ -713,7 +716,9 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
         load_extraction_model(model_name, layer_name, layer_output,
                               vit_model=None if model_name != "VST" else vit_model,
                               vst_model=None if model_name != "VST" else vst_model,
-                              clip_model=clip_model, ms_clip_model=ms_clip_model)
+                              clip_model=clip_model, open_clip_model=open_clip_model,
+                              open_clip_pretrained=open_clip_pretrained,
+                              ms_clip_model=ms_clip_model, multi_lang_clip_model=multi_lang_clip_model)
 
     if use_saliency_mask:
 

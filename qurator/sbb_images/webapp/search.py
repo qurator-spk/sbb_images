@@ -190,8 +190,23 @@ class ThreadStore:
             ms_clip_model_yaml = ms_clip_config["YAML"]
             tokenizer = ms_clip_config["TOKENIZER"]
 
+        open_clip_model = None
+        if "OPEN_CLIP_MODEL" in mconfig:
+            open_clip_model = mconfig["OPEN_CLIP_MODEL"]
+
+        open_clip_pretrained = None
+        if "OPEN_CLIP_PRETRAINED" in mconfig:
+            open_clip_pretrained = mconfig["OPEN_CLIP_PRETRAINED"]
+
+        multi_lang_clip_model = None
+        if "MULTI_LANG_CLIP_MODEL" in mconfig:
+            multi_lang_clip_model = mconfig["MULTI_LANG_CLIP_MODEL"]
+
         extract_features, extract_transform, _ = load_extraction_model(model_name=model_name, clip_model=clip_model,
                                                                        ms_clip_model=ms_clip_model_yaml,
+                                                                       open_clip_model=open_clip_model,
+                                                                       open_clip_pretrained=open_clip_pretrained,
+                                                                       multi_lang_clip_model=multi_lang_clip_model,
                                                                        tokenizer=tokenizer)
 
         self._model_map[model_conf] = (extract_features, extract_transform)

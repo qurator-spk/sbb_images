@@ -10,14 +10,50 @@ from annoy import AnnoyIndex
 from PIL import Image
 
 
-def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_model=None, vst_model=None,
-                          clip_model=None, ms_clip_model=None, tokenizer=None):
+def load_extraction_model(model_name=None, layer_name='fc', layer_output=False, vit_model=None, vst_model=None,
+                          clip_model=None, open_clip_model=None, open_clip_pretrained=None,
+                          ms_clip_model=None, multi_lang_clip_model=None,
+                          tokenizer=None):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model_extr = None
-    if vit_model is not None and vst_model is not None:
+    if open_clip_model is not None and multi_lang_clip_model is not None and open_clip_pretrained is not None:
 
+        import transformers
+        import open_clip
+        from multilingual_clip import pt_multilingual_clip
+
+        txt_model = pt_multilingual_clip.MultilingualCLIP.from_pretrained(multi_lang_clip_model)
+        _tokenizer = transformers.AutoTokenizer.from_pretrained(multi_lang_clip_model)
+
+        txt_model = txt_model.to(device)
+
+        def tokenizer(txt, **kwargs):
+            return _tokenizer(txt, padding=True, return_tensors='pt').to('cuda')
+
+        def normalization (input):
+            return input
+
+        im_model, _, extract_transform = open_clip.create_model_and_transforms(open_clip_model,
+                                                                           pretrained=open_clip_pretrained,
+                                                                           device=device)
+        def model_extr(inputs):
+            nonlocal txt_model
+            nonlocal im_model
+
+            if type(inputs) == str:
+                with torch.set_grad_enabled(False):
+                    return txt_model.forward(inputs, tokenizer)
+            else:
+                inputs = inputs.to(device)
+
+                with torch.set_grad_enabled(False):
+                    return im_model.encode_image(inputs).detach().to('cpu').numpy()
+
+        return model_extr, extract_transform, normalization
+
+    elif vit_model is not None and vst_model is not None:
         from RGB_VST.Models.ImageDepthNet import ImageDepthNet
 
         model_args = argparse.Namespace()
@@ -124,7 +160,7 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
                     return model_without_ddp.encode_image(inputs).detach().to('cpu').numpy()
 
         return model_extr, extract_transform, normalization
-    else:
+    elif model_name is not None:
         input_size = {'inception_v3': 299}
 
         img_size = input_size.get(model_name, 224)
@@ -145,6 +181,8 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
         model_extr = model_extr.to(device)
         model_extr.eval()
+    else:
+        raise RuntimeError("Invalid model specification.")
 
     layer = model_extr
     for key in layer_name.split("."):
@@ -159,6 +197,7 @@ def load_extraction_model(model_name, layer_name='fc', layer_output=False, vit_m
 
         nonlocal fe
         nonlocal model_extr
+        nonlocal layer_output
 
         if layer_output:
             fe = _output.detach().to('cpu').numpy()
