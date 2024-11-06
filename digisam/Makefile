@@ -23,6 +23,11 @@ googlenet-index:
 %-msclip-index-b32-yfcc.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
 	create-search-index $< $@ --ms-clip-model=MSCLIP/original/config/b32-yfcc-msclips.yaml --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS) --thumbnail-sqlite-file $(THUMBNAIL_FILE) --thumbnail-table-name thumbnails
 
+%-multi-lang-clip.ann: $(DATA_DIR)/$(IMAGE_DATA_BASE)
+	create-search-index $< $@ --multi-lang-clip-model "M-CLIP/XLM-Roberta-Large-Vit-B-16Plus" --open-clip-model="ViT-B-16-plus-240" --open-clip-pretrained "laion400m_e32" --batch-size 64 --n-trees $(N_TREES) --num-workers $(NUM_WORKERS) --thumbnail-sqlite-file $(THUMBNAIL_FILE) --thumbnail-table-name thumbnails
+
+multi-lang: $(INDEX_PREFIX)-multi-lang-clip.ann
+
 msclip-indices: $(INDEX_PREFIX)-msclip-index-b32-yfcc.ann $(INDEX_PREFIX)-msclip-index-b16-yfcc.ann $(INDEX_PREFIX)-msclip-index-b32-laion.ann
 
 thumbnails:
