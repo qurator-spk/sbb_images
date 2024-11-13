@@ -20,3 +20,5 @@ clip @ git+https://github.com/openai/CLIP.git
 open_clip_torch
 
 msclip @ git+https://github.com/labusch/MSCLIP.git
+
+xlsxwriter
