@@ -554,6 +554,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         else:
             raise RuntimeError("Unknown operation")
 
+    num_matches=0
     if df_ids is not None:
         df_files = thread_store.get_files(data_conf)
 
@@ -565,10 +566,16 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                 sort_values(by=["order"]).drop_duplicates(subset=['file'], keep='first')
 
         ids = df_ids['image_id'].tolist()
+        num_matches = len(ids)
 
         ids = ids[start: start + count]
     else:
         ids = []
+
+    if len(text) > 0:
+        text += " | "
+
+    text += "#matches: {}".format(num_matches)
 
     ret = {'ids': ids, 'info': text, "user": user}
 
