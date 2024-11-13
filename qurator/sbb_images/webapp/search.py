@@ -463,6 +463,8 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     clauses = or_clauses + and_clauses + filter_clauses
 
+    print(clauses)
+
     df_ids = None
     highlight_iconclass = []
     highlight_tags = []
@@ -484,7 +486,9 @@ def get_similar_by_tag(user, conf, start=0, count=100):
             negate = True
             pattern = pattern[1:]
 
-        if has_table("iconclass", data_conf):
+        if has_table("iconclass", data_conf) and pattern.startswith("**"):
+
+            pattern = pattern[2:]
 
             part_text = IconClassDataset.get_text(pattern)
 
@@ -553,8 +557,12 @@ def get_similar_by_tag(user, conf, start=0, count=100):
     if df_ids is not None:
         df_files = thread_store.get_files(data_conf)
 
-        df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True).\
-            sort_values(by=["order", "tag"]).drop_duplicates(subset=['file'], keep='first')
+        if 'tag' in df_ids.columns:
+            df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True).\
+                sort_values(by=["order", "tag"]).drop_duplicates(subset=['file'], keep='first')
+        else:
+            df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True). \
+                sort_values(by=["order"]).drop_duplicates(subset=['file'], keep='first')
 
         ids = df_ids['image_id'].tolist()
 
@@ -763,10 +771,23 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
 
         filename = sample.file.iloc[0]
 
-        if not os.path.exists(filename):
-            return "NOT FOUND", 404
+        if os.path.exists(filename):
+            img = Image.open(filename).convert('RGB')
+        else:
+            conn = thread_store.get_thumb_db()
+            if conn is None:
+                return "NOT FOUND", 404
 
-        img = Image.open(filename).convert('RGB')
+            result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
+                                  (filename, app.config['MAX_IMG_SIZE'])).fetchone()
+            if result is None:
+                return "NOT FOUND", 404
+
+            data, scale_factor = result
+
+            buffer = io.BytesIO(data)
+
+            img = Image.open(buffer)
 
         if x < 0 and y < 0 and width < 0 and height < 0:
             x, y, width, height = float(sample.x.iloc[0]), float(sample.y.iloc[0]), \
@@ -1179,13 +1200,9 @@ def get_image_tags(user, data_conf, image_id=None):
     result = []
     for _, row in tag_info.iterrows():
 
-        read_only = False
-        index, image_id, tag, user, timestamp = row[0:5]
+        read_only = row.read_only == True if 'read_only' in row else False
 
-        if len(row) == 6:
-            read_only = row[5] == 1
-
-        result.append({'tag': tag, 'user': user, 'timestamp': timestamp, 'read_only': read_only})
+        result.append({'tag': row.tag, 'user': row.user, 'timestamp': row.timestamp, 'read_only': read_only})
 
     return jsonify(result)
 
@@ -1278,10 +1295,23 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
             height = int((float(height) * scale_factor))
 
     elif version == 'full':
-        if raw_file is None:
-            return "NOT FOUND", 404
+        if raw_file is not None:
+            img = Image.open(raw_file).convert('RGB')
+        else:
+            conn = thread_store.get_thumb_db()
+            if conn is None:
+                return "NOT FOUND", 404
 
-        img = Image.open(raw_file).convert('RGB')
+            result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
+                                  (filename, max_img_size)).fetchone()
+            if result is  None:
+                return "NOT FOUND", 404
+
+            data, scale_factor = result
+
+            buffer = io.BytesIO(data)
+
+            img = Image.open(buffer)
     else:
         return "BAD PARAMS <version>: full/resize", 400
 

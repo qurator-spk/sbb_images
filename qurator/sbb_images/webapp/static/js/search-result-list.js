@@ -443,6 +443,9 @@ function setup_search_result_list(configuration, search, next_batch) {
                                 function(result) {
                                     if (result.length <= 0) return;
 
+                                    $("#card-"+ result_id).attr('title', result);
+                                    $("#card-"+ result_id).tooltip();
+
                                     $("#lnk-" + result_id).attr('href', result);
                                 }
                             );
@@ -490,7 +493,9 @@ function setup_search_result_list(configuration, search, next_batch) {
 
                     $("#card-"+ result_id).removeClass('invisible');
 
-                    add_file_info(result_id);
+                    if (!has_links) {
+                        add_file_info(result_id);
+                    }
                     //add_ppn_info(next_one);
 
                     if (has_tags) {
