@@ -47,6 +47,15 @@
         "DESCRIPTION": "Modality-Shared-CLIP-model (b32-laion) as published",
         "ACCEPTS_TEXT": true,
 	"ACCEPTS_ICONCLASS": false
+      },
+      "MULTI-LANG-OPEN-CLIP" : {
+        "FRIENDLY_NAME": "Multi-Lang OpenCLIP",
+        "DESCRIPTION" : "Multi-lingual Roberta-XLM text-model + OpenCLIP (laion)",
+        "OPEN_CLIP_MODEL": "ViT-B-16-plus-240",
+        "OPEN_CLIP_PRETRAINED": "laion400m_e32",
+        "MULTI_LANG_CLIP_MODEL": "M-CLIP/XLM-Roberta-Large-Vit-B-16Plus",
+        "ACCEPTS_TEXT": true,
+        "ACCEPTS_ICONCLASS": false
       }
   },
   "SQLITE_FILES": {
@@ -74,6 +83,10 @@
     "DIGISAM-MSCLIP-B32-YFCC": {
       "INDEX_FILE": "stabi-illustrations-NT50-msclip-index-b32-yfcc.ann",
       "DIST_MEASURE": "angular"
+    },
+    "DIGISAM-MULTI-LANG-OPENCLIP": {
+      "INDEX_FILE": "stabi-illustrations-NT50-multi-lang-clip.ann",
+      "DIST_MEASURE": "angular"
     }
   },
   "CONFIGURATION":
@@ -97,6 +110,11 @@
           "DATA_CONF": "DIGISAM",
           "MODEL_CONF": "MSCLIP-B32-YFCC-ORIG",
           "DEFAULT": false
+      },
+      "DIGISAM-MULTI-LANG-OPENCLIP": {
+          "DATA_CONF": "DIGISAM",
+          "MODEL_CONF": "MULTI-LANG-OPEN-CLIP",
+          "DEFAULT": true
       }
     }
 }
