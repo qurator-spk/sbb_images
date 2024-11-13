@@ -592,6 +592,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                                 refresh_tag_info(uid);
 
                                 if (clear_selection) {
+                                    select_all = false;
                                     $(".tag-selectable").prop("checked", false);
                                 }
                             }
