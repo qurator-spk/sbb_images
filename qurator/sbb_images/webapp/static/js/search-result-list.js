@@ -527,17 +527,17 @@ function setup_search_result_list(configuration, search, next_batch) {
 
         })(request_counter, batches.pop()["ids"]);
 
-        if ("highlight_iconclass" in results) {
+        if (("highlight_iconclass" in results) && start){
             that.highlightIconclass(results["highlight_iconclass"]);
         }
-        else {
+        else if (start) {
             that.highlightIconclass([]);
         }
 
-        if ("highlight_tags" in results) {
+        if (("highlight_tags" in results) && start){
             that.highlightTags(results["highlight_tags"]);
         }
-        else {
+        else if (start) {
             that.highlightTags([]);
         }
 
