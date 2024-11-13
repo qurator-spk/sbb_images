@@ -8,6 +8,8 @@ function setup_search_result_list(configuration, search, next_batch) {
     let has_iconclass = false;
     let region_annotator = "";
 
+    let select_all=false;
+
     function check_for_info(afterwards) {
         $.get("hasiconclass/" + configuration.getDataConf(),
             function(hasit) {
@@ -320,6 +322,7 @@ function setup_search_result_list(configuration, search, next_batch) {
             batches = [ results ];
             num_results = 0;
             result_number = 0;
+            select_all = false;
         }
         else {
             if (batches.length > 0) {
@@ -366,7 +369,11 @@ function setup_search_result_list(configuration, search, next_batch) {
 
                     if ((results["user"] !== null)) {
 
-                        checkbox_html = `<input class="justify-content-end tag-selectable" type="checkbox" id="select-${result_id}" />`;
+                        let checked = "";
+
+                        if (select_all) checked = "checked";
+
+                        checkbox_html = `<input class="justify-content-end tag-selectable" type="checkbox" id="select-${result_id}" ${checked} />`;
                     }
 
                     result_html += `
@@ -419,6 +426,12 @@ function setup_search_result_list(configuration, search, next_batch) {
                         });
 
                       $(`#select-${result_id}`).data("image_id", result_id);
+
+//                      $(`#select-${result_id}`).click(
+//                        function() {
+//                            select_all = false;
+//                        }
+//                      );
 
                       $(`#more-btn-${result_id}`).tooltip();
 
@@ -602,33 +615,45 @@ function setup_search_result_list(configuration, search, next_batch) {
         }
     );
 
-    let select_first=5;
+    let select_amount=5;
 
     $("#select-images").click(
         function() {
             $(".tag-selectable").prop("checked", false);
+            if (select_amount === 'all') select_all = true;
 
             $.each($(".tag-selectable"),
                 function(index, selectable) {
-                    if (index >= select_first) return;
+                    if ((select_amount !== 'all') && (index >= select_amount)) return;
 
                     $(selectable).prop("checked", true);
                 });
         }
     );
 
-    $.each([5,10,20,40,80],
+    $.each([5,10,20,40,80,'all'],
         function(index, val) {
 
             (function(sf) {
-            $("#select-first-" + sf).click(
+            $("#select-" + sf).click(
                 function() {
-                    select_first = sf;
-                    $("#select-images").html(`Select first ${select_first}`);
+                    select_amount = sf;
+
+                    let text = "";
+                    if (sf === 'all') {
+                        text = "all";
+                        select_all = true;
+                    }
+                    else {
+                         select_all = false;
+                         text = "first " + sf;
+                    }
+
+                    $("#select-images").html(`Select ${text}`);
 
                     $.each($(".tag-selectable"),
                         function(index, selectable) {
-                            if (index >= select_first) return;
+                            if ((sf !== 'all') && (index >= sf)) return;
 
                             $(selectable).prop("checked", true);
                         });
@@ -638,6 +663,7 @@ function setup_search_result_list(configuration, search, next_batch) {
 
      $("#select-none").click(
          function() {
+            select_all = false;
              $(".tag-selectable").prop("checked", false);
          }
      );

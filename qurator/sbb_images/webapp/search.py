@@ -1180,7 +1180,7 @@ def get_spreadsheet(user, data_conf):
 
     buffer.seek(0)
 
-    response = send_file(buffer, attachment_filename=filename,
+    response = send_file(buffer, download_name=filename,
                          mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                          as_attachment=True)
     return response
