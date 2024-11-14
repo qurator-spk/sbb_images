@@ -24,7 +24,7 @@ pip install -U pip
 ```
 Install sbb_images:
 ```commandline
-pip install git+https://github.com/qurator-spk/sbb_images.git@last-release
+pip install git+https://github.com/qurator-spk/sbb_images.git
 ```
 
 Create a new working directory and download the [Extracted Illustrations of the Berlin State Library's Digitized Collections](https://zenodo.org/records/2602431)
