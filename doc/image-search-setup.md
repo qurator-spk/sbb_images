@@ -12,11 +12,11 @@ Create a python 3.11 virtual environment named digisam-3.11 either using virtual
 
 Activate virtual environment:
 ```commandline
-virtualenv source digisam-3.8/bin/activate
+virtualenv source digisam-3.11/bin/activate
 ```
 or
 ```commandline
-pyenv activate digisam-3.8
+pyenv activate digisam-3.11
 ```
 Make sure you a most recent pip:
 ```commandline
