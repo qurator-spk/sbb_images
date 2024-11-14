@@ -686,7 +686,7 @@ def data_export(user):
         buffer.write(bytes(xml, 'utf8'))
         buffer.seek(0)
 
-        response = send_file(buffer, attachment_filename=filename + '.xml', mimetype='application/octet-stream',
+        response = send_file(buffer, download_name=filename + '.xml', mimetype='application/octet-stream',
                              as_attachment=True)
 
         return response
@@ -700,7 +700,7 @@ def data_export(user):
 
         buffer.seek(0)
 
-        response = send_file(buffer, attachment_filename=filename + '.sql', mimetype='application/octet-stream',
+        response = send_file(buffer, download_name=filename + '.sql', mimetype='application/octet-stream',
                              as_attachment=True)
         return response
 

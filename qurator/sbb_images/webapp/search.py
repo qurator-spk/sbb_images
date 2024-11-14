@@ -463,8 +463,6 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     clauses = or_clauses + and_clauses + filter_clauses
 
-    print(clauses)
-
     df_ids = None
     highlight_iconclass = []
     highlight_tags = []
