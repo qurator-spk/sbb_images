@@ -15,7 +15,7 @@
 
 ## Setup
 
-Required python version is 3.8. 
+Required python version is 3.11. 
 Consider use of [pyenv](https://github.com/pyenv/pyenv) if that python version is not available on your system. 
 
 Activate virtual environment (virtualenv):
@@ -24,16 +24,16 @@ source venv/bin/activate
 ```
 or (pyenv):
 ```
-pyenv activate my-python-3.8-virtualenv
+pyenv activate my-python-3.11-virtualenv
 ```
 
-Update pip:
+Make sure that you have the most recent pip:
 ```
 pip install -U pip
 ```
 Install sbb_images package:
 ```
-pip install -e ./
+pip install git+https://github.com/qurator-spk/sbb_images.git
 ```
 
 Create a passwd file:
