@@ -13,7 +13,7 @@ gunicorn
 
 annoy
 
-iconclass
+iconclass==0.10
 
 multilingual-clip
 clip @ git+https://github.com/openai/CLIP.git
