@@ -13,8 +13,8 @@ gunicorn==23.0.0
 annoy==1.17.3
 ICONCLASS==0.10
 multilingual-clip==1.0.10
-clip==@ git+https://github.com/openai/CLIP.git
+clip @ git+https://github.com/openai/CLIP.git
 open_clip_torch==2.29.0
-msclip==@ git+https://github.com/labusch/MSCLIP.git
+msclipi @ git+https://github.com/labusch/MSCLIP.git
 XlsxWriter==3.2.0
 
