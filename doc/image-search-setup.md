@@ -8,11 +8,7 @@ for other deployments.
 
 # Step-by-Step recipe
 
-Create a python 3.8 virtual environment named digisam-3.8 either using virtualenv or [pyenv](https://github.com/pyenv/pyenv) depending on your system.
-
-Clone the [sbb-images](https://github.com/qurator-spk/sbb_images) repository.
-
-Clone our fork of the original [MSCLIP](https://github.com/labusch/MSCLIP) repository.
+Create a python 3.11 virtual environment named digisam-3.11 either using virtualenv or [pyenv](https://github.com/pyenv/pyenv) depending on your system.
 
 Activate virtual environment:
 ```commandline
@@ -22,13 +18,13 @@ or
 ```commandline
 pyenv activate digisam-3.8
 ```
-Install sbb_images and then MSCLIP:
+Make sure you a most recent pip:
 ```commandline
-cd sbb_images
-pip install -e ./
-cd ..
-cd MSCLIP
-pip install -e ./
+pip install -U pip
+```
+Install sbb_images:
+```commandline
+pip install git+https://github.com/qurator-spk/sbb_images.git@last-release
 ```
 
 Create a new working directory and download the [Extracted Illustrations of the Berlin State Library's Digitized Collections](https://zenodo.org/records/2602431)
