@@ -18,7 +18,7 @@ or
 ```commandline
 pyenv activate digisam-3.11
 ```
-Make sure you have the most recent pip:
+Make sure you that have the most recent pip:
 ```commandline
 pip install -U pip
 ```
