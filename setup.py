@@ -17,7 +17,7 @@ setup(
     url="https://qurator.ai",
     packages=find_packages(exclude=["*.tests", "*.tests.*",
                                     "tests.*", "tests"]),
-    package_data={'': ['*.html', '*.js', '*.css']},
+    package_data={'': ['*.html', '*.js', '*.css', '*.map', '*.png', '*.txt']},
     include_package_data=True,
     install_requires=install_requires,
     entry_points={
