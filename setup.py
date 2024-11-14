@@ -17,7 +17,7 @@ setup(
     url="https://qurator.ai",
     packages=find_packages(exclude=["*.tests", "*.tests.*",
                                     "tests.*", "tests"]),
-    package_data={'sbb_images': ['qurator/sbb_images/webapp/static/*/*']},
+    package_data={'': ['qurator/sbb_images/webapp/static/*']},
     include_package_data=True,
     install_requires=install_requires,
     entry_points={
