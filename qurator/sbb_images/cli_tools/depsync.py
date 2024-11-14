@@ -33,7 +33,7 @@ def cli(requirements_template):
                 if m[2] is None:
                     output += "{}=={}\n".format(p['package'], p['version'])
                 else:
-                    output += "{}=={}\n".format(p['package'], m[2])
+                    output += "{} {}\n".format(p['package'], m[2])
             else:
                 pprint(dep_map)
                 raise RuntimeError("Dependency not found in snapshot: {}".format(line))
