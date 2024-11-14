@@ -9,10 +9,8 @@ import subprocess
 @click.argument('requirements-template', type=click.Path(exists=True))
 def cli(requirements_template):
 
-    print("# requirements snapshot taken by depsync.py with python version {}".format(sys.version))
-
+    output = "# requirements snapshot taken by depsync.py with python version {}\n".format(sys.version)
     dep_map = dict()
-
     requirements_snapshot = subprocess.run(["pip", "list"], capture_output=True, text=True)
 
     for line in requirements_snapshot.stdout.splitlines():
@@ -33,12 +31,13 @@ def cli(requirements_template):
                 p = dep_map[m[1].lower()]
 
                 if m[2] is None:
-                    print("{}=={}".format(p['package'], p['version']))
+                    output += "{}=={}\n".format(p['package'], p['version'])
                 else:
-                    print("{}=={}".format(p['package'], m[2]))
+                    output += "{}=={}\n".format(p['package'], m[2])
             else:
                 pprint(dep_map)
                 raise RuntimeError("Dependency not found in snapshot: {}".format(line))
+    print(output)
 
 
 if __name__ == '__main__':
