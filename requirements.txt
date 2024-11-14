@@ -1,24 +1,20 @@
-numpy
-pandas
-matplotlib
-scikit-learn
-opencv-contrib-python
-tqdm
-click
+# requirements snapshot taken by depsync.py with python version 3.11.9 (main, Jul  8 2024, 10:58:30) [GCC 12.2.0]
+numpy==2.1.3
+pandas==2.2.3
+matplotlib==3.9.2
+scikit-learn==1.5.2
+opencv-contrib-python==4.10.0.84
+tqdm==4.67.0
+click==8.1.7
+Flask==3.1.0
+Flask-CacheControl==0.3.0
+flask-htpasswd==0.5.0
+gunicorn==23.0.0
+annoy==1.17.3
+ICONCLASS==0.10
+multilingual-clip==1.0.10
+clip==@ git+https://github.com/openai/CLIP.git
+open_clip_torch==2.29.0
+msclip==@ git+https://github.com/labusch/MSCLIP.git
+XlsxWriter==3.2.0
 
-Flask
-Flask-CacheControl
-flask-htpasswd
-gunicorn
-
-annoy
-
-iconclass==0.10
-
-multilingual-clip
-clip @ git+https://github.com/openai/CLIP.git
-open_clip_torch
-
-msclip @ git+https://github.com/labusch/MSCLIP.git
-
-xlsxwriter
