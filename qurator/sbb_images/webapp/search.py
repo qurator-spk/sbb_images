@@ -1002,7 +1002,7 @@ def get_ppn_images(user, data_conf, ppn=None):
 
         return jsonify("")
 
-    if has_table('links', data_conf):
+    if has_table('predictions', data_conf):
         links = pd.read_sql('select links.rowid from links join predictions on predictions.rowid=links.rowid '
                             'where links.ppn=? and '
                             '(predictions.label="Abbildung" or predictions.label="Photo" or predictions.label="Karte")',
