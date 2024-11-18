@@ -12,7 +12,7 @@ import pandas as pd
 class AnnotatedDataset(Dataset):
 
     def __init__(self, samples, targets, loader=default_loader, transform=None, thumbnail_sqlite_file=None,
-                 table_name=None, pad_to_square=False):
+                 table_name=None, pad_to_square=False, min_size=None):
 
         super(Dataset, self).__init__()
 
@@ -24,6 +24,7 @@ class AnnotatedDataset(Dataset):
 
         self.sqlite_file = thumbnail_sqlite_file
         self.conn = None
+        self.min_size=min_size
 
         if table_name is None:
             self.table_name = "images"
@@ -59,6 +60,10 @@ class AnnotatedDataset(Dataset):
                 buffer = io.BytesIO(max_thumb.data)
 
                 img = Image.open(buffer).convert('RGB')
+
+                if self.min_size is not None and \
+                        (sample.width*scale_factor < self.min_size or sample.height*scale_factor < self.min_size):
+                    img = None  # we do not upscale images or image patches that are smaller than min_size
 
         if img is None:
             try:

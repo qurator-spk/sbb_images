@@ -694,11 +694,13 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
                                                                       " but rather try to read them from this sqlite"
                                                                       " thumbnail file.")
 @click.option('--thumbnail-table-name', type=str, default=None, help="Do not read the image from the file system"
-                                                                      " but rather try to read them from this table"
-                                                                      " in the thumbnail sqlite file.")
+                                                                     " but rather try to read them from this table"
+                                                                     " in the thumbnail sqlite file.")
+@click.option('--min-size', type=int, default=None, help="Do not include images smaller than min-size.")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers, vit_model,
                         vst_model, clip_model, open_clip_model, open_clip_pretrained, ms_clip_model,
-                        multi_lang_clip_model, layer_name, layer_output, use_saliency_mask, pad_to_square, thumbnail_sqlite_file, thumbnail_table_name):
+                        multi_lang_clip_model, layer_name, layer_output, use_saliency_mask, pad_to_square,
+                        thumbnail_sqlite_file, thumbnail_table_name, min_size):
     """
 
     Creates a CNN-features based similarity search index.
@@ -711,6 +713,9 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
         X = pd.read_sql('select * from images', con=con)
 
     X['file'] = X['file'].astype(str)
+
+    if min_size is not None:
+        X = X.loc[((X.width >= min_size) & (X.height >= min_size)) | (X.width == -1)]
 
     extract_features_orig, extract_transform, normalization = \
         load_extraction_model(model_name, layer_name, layer_output,
@@ -777,7 +782,8 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
         extract_features = default_extract_features
 
     dataset = AnnotatedDataset(samples=X, targets=None, transform=transform, pad_to_square=pad_to_square,
-                               thumbnail_sqlite_file=thumbnail_sqlite_file, table_name=thumbnail_table_name)
+                               thumbnail_sqlite_file=thumbnail_sqlite_file, table_name=thumbnail_table_name,
+                               min_size=min_size)
 
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
