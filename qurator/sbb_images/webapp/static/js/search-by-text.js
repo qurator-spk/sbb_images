@@ -47,10 +47,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
         $.ajax(request);
     };
 
-    function update() {
-
-        search_pos = 0;
-
+    function setupInterface() {
         if (configuration.acceptsText() && configuration.acceptsIconclass()) {
             let drop_down_html = `
                 <a class="dropdown-item" id="search-select-filename"
@@ -187,6 +184,13 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                 }
             );
         }
+    }
+
+    function update() {
+
+        search_pos = 0;
+
+        setupInterface();
 
         let active_html = "";
 
@@ -220,11 +224,12 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                     && ((text_search_mode==="desc") || (text_search_mode==="iconclass"))) {
 
                     text_search_mode = "tag";
-                }
 
+                    configuration.showWarning("Current model does not support search by description or iconclass. " +
+                    "Disabled search mode 'by Description'.");
+                }
                 url_params.set('text_search_mode', text_search_mode);
                 url_params.set('search_text', encodeURIComponent(search_text));
-
 
                 state.text_search_mode = text_search_mode;
                 state.search_text = search_text;
@@ -362,6 +367,8 @@ function setup_search_by_text(configuration, update_search_results, global_push_
     );
 
     that.popState();
+
+    setupInterface();
 
     return that;
 }

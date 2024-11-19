@@ -4,13 +4,7 @@ function setup_search_collapse (configuration, configuration_updated, save_state
 
     let search_mode = null;
 
-    let collapse_state="undefined";
-
     function update() {
-
-        if (collapse_state === search_mode) return;
-
-        collapse_state = search_mode;
 
         if (configuration.acceptsText() && configuration.acceptsIconclass()) {
             $("#description-button").html("By description | filename | iconclass | tag");
@@ -76,7 +70,7 @@ function setup_search_collapse (configuration, configuration_updated, save_state
         function() {
             if (search_mode === "image") return;
 
-            console.log("image");
+            //console.log("image");
 
             that.setSearchMode("image");
 
@@ -89,7 +83,7 @@ function setup_search_collapse (configuration, configuration_updated, save_state
         function() {
             if (search_mode === "text") return;
 
-            console.log("text");
+            //console.log("text");
 
             that.setSearchMode("text");
 

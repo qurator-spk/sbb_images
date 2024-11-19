@@ -87,6 +87,19 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
         }
     );
 
+    function showWarning(msg) {
+        $("#settings-info-group").removeClass("d-none");
+        $("#settings-info").addClass("alert");
+        $("#settings-info").addClass("alert-danger");
+        $("#settings-info").html(msg);
+    }
+
+    function clearWarning() {
+        $("#settings-info-group").addClass("d-none");
+        $("#settings-info").removeClass("alert");
+        $("#settings-info").removeClass("alert-danger");
+        $("#settings-info").html("");
+    }
 
     that = {
         pushState:
@@ -122,6 +135,8 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
 
         setActiveConf:
             function(conf, new_state=true) {
+                that.clearWarning();
+
                 active_conf = conf;
 
                 updateModelSelect();
@@ -142,7 +157,11 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
             function() {
                 return gconf["MODEL_CONFIGURATION"][that.getModelConf()]["ACCEPTS_ICONCLASS"];
             },
-        update: updateModelSelect
+        update: updateModelSelect,
+
+        showWarning : showWarning,
+
+        clearWarning : clearWarning
     };
 
     that.popState();
