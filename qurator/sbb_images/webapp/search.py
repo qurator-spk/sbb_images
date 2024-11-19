@@ -265,7 +265,7 @@ def get_similar_from_features(conf, count, data_conf, fe, model_conf, start):
 
         count += min_result_len
 
-    return result
+    return result[0:min_result_len]
 
 
 def load_image_from_database(data_conf, search_id, x=-1, y=-1, width=-1, height=-1):
