@@ -226,7 +226,7 @@ function setup_search_by_text(configuration, update_search_results, global_push_
                     text_search_mode = "tag";
 
                     configuration.showWarning("Current model does not support search by description or iconclass. " +
-                    "Disabled search mode 'by Description'.");
+                    "Disabled search modes 'by Description' and 'by Iconclass'.");
                 }
                 url_params.set('text_search_mode', text_search_mode);
                 url_params.set('search_text', encodeURIComponent(search_text));
