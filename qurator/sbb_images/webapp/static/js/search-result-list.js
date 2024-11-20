@@ -391,7 +391,7 @@ function setup_search_result_list(configuration, search, next_batch) {
                                  ${region_annotator_html}
                                  <br>
                                  <a href="image/${configuration.getDataConf()}/${result_id}/full" id="lnk-${result_id}" target="_blank" rel="noopener noreferrer">
-                                     <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer"/>
+                                     <img class="img-fluid fit-result-image" id="img-${result_id}" src="" rel="noopener noreferrer" referrerpolicy="no-referrer" title=""/>
                                  </a>
                                  <div class="row  justify-content-center text-center">
                                      <div class="d-inline-flex">
@@ -427,15 +427,7 @@ function setup_search_result_list(configuration, search, next_batch) {
 
                       $(`#select-${result_id}`).data("image_id", result_id);
 
-//                      $(`#select-${result_id}`).click(
-//                        function() {
-//                            select_all = false;
-//                        }
-//                      );
-
                       $(`#more-btn-${result_id}`).tooltip();
-
-                      //$(`#card-${result_id}-number`).tooltip();
 
                     })(result_id, configuration.getDataConf());
                 }
@@ -456,8 +448,8 @@ function setup_search_result_list(configuration, search, next_batch) {
                                 function(result) {
                                     if (result.length <= 0) return;
 
-                                    $("#card-"+ result_id).attr('title', result);
-                                    $("#card-"+ result_id).tooltip();
+                                    $("#img-"+ result_id).attr('title', result);
+                                    $("#img-"+ result_id).tooltip();
 
                                     $("#lnk-" + result_id).attr('href', result);
                                 }
