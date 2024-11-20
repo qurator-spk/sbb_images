@@ -4,14 +4,21 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
     let conf_map = {};
     let model_map = {};
     let active_conf = null;
-    let default_conf = null;
+    let default_model_conf ={};
     let datasets = new Set();
+
+    let default_data_conf = null;
 
     $.each(gconf["CONFIGURATION"],
         function(conf_name, conf) {
             conf_map[[conf["DATA_CONF"], conf["MODEL_CONF"]]] = conf_name;
             model_map[conf["DATA_CONF"]] = [];
             datasets.add(conf["DATA_CONF"])
+
+            if ((default_data_conf === null) ||
+                (("DEFAULT" in conf) && (conf['DEFAULT']))) {
+                default_data_conf = conf["DATA_CONF"];
+            }
         }
     );
 
@@ -19,8 +26,8 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
         function(conf_name, conf) {
             model_map[conf["DATA_CONF"]].push(conf["MODEL_CONF"]);
 
-            if ((conf['DEFAULT']) || (default_conf === null)) {
-                default_conf = conf_name;
+            if ((conf['DEFAULT']) || !(conf["DATA_CONF"] in default_model_conf)) {
+                default_model_conf[conf["DATA_CONF"]] = conf["MODEL_CONF"];
             }
         }
     );
@@ -69,6 +76,14 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
             if (prev_data_conf === data_conf) return;
 
             let model_conf = $("#model-select")[0].value;
+
+            if (!([data_conf, model_conf] in conf_map)) {
+
+                model_conf = default_model_conf[data_conf]
+
+                showWarning("Model " +  $("#model-select")[0].value + " not available for dataset "  + data_conf + ". " +
+                    "Switch to model " + model_conf + ".");
+            }
 
             that.setActiveConf(conf_map[[data_conf, model_conf]]);
 
@@ -128,7 +143,7 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
                         active_conf = conf_map[[url_params.get("data_conf") , url_params.get("model_conf")]];
                     }
                     else {
-                        active_conf = default_conf;
+                        active_conf = conf_map[[default_data_conf, default_model_conf[default_data_conf]]];
                     }
                 }
             },
