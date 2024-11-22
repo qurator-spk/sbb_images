@@ -31,6 +31,7 @@ setup(
         "create-search-index=qurator.sbb_images.cli:create_search_index",
         "create-sbb-links=qurator.sbb_images.cli_tools.create_sbb_link_table:cli",
         "add-detections=qurator.sbb_images.cli:add_detections",
+        "add-region-annotations=qurator.sbb_images.cli:add_region_annotations",
         "add-page-info-tags=qurator.sbb_images.cli_tools.add_page_info_tags:cli",
         "filter-detections=qurator.sbb_images.cli:filter_detections",
         "image-info=qurator.sbb_images.image_info:cli",

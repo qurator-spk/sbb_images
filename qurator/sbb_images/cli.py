@@ -17,6 +17,7 @@ from sklearn.model_selection import StratifiedKFold
 from pprint import pprint
 
 from .parallel import run as prun
+import requests
 
 # noinspection PyBroadException
 try:
@@ -108,6 +109,7 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_jso
     images['y'] = -1
     images['width'] = -1
     images['height'] = -1
+    images['anchor'] = 'filesystem'
 
     with sqlite3.connect(sqlite_file) as conn:
         images.to_sql('images', con=conn, if_exists='replace')
@@ -163,9 +165,9 @@ class ThumbTask:
 @click.option('--subset-dirs-json', type=click.Path(exists=True), default=None,
               help="Recursively search only through a subset of sub-directories as defined in this json file.")
 @click.option('--max-img-size', type=int, default=250,
-              help="Scale all the images before storing such that the maximum of their width and height is equal to this values (default 250).")
-@click.option('--processes', type=int, default=8,
-              help="Number of parallel processes to be used.")
+              help="Scale all the images before storing such that the maximum of their width and height"
+                   " is equal to this value (default 250).")
+@click.option('--processes', type=int, default=8, help="Number of parallel processes to be used.")
 def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_json, subset_dirs_json, max_img_size,
                       processes):
     """
@@ -241,7 +243,8 @@ def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_j
 @click.argument('detection-file', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=False))
 @click.option('--replace', type=bool, is_flag=True, default=False, help="Replace the entire image table if specified.")
-def add_detections(detection_file, sqlite_file, replace):
+@click.option('--anchor', type=str, default="detections", help="String to identity the added entries later on.")
+def add_detections(detection_file, sqlite_file, replace, anchor):
     """
     DETECTION_FILE: Read object detection regions as a pickled pandas DataFrame from this file.
     Required columns: 'path', 'x1', 'y1', 'box_w', 'box_h'.
@@ -256,6 +259,7 @@ def add_detections(detection_file, sqlite_file, replace):
         rename(columns={'path': 'file', 'x1': 'x', 'y1': 'y', 'box_w': 'width', 'box_h': 'height'})
 
     detections['num_annotations'] = 0
+    detections['anchor'] = anchor
 
     with sqlite3.connect(sqlite_file) as conn:
 
@@ -272,6 +276,72 @@ def add_detections(detection_file, sqlite_file, replace):
         detections.index = detections.index + max_rowid
 
         detections.to_sql('images', con=conn, if_exists='replace' if replace else 'append')
+
+
+@click.command()
+@click.argument('image-db', type=click.Path(exists=True))
+@click.argument('anno-db', type=click.Path(exists=True))
+@click.option('--anchor', type=str, default="region-annotator", help="")
+def add_region_annotations(image_db, anno_db, anchor):
+
+    with sqlite3.connect(anno_db) as con:
+
+        df_anno = pd.read_sql("select * from annotations", con)
+
+    df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
+
+    for i, row in df_anno.iterrows():
+
+        annotation = json.loads(row.anno_json)
+
+        if annotation['type'] != 'Annotation':
+            continue
+
+        id = annotation['id']
+
+        img_url = annotation['target']['source']
+
+        region = annotation['target']['selector']['value']
+
+        points = m[1] if (m := re.match(r"<svg><polygon points=\"(.*)\"", region)) else None
+
+        labels = []
+
+        for entry in annotation['body']:
+
+            if entry['type'] != 'TextualBody' or entry['purpose'] != 'tagging':
+                continue
+
+            labels.append(entry['value'])
+
+        if points is not None:
+
+            points = [float(s) for s in re.findall("([0-9.]+)", points)]
+            x_coors = points[0::2]
+            y_coors = points[1::2]
+
+            assert (len(x_coors) == len(y_coors))
+
+            left, right = int(min(x_coors)), int(max(x_coors))
+            top, bottom = int(min(y_coors)), int(max(y_coors))
+
+            width = right-left
+            height = bottom-top
+
+            img_resp = requests.get(img_url, timeout=(30, 30))
+
+            if img_resp.status_code == 200:
+                img = Image.open(io.BytesIO(img_resp.content))
+
+                img = img.crop((left, top, left + width + 1, top + height + 1))
+
+                img.save(id[1:] + '.jpeg', 'jpeg')
+        else:
+            continue
+
+        print(id, labels)
+
+        # for i, body in
 
 
 @click.command()
