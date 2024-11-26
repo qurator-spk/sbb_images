@@ -565,48 +565,66 @@ function setup_search_result_list(configuration, search, next_batch) {
             $("#tag-button").html($(this).html());
         });
 
-    $("#tag-button").click(
-        function() {
-            let ids = [];
-            $('.tag-selectable:checkbox:checked').each(
-                function() {
-                    ids.push($(this).data("image_id"));
-                });
+    function tag_action() {
+        let ids = [];
+        $('.tag-selectable:checkbox:checked').each(
+            function() {
+                ids.push($(this).data("image_id"));
+            });
 
-            (function(update_ids) {
-            let request =
-            {
-                success:
-                    function(){
-                        $.each(update_ids,
-                            function(idx, uid) {
+        (function(update_ids) {
+        let request =
+        {
+            success:
+                function(){
+                    $.each(update_ids,
+                        function(idx, uid) {
 
-                                refresh_tag_info(uid);
+                            refresh_tag_info(uid);
 
-                                if (clear_selection) {
-                                    select_all = false;
-                                    $(".tag-selectable").prop("checked", false);
-                                }
+                            if (clear_selection) {
+                                select_all = false;
+                                $(".tag-selectable").prop("checked", false);
                             }
-                        );
-                    },
-                error: function(){},
-                data: JSON.stringify({ "ids" : ids, "tag": $("#tag-input").val() }),
-                type: "POST",
-                contentType: "application/json"
-            };
+                        }
+                    );
+                },
+            error: function(){},
+            data: JSON.stringify({ "ids" : ids, "tag": $("#tag-input").val() }),
+            type: "POST",
+            contentType: "application/json"
+        };
 
-            if (tag_mode === "add") {
-                request['url'] = "add-image-tag/"+ configuration.getDataConf();
-            }
-            else if (tag_mode == "remove") {
-                request['url'] = "delete-image-tag/"+ configuration.getDataConf();
-            }
+        if (tag_mode === "add") {
+            request['url'] = "add-image-tag/"+ configuration.getDataConf();
+        }
+        else if (tag_mode == "remove") {
+            request['url'] = "delete-image-tag/"+ configuration.getDataConf();
+        }
 
-            $.ajax(request);
-            })(ids);
+        $.ajax(request);
+        })(ids);
+    }
+
+    $("#tag-button").click(
+        function(evt) {
+            tag_action();
         }
     );
+
+    $("#tag-input").on("keypress", function(evt){
+        if(evt.which == 13){
+            evt.stopPropagation();
+
+            let tag = $("#tag-input").val();
+
+            if (tag.length > 0) {
+                tag_action();
+            }
+
+            return false;
+        }
+    });
 
     let select_amount=5;
 

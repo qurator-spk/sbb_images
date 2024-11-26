@@ -281,8 +281,10 @@ def add_detections(detection_file, sqlite_file, replace, anchor):
 @click.command()
 @click.argument('image-db', type=click.Path(exists=True))
 @click.argument('anno-db', type=click.Path(exists=True))
+@click.argument('thumb-db', type=click.Path(exists=True))
 @click.option('--anchor', type=str, default="region-annotator", help="")
-def add_region_annotations(image_db, anno_db, anchor):
+@click.option('--thumb-size', type=int, default=250, help="")
+def add_region_annotations(image_db, anno_db, thumb_db, anchor, thumb_size):
 
     with sqlite3.connect(anno_db) as con:
 
@@ -290,43 +292,64 @@ def add_region_annotations(image_db, anno_db, anchor):
 
     df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
 
-    for i, row in df_anno.iterrows():
+    with sqlite3.connect(thumb_db) as thumb_con:
+        for i, row in df_anno.iterrows():
 
-        annotation = json.loads(row.anno_json)
+            annotation = json.loads(row.anno_json)
 
-        if annotation['type'] != 'Annotation':
-            continue
-
-        id = annotation['id']
-
-        img_url = annotation['target']['source']
-
-        region = annotation['target']['selector']['value']
-
-        points = m[1] if (m := re.match(r"<svg><polygon points=\"(.*)\"", region)) else None
-
-        labels = []
-
-        for entry in annotation['body']:
-
-            if entry['type'] != 'TextualBody' or entry['purpose'] != 'tagging':
+            if annotation['type'] != 'Annotation':
                 continue
 
-            labels.append(entry['value'])
+            anno_id = annotation['id']
 
-        if points is not None:
+            img_url = annotation['target']['source']
 
-            points = [float(s) for s in re.findall("([0-9.]+)", points)]
-            x_coors = points[0::2]
-            y_coors = points[1::2]
+            region = annotation['target']['selector']['value']
 
-            assert (len(x_coors) == len(y_coors))
+            points = m[1] if (m := re.match(r'<svg><polygon points="(.*)"', region)) else None
 
-            left, right = int(min(x_coors)), int(max(x_coors))
-            top, bottom = int(min(y_coors)), int(max(y_coors))
+            labels = []
 
-            width = right-left
-            height = bottom-top
+            for entry in annotation['body']:
+
+                if entry['type'] != 'TextualBody' or entry['purpose'] != 'tagging':
+                    continue
+
+                labels.append(entry['value'])
+
+            if points is not None:
+
+                points = [float(s) for s in re.findall('([0-9.]+)', points)]
+                x_coors = points[0::2]
+                y_coors = points[1::2]
+
+                assert (len(x_coors) == len(y_coors))
+
+                left, right = int(min(x_coors)), int(max(x_coors))
+                top, bottom = int(min(y_coors)), int(max(y_coors))
+
+                width = right - left
+                height = bottom - top
+
+            else:
+                xywh = m[1] if (m := re.match(r'xywh=pixel:(.*)', region)) else None
+
+                if xywh is None:
+                    print("Could not interpret {}.".format(region))
+                    continue
+
+                assert (len(xywh) == 4)
+
+                left, top, width, height = [int(float(s)) for s in re.findall('([0-9.]+)', xywh)]
+
+            full_id = "{}-{}-{}-{}-{}-{}".format(anchor, anno_id, left, top, width, height)
+
+            check = thumb_con.execute("SELECT filename FROM thumbnails WHERE filename=? AND size=?",
+                                      (full_id, thumb_size)).fetchone()
+
+            if check is not None:
+                print("{} already in database.".format(full_id))
+                continue
 
             img_resp = requests.get(img_url, timeout=(30, 30))
 
@@ -335,11 +358,30 @@ def add_region_annotations(image_db, anno_db, anchor):
 
                 img = img.crop((left, top, left + width + 1, top + height + 1))
 
-                img.save(id[1:] + '.jpeg', 'jpeg')
-        else:
-            continue
+                max_size = float(max(img.size[0], img.size[1]))
 
-        print(id, labels)
+                scale_factor = 1.0 if max_size <= thumb_size else thumb_size / max_size
+
+                hsize = int((float(img.size[0]) * scale_factor))
+                vsize = int((float(img.size[1]) * scale_factor))
+
+                img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+            else:
+                print("Could not retrieve: {}.".format(img_url))
+                continue
+
+            buffer = io.BytesIO()
+
+            img.save(buffer, 'JPEG')
+
+            print("Inserting {}.".format(full_id))
+
+            thumb_con.execute('INSERT INTO thumbnails VALUES(NULL,?,?,?,?)',
+                              (full_id, sqlite3.Binary(buffer.read()), thumb_size, 1.0))
+
+        # img.save(anno_id[1:] + ".jpeg", 'JPEG')
+
+        # print(anno_id, labels)
 
         # for i, body in
 
