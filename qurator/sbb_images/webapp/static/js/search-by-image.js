@@ -301,15 +301,19 @@ function setup_search_by_image(configuration, update_search_results, global_push
                 };
 
            reader.readAsDataURL(file);
+
+           return true;
         }
         else if (clipboardData.items[0] &&(clipboardData.items[0].type == "text/html")) {
+
+            let success = false;
 
             clipboardData.items[0].getAsString(
                 function (s) {
 
                     let url = $($.filter("img", $.parseHTML(s))[0]).attr("src");
 
-                    console.log(url);
+                    if (!url) success = true;
 
                     let img = new Image();
                     img.crossOrigin= "Anonymous";
@@ -334,9 +338,12 @@ function setup_search_by_image(configuration, update_search_results, global_push
                     img.src = url;
                 }
             );
+
+            return success;
         }
         else {
-            console.log(clipboardData.items[0]);
+
+            return false;
         }
     }
 

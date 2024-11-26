@@ -185,10 +185,14 @@ function search_setup (gconf){
     $(window).on('paste',
         function (event) {
             if (search_collapse.getSearchMode() === "image") {
-                event.preventDefault();
-                event.stopPropagation();
+                if (search_by_image.paste(event)) {
+                    event.preventDefault();
+                    event.stopPropagation();
 
-                search_by_image.paste(event);
+                    return false;
+                }
+
+                return true;
             }
         }
     );
