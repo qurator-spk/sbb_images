@@ -109,13 +109,14 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_jso
     images['y'] = -1
     images['width'] = -1
     images['height'] = -1
-    images['anchor'] = 'filesystem'
+    images['anchor'] = "filesystem"
 
     with sqlite3.connect(sqlite_file) as conn:
         images.to_sql('images', con=conn, if_exists='replace')
 
         conn.execute('create index idx_num_annotations on images(num_annotations);')
         conn.execute('create index idx_file on images(file);')
+        conn.execute('create index idx_images_anchor on images(anchor);')
 
         conn.execute('create table if not exists "annotations"("index" integer primary key, "user" TEXT, "label" TEXT,'
                      '"IMAGE" integer)')
@@ -278,13 +279,139 @@ def add_detections(detection_file, sqlite_file, replace, anchor):
         detections.to_sql('images', con=conn, if_exists='replace' if replace else 'append')
 
 
+def parse_annotation(annotation):
+
+    if annotation['type'] != 'Annotation':
+        return "", 0, 0, 0, 0, []
+
+    img_url = annotation['target']['source']
+
+    region = annotation['target']['selector']['value']
+
+    points = m[1] if (m := re.match(r'<svg><polygon points="(.*)"', region)) else None
+
+    labels = []
+
+    for entry in annotation['body']:
+
+        if entry['type'] != 'TextualBody' or entry['purpose'] != 'tagging':
+            continue
+
+        labels.append({'tag': entry['value'],
+                       'timestamp': entry['modified'] if 'modified' in entry else entry['created']})
+
+    if points is not None:
+
+        points = [float(s) for s in re.findall('([0-9.]+)', points)]
+        x_coors = points[0::2]
+        y_coors = points[1::2]
+
+        assert (len(x_coors) == len(y_coors))
+
+        left, right = int(min(x_coors)), int(max(x_coors))
+        top, bottom = int(min(y_coors)), int(max(y_coors))
+
+        width = right - left
+        height = bottom - top
+
+    else:
+        xywh = m[1] if (m := re.match(r'xywh=pixel:(.*)', region)) else None
+
+        if xywh is None:
+            print("Could not interpret {}.".format(region))
+
+            return "", 0, 0, 0, 0, []
+
+        left, top, width, height = [int(float(s)) for s in re.findall('([0-9.]+)', xywh)]
+
+    return img_url, left, top, width, height, labels
+
+
+def add_annotation_image_and_labels(img_url, left, top, width, height, labels, image_con):
+
+    check_img = image_con.execute("SELECT * FROM images WHERE file=? AND x=? AND y=? "
+                                  "AND width=? AND height=?", (img_url, left, top, width, height)).fetchone()
+
+    if check_img is not None:
+        print("Url {} with coordinates {},{},{},{} already contained in image database.".
+              format(img_url, left, top, width, height))
+        return
+
+    print("Inserting Url {} with coordinates {},{},{},{}.". format(img_url, left, top, width, height))
+
+    image_con.execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    image_id = image_con.execute('SELECT max(rowid) FROM images').fetchone()[0] + 1
+
+    image_con.execute('INSERT INTO images(rowid, file, num_annotations, x, y, width, height, anchor) '
+                      'VALUES(?,?,?,?,?,?,?,?)', (image_id, img_url, 0, left, top, width, height, "region-annotator"))
+
+    if m := re.match(".*(PPN[^-]+)-([0-9]+)/.*", img_url):
+
+        ppn, physid = m[1], m[2][-4:]
+
+        sbb_link = "https://digital.staatsbibliothek-berlin.de/werkansicht?" + \
+                   "PPN={}&PHYSID=PHYS_{}".format(ppn, physid)
+
+        image_con.execute('INSERT INTO links(rowid, url, ppn, phys_id) VALUES(?,?,?,?)',
+                          (image_id, sbb_link, ppn, physid))
+
+    image_con.execute('INSERT INTO iiif_links(image_id, url) VALUES(?,?)', (image_id, img_url))
+
+    for label in labels:
+        image_con.execute('INSERT INTO tags(image_id, tag, user, timestamp, read_only) VALUES(?,?,?,?,?)',
+                          (image_id, label['tag'], "region-annotator", label['timestamp'], 1))
+
+    image_con.execute('COMMIT TRANSACTION')
+
+
+def add_url_thumbnail(img_url, left, top, width, height, thumb_size, thumb_con):
+    thumb_id = "{}|RECT:{}-{}-{}-{}".format(img_url, left, top, width, height)
+
+    check_thumb = thumb_con.execute("SELECT filename FROM thumbnails WHERE filename=? AND size=?",
+                                    (thumb_id, thumb_size)).fetchone()
+
+    if check_thumb is not None:
+        print("{} already in thumbnail database.".format(thumb_id))
+        return
+
+    img_resp = requests.get(img_url, timeout=(30, 30))
+
+    if img_resp.status_code == 200:
+        img = Image.open(io.BytesIO(img_resp.content))
+
+        img = img.crop((left, top, left + width + 1, top + height + 1))
+
+        max_size = float(max(img.size[0], img.size[1]))
+
+        scale_factor = 1.0 if max_size <= thumb_size else thumb_size / max_size
+
+        hsize = int((float(img.size[0]) * scale_factor))
+        vsize = int((float(img.size[1]) * scale_factor))
+
+        img = img.resize((hsize, vsize), PIL.Image.Resampling.LANCZOS)
+    else:
+        print("Could not retrieve: {}.".format(img_url))
+        return
+
+    buffer = io.BytesIO()
+
+    img.save(buffer, 'JPEG')
+
+    buffer.seek(0)
+
+    print("Inserting {}.".format(thumb_id))
+
+    thumb_con.execute('INSERT INTO thumbnails VALUES(NULL,?,?,?,?)',
+                      (thumb_id, sqlite3.Binary(buffer.read()), thumb_size, 1.0))
+
+
 @click.command()
 @click.argument('image-db', type=click.Path(exists=True))
 @click.argument('anno-db', type=click.Path(exists=True))
 @click.argument('thumb-db', type=click.Path(exists=True))
-@click.option('--anchor', type=str, default="region-annotator", help="")
-@click.option('--thumb-size', type=int, default=250, help="")
-def add_region_annotations(image_db, anno_db, thumb_db, anchor, thumb_size):
+@click.option('--thumb-size', type=int, default=250, help="Size of thumbnails to be created (default 250)")
+def add_region_annotations(image_db, anno_db, thumb_db, thumb_size):
 
     with sqlite3.connect(anno_db) as con:
 
@@ -292,98 +419,64 @@ def add_region_annotations(image_db, anno_db, thumb_db, anchor, thumb_size):
 
     df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
 
-    with sqlite3.connect(thumb_db) as thumb_con:
+    anno_info = []
+
+    with sqlite3.connect(image_db) as image_con:
+
+        try:
+            image_con.execute("CREATE index idx_images_file_x_y_width_height on images(file,x,y,width,height)")
+        except sqlite3.Error:
+            pass
+
+        try:
+            image_con.execute("ALTER TABLE images ADD anchor TEXT")
+        except sqlite3.Error:
+            pass
+
+        try:
+            image_con.execute('create index idx_images_anchor on images(anchor);')
+        except sqlite3.Error:
+            pass
+
+        try:
+            image_con.execute('create index idx_tags_user on tags(user);')
+        except sqlite3.Error:
+            pass
+
+        try:
+            image_con.execute('create table iiif_links (image_id INTEGER, url TEXT)')
+        except sqlite3.Error:
+            pass
+
+        try:
+            image_con.execute('create index idx_iiif_links_imageid on iiif_links(image_id)')
+        except sqlite3.Error as e:
+            print(e)
+
+        image_con.execute("DELETE FROM links WHERE rowid in ("
+                          "SELECT rowid from images WHERE anchor=\"region-annotator\")")
+
+        image_con.execute("DELETE FROM iiif_links WHERE image_id in ("
+                          "SELECT rowid from images WHERE anchor=\"region-annotator\")")
+
+        image_con.execute('DELETE FROM images where anchor="region-annotator"')
+        image_con.execute('DELETE FROM tags where user="region-annotator"')
+
+        image_con.execute('END TRANSACTION')
+
         for i, row in df_anno.iterrows():
+            img_url, left, top, width, height, labels = parse_annotation(json.loads(row.anno_json))
 
-            annotation = json.loads(row.anno_json)
+            anno_info.append((img_url, left, top, width, height))
 
-            if annotation['type'] != 'Annotation':
-                continue
+            add_annotation_image_and_labels(img_url, left, top, width, height, labels, image_con)
 
-            anno_id = annotation['id']
+    with sqlite3.connect(thumb_db) as thumb_con:
 
-            img_url = annotation['target']['source']
+        thumb_con.execute("DELETE from thumbnails WHERE filename GLOB ?", ("*|RECT:*",))
 
-            region = annotation['target']['selector']['value']
-
-            points = m[1] if (m := re.match(r'<svg><polygon points="(.*)"', region)) else None
-
-            labels = []
-
-            for entry in annotation['body']:
-
-                if entry['type'] != 'TextualBody' or entry['purpose'] != 'tagging':
-                    continue
-
-                labels.append(entry['value'])
-
-            if points is not None:
-
-                points = [float(s) for s in re.findall('([0-9.]+)', points)]
-                x_coors = points[0::2]
-                y_coors = points[1::2]
-
-                assert (len(x_coors) == len(y_coors))
-
-                left, right = int(min(x_coors)), int(max(x_coors))
-                top, bottom = int(min(y_coors)), int(max(y_coors))
-
-                width = right - left
-                height = bottom - top
-
-            else:
-                xywh = m[1] if (m := re.match(r'xywh=pixel:(.*)', region)) else None
-
-                if xywh is None:
-                    print("Could not interpret {}.".format(region))
-                    continue
-
-                assert (len(xywh) == 4)
-
-                left, top, width, height = [int(float(s)) for s in re.findall('([0-9.]+)', xywh)]
-
-            full_id = "{}-{}-{}-{}-{}-{}".format(anchor, anno_id, left, top, width, height)
-
-            check = thumb_con.execute("SELECT filename FROM thumbnails WHERE filename=? AND size=?",
-                                      (full_id, thumb_size)).fetchone()
-
-            if check is not None:
-                print("{} already in database.".format(full_id))
-                continue
-
-            img_resp = requests.get(img_url, timeout=(30, 30))
-
-            if img_resp.status_code == 200:
-                img = Image.open(io.BytesIO(img_resp.content))
-
-                img = img.crop((left, top, left + width + 1, top + height + 1))
-
-                max_size = float(max(img.size[0], img.size[1]))
-
-                scale_factor = 1.0 if max_size <= thumb_size else thumb_size / max_size
-
-                hsize = int((float(img.size[0]) * scale_factor))
-                vsize = int((float(img.size[1]) * scale_factor))
-
-                img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
-            else:
-                print("Could not retrieve: {}.".format(img_url))
-                continue
-
-            buffer = io.BytesIO()
-
-            img.save(buffer, 'JPEG')
-
-            print("Inserting {}.".format(full_id))
-
-            thumb_con.execute('INSERT INTO thumbnails VALUES(NULL,?,?,?,?)',
-                              (full_id, sqlite3.Binary(buffer.read()), thumb_size, 1.0))
-
-        # img.save(anno_id[1:] + ".jpeg", 'JPEG')
-
-        # print(anno_id, labels)
-
-        # for i, body in
+        for img_url, left, top, width, height in anno_info:
+            add_url_thumbnail(img_url, left, top, width, height, thumb_size, thumb_con)
 
 
 @click.command()

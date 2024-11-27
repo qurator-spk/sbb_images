@@ -237,7 +237,7 @@ def add_annotation(user):
     anno_id = annotation['id']
     url = annotation['target']['source']
 
-    matches, description =  _match_url(url)
+    matches, description = _match_url(url)
 
     if not matches:
         raise BadRequest()

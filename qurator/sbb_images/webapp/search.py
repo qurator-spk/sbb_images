@@ -108,7 +108,7 @@ class ThreadStore:
             img = pd.read_sql('SELECT rowid, file, x,y,width,height from images',
                               con=self.get_db(data_conf))
 
-            img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
+            # img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
 
             self._files_map[data_conf] = img[['rowid', 'file']]
 
@@ -131,6 +131,38 @@ class ThreadStore:
             self._connection_map[("__THUMBNAILS__", thid)] = conn
 
         return conn
+
+    def get_thumb(self, filename, x, y, width, height, thumb_size):
+        img = None
+        scale_factor = None
+        full_image = None
+
+        conn = self.get_thumb_db()
+
+        if conn is not None:
+
+            result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
+                                  (filename, thumb_size)).fetchone()
+            if result is not None:
+                data, scale_factor = result
+
+                buffer = io.BytesIO(data)
+
+                img = Image.open(buffer)
+            else:
+                result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
+                                      ("{}|RECT:{}-{}-{}-{}".format(filename, x, y, width, height),
+                                       thumb_size)).fetchone()
+                if result is not None:
+                    full_image = False
+
+                    data, scale_factor = result
+
+                    buffer = io.BytesIO(data)
+
+                    img = Image.open(buffer)
+
+        return img, scale_factor, full_image
 
     def get_search_index(self, index_conf, model_conf):
 
@@ -552,7 +584,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         else:
             raise RuntimeError("Unknown operation")
 
-    num_matches=0
+    num_matches = 0
     if df_ids is not None:
         df_files = thread_store.get_files(data_conf)
 
@@ -776,25 +808,17 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
 
         filename = sample.file.iloc[0]
 
+        full_image = True
         if os.path.exists(filename):
             img = Image.open(filename).convert('RGB')
         else:
-            conn = thread_store.get_thumb_db()
-            if conn is None:
+            img, scale_factor, full_image = thread_store.get_thumb(filename, sample.x.iloc[0], sample.y.iloc[0],
+                                                                   sample.width.iloc[0], sample.height.iloc[0],
+                                                                   app.config['MAX_IMG_SIZE'])
+            if img is None:
                 return "NOT FOUND", 404
 
-            result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
-                                  (filename, app.config['MAX_IMG_SIZE'])).fetchone()
-            if result is None:
-                return "NOT FOUND", 404
-
-            data, scale_factor = result
-
-            buffer = io.BytesIO(data)
-
-            img = Image.open(buffer)
-
-        if x < 0 and y < 0 and width < 0 and height < 0:
+        if x < 0 and y < 0 and width < 0 and height < 0 and full_image:
             x, y, width, height = float(sample.x.iloc[0]), float(sample.y.iloc[0]), \
                                   float(sample.width.iloc[0]), float(sample.height.iloc[0])
 
@@ -1267,19 +1291,10 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
 
     if version == 'resize':
 
-        scale_factor = None
-        img = None
-        conn = thread_store.get_thumb_db()
-        if conn is not None:
+        img, scale_factor, full_image = thread_store.get_thumb(filename, x, y, width, height, max_img_size)
 
-            result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
-                                  (filename, max_img_size)).fetchone()
-            if result is not None:
-                data, scale_factor = result
-
-                buffer = io.BytesIO(data)
-
-                img = Image.open(buffer)
+        if not full_image:
+            marker = 'nomarker'
 
         if img is None:
 
@@ -1307,20 +1322,13 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
         if raw_file is not None:
             img = Image.open(raw_file).convert('RGB')
         else:
-            conn = thread_store.get_thumb_db()
-            if conn is None:
+            img, scale_factor, full_image = thread_store.get_thumb(filename, x, y, width, height, max_img_size)
+
+            if img is None:
                 return "NOT FOUND", 404
 
-            result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
-                                  (filename, max_img_size)).fetchone()
-            if result is  None:
-                return "NOT FOUND", 404
-
-            data, scale_factor = result
-
-            buffer = io.BytesIO(data)
-
-            img = Image.open(buffer)
+            if not full_image:
+                marker = 'nomarker'
     else:
         return "BAD PARAMS <version>: full/resize", 400
 
