@@ -49,24 +49,39 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-if len(app.config['PASSWD_FILE']) > 0:
-    app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
-    app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
-
-    from flask_htpasswd import HtPasswdAuth
-
+htpasswd = None
+if len(app.config['PASSWD_FILE']) > 0 and os.path.exists(os.path.join(os.getcwd(), app.config['PASSWD_FILE'])):
+    app.config['FLASK_HTPASSWD_PATH'] = os.path.join(os.getcwd(), app.config['PASSWD_FILE'])
     app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
     app.config['FLASK_SECRET'] = \
         ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(40))
 
+    from.no_auth import AuthReloader
+
+    htpasswd = AuthReloader(app, app.config['PASSWD_FILE'])
 else:
     print("AUTHENTICATION DISABLED!!!")
-    from .no_auth import NoAuth as HtPasswdAuth
+    from .no_auth import NoAuth
+
+    htpasswd = NoAuth()
+
+# if len(app.config['PASSWD_FILE']) > 0:
+#     app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
+#     app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
+#
+#     from flask_htpasswd import HtPasswdAuth
+#
+#     app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
+#     app.config['FLASK_SECRET'] = \
+#         ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(40))
+#
+# else:
+#     print("AUTHENTICATION DISABLED!!!")
+#     from .no_auth import NoAuth as HtPasswdAuth
+# htpasswd = HtPasswdAuth(app)
 
 if app.config['COOPERATIVE_MODIFICATION']:
     app.config['COOPERATIVE_ACCESS'] = True
-
-htpasswd = HtPasswdAuth(app)
 
 connection_map = dict()
 

@@ -58,15 +58,19 @@ logger = logging.getLogger(__name__)
 
 # print(app.config['PASSWD_FILE'])
 
+htpasswd = None
 if len(app.config['PASSWD_FILE']) > 0 and os.path.exists(os.path.join(os.getcwd(), app.config['PASSWD_FILE'])):
     app.config['FLASK_HTPASSWD_PATH'] = os.path.join(os.getcwd(), app.config['PASSWD_FILE'])
     app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
-    from flask_htpasswd import HtPasswdAuth
+
+    from.no_auth import AuthReloader
+
+    htpasswd = AuthReloader(app, app.config['PASSWD_FILE'])
 else:
     print("AUTHENTICATION DISABLED!!!")
-    from .no_auth import NoAuth as HtPasswdAuth
+    from .no_auth import NoAuth
 
-htpasswd = HtPasswdAuth(app)
+    htpasswd = NoAuth()
 
 
 class ThreadStore:
