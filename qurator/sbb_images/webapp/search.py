@@ -77,8 +77,6 @@ class ThreadStore:
         self._model_map = dict()
         self._index_map = dict()
 
-        self._files_map = dict()
-
         self._predict_saliency = None
         self._predict_transform = None
 
@@ -104,19 +102,6 @@ class ThreadStore:
             self._connection_map[(data_conf, thid)] = conn
 
         return conn
-
-    def get_files(self, data_conf):
-
-        if data_conf not in self._files_map:
-
-            img = pd.read_sql('SELECT rowid, file, x,y,width,height, anchor FROM images',
-                              con=self.get_db(data_conf))
-
-            # img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
-
-            self._files_map[data_conf] = img[['rowid', 'file', 'anchor']]
-
-        return self._files_map[data_conf]
 
     def get_thumb_db(self):
 
