@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw, ImageStat  # ImageOps, ImageFilter
 from ..feature_extraction import load_extraction_model
 from ..saliency import load_saliency_model, process_region, find_all_regions
 from ..iconclass.data_access import IconClassDataset
-from ..database import setup_tags_table
+from ..database import setup_tags_table, setup_images_table
 
 # noinspection PyUnresolvedReferences
 from annoy import AnnoyIndex
@@ -98,6 +98,9 @@ class ThreadStore:
 
             conn.execute('pragma journal_mode=wal')
 
+            setup_images_table(conn)
+            setup_tags_table(conn)
+
             self._connection_map[(data_conf, thid)] = conn
 
         return conn
@@ -106,12 +109,12 @@ class ThreadStore:
 
         if data_conf not in self._files_map:
 
-            img = pd.read_sql('SELECT rowid, file, x,y,width,height from images',
+            img = pd.read_sql('SELECT rowid, file, x,y,width,height, anchor FROM images',
                               con=self.get_db(data_conf))
 
             # img = img.loc[(img.x == -1) & (img.y == -1) & (img.width == -1) & (img.height == -1)]
 
-            self._files_map[data_conf] = img[['rowid', 'file']]
+            self._files_map[data_conf] = img[['rowid', 'file', 'anchor']]
 
         return self._files_map[data_conf]
 
@@ -133,7 +136,7 @@ class ThreadStore:
 
         return conn
 
-    def get_thumb(self, filename, x, y, width, height, thumb_size):
+    def get_thumb(self, filename, thumb_size, anchor):
         img = None
         scale_factor = None
         full_image = None
@@ -152,7 +155,7 @@ class ThreadStore:
                 img = Image.open(buffer)
             else:
                 result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
-                                      ("{}|RECT:{}-{}-{}-{}".format(filename, x, y, width, height),
+                                      ("{}|{}".format(filename, anchor),
                                        thumb_size)).fetchone()
                 if result is not None:
                     full_image = False
@@ -585,16 +588,23 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         else:
             raise RuntimeError("Unknown operation")
 
+   # import ipdb;ipdb.set_trace()
+
     num_matches = 0
     if df_ids is not None:
-        df_files = thread_store.get_files(data_conf)
+        # df_files = thread_store.get_files(data_conf)
+        #
+        # if 'tag' in df_ids.columns:
+        #     df_ids = df_ids.merge(df_files, left_on="image_id", right_on="rowid").\
+        #         sort_values(by=["order", "tag"]).drop_duplicates(subset=['file', 'anchor'], keep='first')
+        # else:
+        #     df_ids = df_ids.merge(df_files, left_on="image_id", right_on="rowid"). \
+        #         sort_values(by=["order"]).drop_duplicates(subset=['file', 'anchor'], keep='first')
 
         if 'tag' in df_ids.columns:
-            df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True).\
-                sort_values(by=["order", "tag"]).drop_duplicates(subset=['file'], keep='first')
+            df_ids = df_ids.sort_values(by=["order", "tag"])
         else:
-            df_ids = df_ids.merge(df_files, left_on="image_id", right_index=True). \
-                sort_values(by=["order"]).drop_duplicates(subset=['file'], keep='first')
+            df_ids = df_ids.sort_values(by=["order"])
 
         ids = df_ids['image_id'].tolist()
         num_matches = len(ids)
@@ -813,9 +823,8 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
         if os.path.exists(filename):
             img = Image.open(filename).convert('RGB')
         else:
-            img, scale_factor, full_image = thread_store.get_thumb(filename, sample.x.iloc[0], sample.y.iloc[0],
-                                                                   sample.width.iloc[0], sample.height.iloc[0],
-                                                                   app.config['MAX_IMG_SIZE'])
+            img, scale_factor, full_image = thread_store.get_thumb(filename, app.config['MAX_IMG_SIZE'],
+                                                                   sample.anchor.iloc[0])
             if img is None:
                 return "NOT FOUND", 404
 
@@ -1264,6 +1273,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
     y = sample.y.iloc[0]
     width = sample.width.iloc[0]
     height = sample.height.iloc[0]
+    anchor = sample.anchor.iloc[0]
 
     raw_file = filename
     if not os.path.exists(raw_file):
@@ -1282,7 +1292,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
 
     if version == 'resize':
 
-        img, scale_factor, full_image = thread_store.get_thumb(filename, x, y, width, height, max_img_size)
+        img, scale_factor, full_image = thread_store.get_thumb(filename, max_img_size, anchor)
 
         if not full_image:
             marker = 'nomarker'
@@ -1313,7 +1323,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
         if raw_file is not None:
             img = Image.open(raw_file).convert('RGB')
         else:
-            img, scale_factor, full_image = thread_store.get_thumb(filename, x, y, width, height, max_img_size)
+            img, scale_factor, full_image = thread_store.get_thumb(filename, max_img_size, anchor)
 
             if img is None:
                 return "NOT FOUND", 404

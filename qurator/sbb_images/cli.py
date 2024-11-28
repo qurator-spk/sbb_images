@@ -20,7 +20,7 @@ from .parallel import run as prun
 
 from .database import setup_image_database, setup_thumbnail_database
 
-import requests
+from .annotations import update_annotation_image_and_labels, update_url_thumbnail, parse_annotation
 
 # noinspection PyBroadException
 try:
@@ -271,139 +271,13 @@ def add_detections(detection_file, sqlite_file, replace, anchor):
         detections.to_sql('images', con=conn, if_exists='replace' if replace else 'append')
 
 
-def parse_annotation(annotation):
-
-    if annotation['type'] != 'Annotation':
-        return "", 0, 0, 0, 0, []
-
-    img_url = annotation['target']['source']
-
-    region = annotation['target']['selector']['value']
-
-    points = m[1] if (m := re.match(r'<svg><polygon points="(.*)"', region)) else None
-
-    labels = []
-
-    for entry in annotation['body']:
-
-        if entry['type'] != 'TextualBody' or entry['purpose'] != 'tagging':
-            continue
-
-        labels.append({'tag': entry['value'],
-                       'timestamp': entry['modified'] if 'modified' in entry else entry['created']})
-
-    if points is not None:
-
-        points = [float(s) for s in re.findall('([0-9.]+)', points)]
-        x_coors = points[0::2]
-        y_coors = points[1::2]
-
-        assert (len(x_coors) == len(y_coors))
-
-        left, right = int(min(x_coors)), int(max(x_coors))
-        top, bottom = int(min(y_coors)), int(max(y_coors))
-
-        width = right - left
-        height = bottom - top
-
-    else:
-        xywh = m[1] if (m := re.match(r'xywh=pixel:(.*)', region)) else None
-
-        if xywh is None:
-            print("Could not interpret {}.".format(region))
-
-            return "", 0, 0, 0, 0, []
-
-        left, top, width, height = [int(float(s)) for s in re.findall('([0-9.]+)', xywh)]
-
-    return img_url, left, top, width, height, labels
-
-
-def add_annotation_image_and_labels(img_url, left, top, width, height, labels, image_con):
-
-    check_img = image_con.execute("SELECT * FROM images WHERE file=? AND x=? AND y=? "
-                                  "AND width=? AND height=?", (img_url, left, top, width, height)).fetchone()
-
-    if check_img is not None:
-        print("Url {} with coordinates {},{},{},{} already contained in image database.".
-              format(img_url, left, top, width, height))
-        return
-
-    print("Inserting Url {} with coordinates {},{},{},{}.". format(img_url, left, top, width, height))
-
-    image_con.execute('BEGIN EXCLUSIVE TRANSACTION')
-
-    image_id = image_con.execute('SELECT max(rowid) FROM images').fetchone()[0] + 1
-
-    image_con.execute('INSERT INTO images(rowid, file, num_annotations, x, y, width, height, anchor) '
-                      'VALUES(?,?,?,?,?,?,?,?)', (image_id, img_url, 0, left, top, width, height, "region-annotator"))
-
-    if m := re.match(".*(PPN[^-]+)-([0-9]+)/.*", img_url):
-
-        ppn, physid = m[1], m[2][-4:]
-
-        sbb_link = "https://digital.staatsbibliothek-berlin.de/werkansicht?" + \
-                   "PPN={}&PHYSID=PHYS_{}".format(ppn, physid)
-
-        image_con.execute('INSERT INTO links(rowid, url, ppn, phys_id) VALUES(?,?,?,?)',
-                          (image_id, sbb_link, ppn, physid))
-
-    image_con.execute('INSERT INTO iiif_links(image_id, url) VALUES(?,?)', (image_id, img_url))
-
-    for label in labels:
-        image_con.execute('INSERT INTO tags(image_id, tag, user, timestamp, read_only) VALUES(?,?,?,?,?)',
-                          (image_id, label['tag'], "region-annotator", label['timestamp'], 1))
-
-    image_con.execute('COMMIT TRANSACTION')
-
-
-def add_url_thumbnail(img_url, left, top, width, height, thumb_size, thumb_con):
-    thumb_id = "{}|RECT:{}-{}-{}-{}".format(img_url, left, top, width, height)
-
-    check_thumb = thumb_con.execute("SELECT filename FROM thumbnails WHERE filename=? AND size=?",
-                                    (thumb_id, thumb_size)).fetchone()
-
-    if check_thumb is not None:
-        print("{} already in thumbnail database.".format(thumb_id))
-        return
-
-    img_resp = requests.get(img_url, timeout=(30, 30))
-
-    if img_resp.status_code == 200:
-        img = Image.open(io.BytesIO(img_resp.content))
-
-        img = img.crop((left, top, left + width + 1, top + height + 1))
-
-        max_size = float(max(img.size[0], img.size[1]))
-
-        scale_factor = 1.0 if max_size <= thumb_size else thumb_size / max_size
-
-        hsize = int((float(img.size[0]) * scale_factor))
-        vsize = int((float(img.size[1]) * scale_factor))
-
-        img = img.resize((hsize, vsize), PIL.Image.Resampling.LANCZOS)
-    else:
-        print("Could not retrieve: {}.".format(img_url))
-        return
-
-    buffer = io.BytesIO()
-
-    img.save(buffer, 'JPEG')
-
-    buffer.seek(0)
-
-    print("Inserting {}.".format(thumb_id))
-
-    thumb_con.execute('INSERT INTO thumbnails VALUES(NULL,?,?,?,?)',
-                      (thumb_id, sqlite3.Binary(buffer.read()), thumb_size, 1.0))
-
-
 @click.command()
 @click.argument('image-db', type=click.Path(exists=True))
 @click.argument('anno-db', type=click.Path(exists=True))
 @click.argument('thumb-db', type=click.Path(exists=True))
 @click.option('--thumb-size', type=int, default=250, help="Size of thumbnails to be created (default 250)")
-def add_region_annotations(image_db, anno_db, thumb_db, thumb_size):
+@click.option('--reset', is_flag=True, default=False, help="")
+def add_region_annotations(image_db, anno_db, thumb_db, thumb_size, reset):
 
     with sqlite3.connect(anno_db) as con:
 
@@ -411,36 +285,48 @@ def add_region_annotations(image_db, anno_db, thumb_db, thumb_size):
 
     df_anno = df_anno.loc[df_anno.anno_json.str.len() > 0]
 
-    anno_info = []
+    thumbmail_updates = []
 
     with sqlite3.connect(image_db) as image_con:
 
         setup_image_database(image_con)
 
-        image_con.execute("DELETE FROM links WHERE rowid in ("
-                          "SELECT rowid from images WHERE anchor=\"region-annotator\")")
+        if reset:
+            print("Reset ..................")
 
-        image_con.execute("DELETE FROM iiif_links WHERE image_id in ("
-                          "SELECT rowid from images WHERE anchor=\"region-annotator\")")
+            image_con.execute('BEGIN TRANSACTION')
 
-        image_con.execute('DELETE FROM images where anchor="region-annotator"')
-        image_con.execute('DELETE FROM tags where user="region-annotator"')
+            image_con.execute("DELETE FROM links WHERE rowid in ("
+                              "SELECT rowid from images WHERE anchor GLOB \"region-annotator*\")")
 
-        image_con.execute('END TRANSACTION')
+            image_con.execute("DELETE FROM iiif_links WHERE image_id in ("
+                              "SELECT rowid from images WHERE anchor GLOB \"region-annotator*\")")
+
+            image_con.execute('DELETE FROM images where anchor GLOB "region-annotator*"')
+            image_con.execute('DELETE FROM tags where user GLOB "region-annotator*"')
+
+            image_con.execute('END TRANSACTION')
 
         for i, row in df_anno.iterrows():
-            img_url, left, top, width, height, labels = parse_annotation(json.loads(row.anno_json))
+            img_url, left, top, width, height, labels, anno_id = parse_annotation(json.loads(row.anno_json))
 
-            anno_info.append((img_url, left, top, width, height))
+            thumbnail_must_be_updated = update_annotation_image_and_labels(anno_id, img_url, left, top, width, height,
+                                                                           labels, image_con)
 
-            add_annotation_image_and_labels(img_url, left, top, width, height, labels, image_con)
+            if thumbnail_must_be_updated:
+                thumbmail_updates.append((img_url, left, top, width, height, anno_id))
 
     with sqlite3.connect(thumb_db) as thumb_con:
 
-        thumb_con.execute("DELETE from thumbnails WHERE filename GLOB ?", ("*|RECT:*",))
+        if reset:
+            thumb_con.execute('BEGIN TRANSACTION')
 
-        for img_url, left, top, width, height in anno_info:
-            add_url_thumbnail(img_url, left, top, width, height, thumb_size, thumb_con)
+            thumb_con.execute("DELETE from thumbnails WHERE filename GLOB ?", ("*|region-annotator:*",))
+
+            thumb_con.execute('END TRANSACTION')
+
+        for img_url, left, top, width, height, anno_id in thumbmail_updates:
+            update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con)
 
 
 @click.command()

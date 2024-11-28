@@ -43,6 +43,8 @@ def setup_tags_table(conn):
 
     conn.execute('CREATE INDEX IF NOT EXISTS idx_tags_imageid on tags(image_id)')
 
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_tags_tag ON tags(tag);')
+
     conn.execute('CREATE INDEX IF NOT EXISTS idx_tags_user ON tags(user);')
 
     conn.execute('COMMIT TRANSACTION')
@@ -69,6 +71,8 @@ def setup_iiif_links_table(conn):
     conn.execute('CREATE TABLE IF NOT EXISTS "iiif_links" ("image_id" INTEGER,  "url" TEXT);')
 
     conn.execute('CREATE INDEX IF NOT EXISTS idx_iiif_links_imageid on iiif_links(image_id)')
+
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_iiif_links_url on iiif_links(url)')
 
     conn.execute('COMMIT TRANSACTION')
 

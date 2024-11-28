@@ -26,6 +26,8 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 
 from ..database import setup_region_annotator_database
+from ..annotations import update_annotation_image_and_labels, update_url_thumbnail, \
+    delete_annotation_image_and_labels, delete_url_thumbnail, parse_annotation
 
 from PIL import Image
 
@@ -67,6 +69,68 @@ if app.config['COOPERATIVE_MODIFICATION']:
 htpasswd = HtPasswdAuth(app)
 
 connection_map = dict()
+
+image_connection_map = dict()
+
+thumb_connection_map = dict()
+
+thumb_size = 250
+
+
+def get_thumb_db():
+
+    def make_conn():
+        thid = threading.current_thread().ident
+
+        conn = thumb_connection_map.get(thid)
+
+        if conn is None:
+            logger.info('Create database connection: {}'.format(app.config['THUMB_DB']))
+
+            conn = sqlite3.connect(app.config['THUMB_DB'])
+
+            conn.execute('pragma journal_mode=wal')
+
+            thumb_connection_map[thid] = conn
+
+        return conn
+
+    if "THUMB_DB" not in app.config:
+        return None
+
+    if not os.path.exists(app.config['THUMB_DB']):
+
+        return None
+
+    return make_conn()
+
+
+def get_image_db():
+
+    def make_conn():
+        thid = threading.current_thread().ident
+
+        conn = image_connection_map.get(thid)
+
+        if conn is None:
+            logger.info('Create database connection: {}'.format(app.config['IMAGE_DB']))
+
+            conn = sqlite3.connect(app.config['IMAGE_DB'])
+
+            conn.execute('pragma journal_mode=wal')
+
+            image_connection_map[thid] = conn
+
+        return conn
+
+    if "IMAGE_DB" not in app.config:
+        return None
+
+    if not os.path.exists(app.config['IMAGE_DB']):
+
+        return None
+
+    return make_conn()
 
 
 def get_db():
@@ -252,6 +316,17 @@ def add_annotation(user):
         print(e)
         raise InternalServerError()
 
+    if (image_con := get_image_db()) is not None:
+
+        img_url, left, top, width, height, labels, anno_id = parse_annotation(annotation)
+
+        if len(anno_id) > 0:
+            update_thumbnail = update_annotation_image_and_labels(anno_id, img_url,
+                                                                  left, top, width, height, labels, image_con)
+
+            if update_thumbnail and (thumb_con := get_thumb_db()) is not None:
+                update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con)
+
     return "OK", 200
 
 
@@ -279,6 +354,19 @@ def update_annotation(user):
 
     get_db().execute('COMMIT TRANSACTION')
 
+    if (image_con := get_image_db()) is not None:
+
+        print(anno_json)
+
+        img_url, left, top, width, height, labels, anno_id = parse_annotation(annotation)
+
+        if len(anno_id) > 0:
+            update_thumbnail = update_annotation_image_and_labels(anno_id, img_url,
+                                                                  left, top, width, height, labels, image_con)
+
+            if update_thumbnail and (thumb_con := get_thumb_db()) is not None:
+                update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con)
+
     return "OK", 200
 
 
@@ -289,9 +377,25 @@ def delete_annotation(user):
     anno_id = request.json['anno_id']
     write_permit = request.json['write_permit']
 
-    get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
+    if (image_con := get_image_db()) is not None:
 
-    # get_db().execute('DELETE FROM annotations WHERE anno_id=? AND write_permit=?', (anno_id, write_permit))
+        if user in app.config['ADMIN_USERS'] or app.config['COOPERATIVE_ACCESS']:
+            df_anno = pd.read_sql("SELECT anno_json "
+                                  "FROM annotations WHERE anno_id=?", con=get_db(), params=(anno_id,))
+        else:
+            df_anno = pd.read_sql("SELECT anno_json "
+                                  "FROM annotations WHERE anno_id=? AND user=?", con=get_db(), params=(anno_id, user))
+
+        for _, row in df_anno.iterrows():
+            img_url, left, top, width, height, labels, anno_id = parse_annotation(json.loads(row.anno_json))
+
+            if len(anno_id) > 0:
+                delete_annotation_image_and_labels(anno_id, image_con)
+
+                if (thumb_con := get_thumb_db()) is not None:
+                    delete_url_thumbnail(anno_id, img_url, thumb_con, thumb_size)
+
+    get_db().execute('BEGIN EXCLUSIVE TRANSACTION')
 
     get_db().execute('UPDATE annotations SET anno_json = "" '
                      'WHERE anno_id = ? AND write_permit = ?', (anno_id, write_permit))
@@ -706,3 +810,8 @@ def send_js(path):
     # del user
 
     return send_from_directory('static', path)
+
+
+
+
+

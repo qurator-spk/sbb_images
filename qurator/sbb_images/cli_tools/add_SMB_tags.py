@@ -196,6 +196,5 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
         df_links.to_sql('links', con=conn, if_exists='replace')
 
 
-
 if __name__ == '__main__':
     cli()
