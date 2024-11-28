@@ -48,6 +48,21 @@ def setup_tags_table(conn):
     conn.execute('COMMIT TRANSACTION')
 
 
+def setup_links_table(conn):
+    conn.execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    conn.execute('CREATE TABLE IF NOT EXISTS "links" ('
+                 '"index" INTEGER,  '
+                 '"url" TEXT,  '
+                 '"ppn" TEXT,  '
+                 '"phys_id" TEXT);')
+
+    conn.execute('CREATE INDEX IF NOT EXISTS "ix_links_index"ON "links" ("index");')
+    conn.execute('CREATE INDEX IF NOT EXISTS ix_links_ppn on links(ppn);')
+
+    conn.execute('COMMIT TRANSACTION')
+
+
 def setup_iiif_links_table(conn):
     conn.execute('BEGIN EXCLUSIVE TRANSACTION')
 
@@ -79,6 +94,8 @@ def setup_image_database(conn):
 
     setup_tags_table(conn)
 
+    setup_links_table(conn)
+
     setup_iiif_links_table(conn)
 
     setup_annotations_table(conn)
@@ -100,5 +117,32 @@ def setup_thumbnail_database(conn):
 
     conn.execute('CREATE INDEX IF NOT EXISTS idx_thumb ON thumbnails(filename, size);')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_thumb_fn ON thumbnails(filename);')
+
+    conn.execute('COMMIT TRANSACTION')
+
+# REGION ANNOTATOR ========================
+
+
+def setup_region_annotator_database(conn):
+    conn.execute('BEGIN EXCLUSIVE TRANSACTION')
+
+    conn.execute('CREATE TABLE IF NOT EXISTS "target_patterns" ('
+                 '"url_pattern" '
+                 'TEXT primary key, '
+                 '"description" TEXT, '
+                 '"user" TEXT)')
+
+    conn.execute('CREATE TABLE IF NOT EXISTS "annotations" ('
+                 '"anno_id" TEXT primary key, '
+                 '"url" TEXT, "user" TEXT, '
+                 '"anno_json" TEXT, '
+                 '"state" TEXT, '
+                 '"last_write_time" TEXT, '
+                 '"write_permit" TEXT, '
+                 '"wp_valid_time" TEXT)')
+
+    conn.execute('CREATE INDEX IF NOT EXISTS "idx_annotations_by_url" ON annotations(url)')
+    conn.execute('CREATE INDEX IF NOT EXISTS "idx_annotations_by_url_and_state" ON annotations(url, state)')
+    conn.execute('CREATE INDEX IF NOT EXISTS "idx_annotations_by_url_and_user" ON annotations(url, user)')
 
     conn.execute('COMMIT TRANSACTION')

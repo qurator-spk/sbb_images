@@ -25,6 +25,8 @@ from xml.dom.minidom import parseString
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 
+from ..database import setup_region_annotator_database
+
 from PIL import Image
 
 dicttoxml.LOG.setLevel(logging.ERROR)
@@ -89,16 +91,7 @@ def get_db():
 
         co = make_conn()
 
-        co.execute('CREATE TABLE "target_patterns" ("url_pattern" TEXT primary key, "description" TEXT, '
-                   '"user" TEXT)')
-
-        co.execute('CREATE TABLE "annotations" '
-                   '("anno_id" TEXT primary key, "url" TEXT, "user" TEXT, "anno_json" TEXT, "state" TEXT,'
-                   '"last_write_time" TEXT, "write_permit" TEXT, "wp_valid_time" TEXT)')
-
-        co.execute('CREATE INDEX "idx_annotations_by_url" ON annotations(url)')
-        co.execute('CREATE INDEX "idx_annotations_by_url_and_state" ON annotations(url, state)')
-        co.execute('CREATE INDEX "idx_annotations_by_url_and_user" ON annotations(url, user)')
+        setup_region_annotator_database(co)
 
         return co
 

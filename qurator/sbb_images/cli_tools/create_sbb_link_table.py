@@ -4,7 +4,7 @@ import re
 import pandas as pd
 from tqdm import tqdm
 
-from ..database import setup_iiif_links_table
+from ..database import setup_iiif_links_table, setup_links_table
 
 
 @click.command()
@@ -49,10 +49,7 @@ def cli(sqlite_file):
     with sqlite3.connect(sqlite_file) as con:
         links.to_sql('links', con=con, if_exists='replace')
 
-        try:
-            con.execute("create index ix_links_ppn on links(ppn)")
-        except sqlite3.Error as e:
-            print(e)
+        setup_links_table(con)
 
         iiif.to_sql('iiif_links', con=con, if_exists='replace', index=False)
 
