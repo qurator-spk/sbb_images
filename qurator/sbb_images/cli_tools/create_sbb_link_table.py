@@ -4,6 +4,8 @@ import re
 import pandas as pd
 from tqdm import tqdm
 
+from ..database import setup_iiif_links_table
+
 
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True))
@@ -54,10 +56,7 @@ def cli(sqlite_file):
 
         iiif.to_sql('iiif_links', con=con, if_exists='replace', index=False)
 
-        try:
-            con.execute('create index idx_iiif_links_imageid on iiif_links(image_id)')
-        except sqlite3.Error as e:
-            print(e)
+        setup_iiif_links_table(con)
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
 
+from ..database import setup_tags_table
 
 @click.command()
 @click.argument('wzis-csv-file', type=click.Path(exists=True))
@@ -21,24 +22,10 @@ def cli(wzis_csv_file, sqlite_file, path_prefix, append):
 
     with sqlite3.connect(sqlite_file) as conn:
 
-        try:
-            conn.execute('create table tags (id integer primary key, image_id integer, '
-                         'tag text not null, user text not null, timestamp text not null, read_only integer)')
-        except sqlite3.Error:
-            pass
-
-        try:
-            conn.execute('create index idx_tags_imageid on tags(image_id)')
-        except sqlite3.Error:
-            pass
-
-        try:
-            conn.execute('create index idx_tags_tag on tags(tag)')
-        except sqlite3.Error:
-            pass
+        setup_tags_table(conn)
 
         if not append:
-            conn.execute('delete from tags where user="WZIS-Meta-Data"')
+            conn.execute('DELETE FROM tags WHERE user="WZIS-Meta-Data"')
 
         print("Reading WZIS info ...")
 

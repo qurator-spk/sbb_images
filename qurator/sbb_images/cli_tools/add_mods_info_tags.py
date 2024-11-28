@@ -6,6 +6,9 @@ from tqdm import tqdm
 from datetime import datetime
 import ast
 
+from ..database import setup_tags_table
+
+
 @click.command()
 @click.argument('mods-info-file', type=click.Path(exists=True))
 @click.argument('sqlite-file', type=click.Path(exists=True))
@@ -22,29 +25,15 @@ def cli(mods_info_file, sqlite_file, append):
 
     with sqlite3.connect(sqlite_file) as conn:
 
-        try:
-            conn.execute('create table tags (id integer primary key, image_id integer, '
-                         'tag text not null, user text not null, timestamp text not null, read_only integer)')
-        except sqlite3.Error:
-            pass
-
-        try:
-            conn.execute('create index idx_tags_imageid on tags(image_id)')
-        except sqlite3.Error:
-            pass
-
-        try:
-            conn.execute('create index idx_tags_tag on tags(tag)')
-        except sqlite3.Error:
-            pass
+        setup_tags_table(conn)
 
         if not append:
-            conn.execute('delete from tags where user="mods-info"')
+            conn.execute('DELETE FROM tags WHERE user="mods-info"')
 
         print("Reading image table ...")
 
-        df_images = pd.read_sql('select rowid,file from images', conn).\
-            rename(columns={'rowid':'image_id'})
+        df_images = pd.read_sql('SELECT rowid,file FROM images', conn).\
+            rename(columns={'rowid': 'image_id'})
 
         print("Number of images: {}".format(len(df_images)))
 
@@ -66,7 +55,7 @@ def cli(mods_info_file, sqlite_file, append):
         if mods_info_file.endswith(".csv"):
             df_mods_info = pd.read_csv(mods_info_file, low_memory=False).\
                 drop(columns=drop_columns).\
-                rename(columns={'Unnamed: 0' : 'ppn'}).\
+                rename(columns={'Unnamed: 0': 'ppn'}).\
                 sort_values(by=['ppn']).\
                 reset_index(drop=True)
         else:

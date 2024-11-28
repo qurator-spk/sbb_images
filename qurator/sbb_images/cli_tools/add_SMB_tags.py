@@ -6,6 +6,8 @@ import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
 
+from ..database import setup_tags_table
+
 
 @click.command()
 @click.argument('smb-csv-file', type=click.Path(exists=True))
@@ -22,24 +24,10 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
 
     with sqlite3.connect(sqlite_file) as conn:
 
-        try:
-            conn.execute('create table tags (id integer primary key, image_id integer, '
-                         'tag text not null, user text not null, timestamp text not null, read_only integer)')
-        except sqlite3.Error:
-            pass
-
-        try:
-            conn.execute('create index idx_tags_imageid on tags(image_id)')
-        except sqlite3.Error:
-            pass
-
-        try:
-            conn.execute('create index idx_tags_tag on tags(tag)')
-        except sqlite3.Error:
-            pass
+        setup_tags_table(conn)
 
         if not append:
-            conn.execute('delete from tags where user="SMB-Meta-Data"')
+            conn.execute('DELETE FROM tags WHERE user="SMB-Meta-Data"')
 
         print("Reading SMB info ...")
 
@@ -205,10 +193,8 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
 
         df_iconclass.to_sql(name='iconclass', con=conn, if_exists='replace', index=True)
 
-        #import ipdb;
-        #ipdb.set_trace()
-
         df_links.to_sql('links', con=conn, if_exists='replace')
+
 
 
 if __name__ == '__main__':

@@ -22,6 +22,7 @@ from PIL import Image, ImageDraw, ImageStat  # ImageOps, ImageFilter
 from ..feature_extraction import load_extraction_model
 from ..saliency import load_saliency_model, process_region, find_all_regions
 from ..iconclass.data_access import IconClassDataset
+from ..database import setup_tags_table
 
 # noinspection PyUnresolvedReferences
 from annoy import AnnoyIndex
@@ -1102,7 +1103,7 @@ def delete_image_tag(user, data_conf):
 
     for image_id in request.json['ids']:
 
-        if conn.execute("select * from tags where image_id=? and tag=?",
+        if conn.execute("SELECT * from tags WHERE image_id=? and tag=?",
                         (image_id, request.json['tag'])).fetchone() is None:
             continue
 
@@ -1110,7 +1111,7 @@ def delete_image_tag(user, data_conf):
 
         conn.execute('BEGIN EXCLUSIVE TRANSACTION')
 
-        conn.execute('delete from tags where image_id=? and tag=?', (image_id, request.json['tag']))
+        conn.execute('DELETE FROM tags where image_id=? and tag=?', (image_id, request.json['tag']))
 
         conn.execute('COMMIT TRANSACTION')
 
@@ -1127,14 +1128,7 @@ def add_image_tag(user, data_conf):
     conn = thread_store.get_db(data_conf)
 
     if not has_table('tags', data_conf):
-        conn.execute('BEGIN EXCLUSIVE TRANSACTION')
-
-        conn.execute('create table tags (id integer primary key, image_id integer, '
-                     'tag text not null, user text not null, timestamp text not null)')
-
-        conn.execute('create index idx_tags_imageid on tags(image_id)')
-
-        conn.execute('COMMIT TRANSACTION')
+        setup_tags_table(conn)
 
     if "tag" not in request.json:
         raise BadRequest()
@@ -1145,15 +1139,12 @@ def add_image_tag(user, data_conf):
     conn.execute('BEGIN EXCLUSIVE TRANSACTION')
 
     for image_id in request.json['ids']:
-        if conn.execute("select * from tags where image_id=? and tag=?",
+        if conn.execute("SELECT * FROM tags WHERE image_id=? and tag=?",
                         (image_id, request.json['tag'])).fetchone() is not None:
-            # print("continue")
             continue
 
-        conn.execute('insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)',
+        conn.execute('INSERT INTO tags(image_id, tag, user, timestamp) values(?,?,?,?)',
                      (image_id, request.json['tag'], user, datetime.now()))
-
-        # print("insert into tags(image_id, tag, user, timestamp) values(?,?,?,?)")
 
     conn.execute('COMMIT TRANSACTION')
 

@@ -17,6 +17,9 @@ from sklearn.model_selection import StratifiedKFold
 from pprint import pprint
 
 from .parallel import run as prun
+
+from .database import setup_image_database, setup_thumbnail_database
+
 import requests
 
 # noinspection PyBroadException
@@ -112,17 +115,10 @@ def create_database(directory, sqlite_file, pattern, follow_symlinks, subset_jso
     images['anchor'] = "filesystem"
 
     with sqlite3.connect(sqlite_file) as conn:
+
         images.to_sql('images', con=conn, if_exists='replace')
 
-        conn.execute('create index idx_num_annotations on images(num_annotations);')
-        conn.execute('create index idx_file on images(file);')
-        conn.execute('create index idx_images_anchor on images(anchor);')
-
-        conn.execute('create table if not exists "annotations"("index" integer primary key, "user" TEXT, "label" TEXT,'
-                     '"IMAGE" integer)')
-
-        conn.execute('create index idx_user on annotations(user);')
-        conn.execute('create index idx_label on annotations(label);')
+        setup_image_database(conn)
 
 
 class ThumbTask:
@@ -225,19 +221,15 @@ def create_thumbnails(directory, sqlite_file, pattern, follow_symlinks, subset_j
 
     with sqlite3.connect(sqlite_file) as conn:
 
-        conn.execute('create TABLE thumbnails (id INTEGER PRIMARY KEY, filename TEXT NOT NULL, '
-                     'data BLOB NOT NULL, size INTEGER, scale_factor REAL)')
+        setup_thumbnail_database(conn)
 
         for idx, (filename, buffer, scale_factor) in enumerate(prun(get_thumbs(images), processes=processes)):
 
             if filename is None or buffer is None or scale_factor is None:
                 continue
 
-            conn.execute('INSERT INTO thumbnails VALUES(?,?,?,?,?)',
+            conn.execute('INSERT INTO thumbnails(id, filename, data, size, scale_factor) VALUES(?,?,?,?,?)',
                          (idx, filename, sqlite3.Binary(buffer.read()), max_img_size, scale_factor))
-
-        conn.execute('create index idx_thumb on thumbnails(filename, size);')
-        conn.execute('create index idx_thumb_fn on thumbnails(filename);')
 
 
 @click.command()
@@ -423,35 +415,7 @@ def add_region_annotations(image_db, anno_db, thumb_db, thumb_size):
 
     with sqlite3.connect(image_db) as image_con:
 
-        try:
-            image_con.execute("CREATE index idx_images_file_x_y_width_height on images(file,x,y,width,height)")
-        except sqlite3.Error:
-            pass
-
-        try:
-            image_con.execute("ALTER TABLE images ADD anchor TEXT")
-        except sqlite3.Error:
-            pass
-
-        try:
-            image_con.execute('create index idx_images_anchor on images(anchor);')
-        except sqlite3.Error:
-            pass
-
-        try:
-            image_con.execute('create index idx_tags_user on tags(user);')
-        except sqlite3.Error:
-            pass
-
-        try:
-            image_con.execute('create table iiif_links (image_id INTEGER, url TEXT)')
-        except sqlite3.Error:
-            pass
-
-        try:
-            image_con.execute('create index idx_iiif_links_imageid on iiif_links(image_id)')
-        except sqlite3.Error as e:
-            print(e)
+        setup_image_database(image_con)
 
         image_con.execute("DELETE FROM links WHERE rowid in ("
                           "SELECT rowid from images WHERE anchor=\"region-annotator\")")

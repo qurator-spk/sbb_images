@@ -2,6 +2,8 @@ import sqlite3
 import click
 import pandas as pd
 
+from ..database import setup_iiif_links_table
+
 
 @click.command()
 @click.argument('page-info-file', type=click.Path(exists=True))
@@ -17,6 +19,8 @@ def cli(page_info_file, sqlite_file, path_prefix, append):
     """
 
     with sqlite3.connect(sqlite_file) as conn:
+
+        setup_iiif_links_table(conn)
 
         print("Reading page info ...")
         df_page_info = pd.read_pickle(page_info_file)
@@ -38,7 +42,7 @@ def cli(page_info_file, sqlite_file, path_prefix, append):
 
         print("Reading image table from database ...")
 
-        df_images = pd.read_sql('select rowid,file from images', conn)
+        df_images = pd.read_sql('SELECT rowid,file FROM images', conn)
 
         df_images = df_images.merge(df_page_info, left_on='file', right_on='fullpath')
 
@@ -54,10 +58,7 @@ def cli(page_info_file, sqlite_file, path_prefix, append):
 
         iiif.to_sql('iiif_links', con=conn, if_exists='append' if append else 'replace', index=False)
 
-        try:
-            conn.execute('create index idx_iiif_links_imageid on iiif_links(image_id)')
-        except sqlite3.Error as e:
-            print(e)
+        setup_iiif_links_table(conn)
 
 
 if __name__ == '__main__':
