@@ -1,11 +1,8 @@
 import json
 import sqlite3
 import click
-import re
 import pandas as pd
-# import time
 import copy
-# import importlib
 import os
 import io
 from fnmatch import fnmatch
@@ -45,8 +42,6 @@ from .saliency import load_saliency_model
 import PIL
 from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageStat
 from torchvision import transforms
-
-from datetime import datetime
 
 
 @click.command()
@@ -596,8 +591,8 @@ def load_ground_truth(sqlite_file):
     # perform vote count for each label image
     annotations = \
         pd.DataFrame([(image_id - 1,  # -1 since sqlite indices start at 1
-                       im.label.value_counts().reset_index().max()['index'],
-                       im.label.value_counts().reset_index().max()['label'])
+                       im.label.value_counts().reset_index().max()['label'],
+                       im.label.value_counts().reset_index().max()['count'])
                       for image_id, im in annotations.groupby('IMAGE')], columns=['IMAGE', 'label', 'consensus'])
 
     images = annotations.merge(images, left_on='IMAGE', right_on='index')
