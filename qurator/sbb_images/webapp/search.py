@@ -577,8 +577,6 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         else:
             raise RuntimeError("Unknown operation")
 
-   # import ipdb;ipdb.set_trace()
-
     num_matches = 0
     if df_ids is not None:
         # df_files = thread_store.get_files(data_conf)
@@ -594,6 +592,8 @@ def get_similar_by_tag(user, conf, start=0, count=100):
             df_ids = df_ids.sort_values(by=["order", "tag"])
         else:
             df_ids = df_ids.sort_values(by=["order"])
+
+        df_ids = df_ids.drop_duplicates(subset=['image_id'], keep='first')
 
         ids = df_ids['image_id'].tolist()
         num_matches = len(ids)
