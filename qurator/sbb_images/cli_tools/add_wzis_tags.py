@@ -72,8 +72,8 @@ def cli(wzis_csv_file, sqlite_file, path_prefix, append):
             links.append(("https://www.wasserzeichen-online.de/wzis/struktur.php?ref={}".
                           format(row.Refnumber), "", "", row.rowid))
 
-            iiif_links.append((row.rowid + 1,
-                               "http://wasserzeichen.lx0246.sbb.spk-berlin.de/images/WZIS/{}".format(row.rowid)))
+            iiif_links.append((row.rowid,
+                               "http://wasserzeichen.lx0246.sbb.spk-berlin.de/image/WZIS/{}/full".format(row.rowid)))
 
             df_all_tags.append((row.rowid, row.Refnumber, author, timestamp, 1))
             df_all_tags.append((row.rowid, "IDMo_" + str(row.IDmotif), author, timestamp, 1))

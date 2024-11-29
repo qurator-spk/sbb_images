@@ -86,18 +86,11 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
             if np.isnan(s):
                 return ""
 
-        # import ipdb;ipdb.set_trace()
-
         iiif_links = []
         for _, row in tqdm(df_images.iterrows(), total=len(df_images)):
 
-            # res = requests.get("https://id.smb.museum/digital-asset/{}".format(row['Digital.Asset.ID']))
-
-            iiif_links.append((row.rowid + 1,
-                               "http://smb.lx0246.sbb.spk-berlin.de/image/SMBAll/{}/full".format(row.rowid + 1)))
-
-            # import ipdb;
-            # ipdb.set_trace()
+            iiif_links.append((row.rowid,
+                               "https://id.smb.museum/digital-asset/{}".format(row['Digital.Asset.ID'])))
 
             df_links.append((row.rowid, "https://id.smb.museum/object/" + str(row['Objekt.ID'])))
 
