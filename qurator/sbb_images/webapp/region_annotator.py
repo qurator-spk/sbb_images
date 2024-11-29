@@ -65,20 +65,12 @@ else:
 
     htpasswd = NoAuth()
 
-# if len(app.config['PASSWD_FILE']) > 0:
-#     app.config['FLASK_HTPASSWD_PATH'] = app.config['PASSWD_FILE']
-#     app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
-#
-#     from flask_htpasswd import HtPasswdAuth
-#
-#     app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
-#     app.config['FLASK_SECRET'] = \
-#         ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(40))
-#
-# else:
-#     print("AUTHENTICATION DISABLED!!!")
-#     from .no_auth import NoAuth as HtPasswdAuth
-# htpasswd = HtPasswdAuth(app)
+url_auth = None
+
+if "URL_USER" in app.config and "URL_PASSWD" in app.config:
+    from requests.auth import HTTPBasicAuth
+
+    url_auth = HTTPBasicAuth(app.config['URL_USER'], app.config['URL_PASSWD'])
 
 if app.config['COOPERATIVE_MODIFICATION']:
     app.config['COOPERATIVE_ACCESS'] = True
@@ -340,7 +332,7 @@ def add_annotation(user):
                                                                   left, top, width, height, labels, image_con)
 
             if update_thumbnail and (thumb_con := get_thumb_db()) is not None:
-                update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con)
+                update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con, url_auth)
 
     return "OK", 200
 
@@ -380,7 +372,7 @@ def update_annotation(user):
                                                                   left, top, width, height, labels, image_con)
 
             if update_thumbnail and (thumb_con := get_thumb_db()) is not None:
-                update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con)
+                update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con, url_auth)
 
     return "OK", 200
 

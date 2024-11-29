@@ -181,6 +181,8 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
 
         df_tags = pd.DataFrame(df_tags, columns=['image_id', 'tag', 'user', 'timestamp', 'read_only'])
 
+        df_tags = df_tags.drop_duplicates(subset=['image_id', 'tag', 'user', 'timestamp', 'read_only'])
+
         df_tags = df_tags.loc[df_tags.tag.str.len() > 0]
 
         if len(df_tags) == 0:
