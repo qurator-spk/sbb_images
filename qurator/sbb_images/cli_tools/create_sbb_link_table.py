@@ -4,7 +4,7 @@ import re
 import pandas as pd
 from tqdm import tqdm
 
-from ..database import setup_iiif_links_table, setup_links_table
+from qurator.sbb_images.database import setup_iiif_links_table, setup_links_table
 
 
 @click.command()

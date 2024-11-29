@@ -111,7 +111,6 @@ def load_extraction_model(model_name=None, layer_name='fc', layer_output=False, 
 
             ms_clip_tokenizer = SimpleTokenizer(bpe_path=tokenizer)
 
-
         args = argparse.Namespace()
 
         args.opts = []

@@ -6,7 +6,8 @@ import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
 
-from ..database import setup_tags_table
+from qurator.sbb_images.database import setup_tags_table, setup_iiif_links_table
+import requests
 
 
 @click.command()
@@ -16,7 +17,7 @@ from ..database import setup_tags_table
 @click.option('--append', type=bool, is_flag=True, default=False)
 def cli(smb_csv_file, sqlite_file, path_prefix, append):
     """
-        PAGE_INFO_FILE:
+        SMB_CSV_FILE: CSV file that contains the SMB meta-data.
         SQLITE_FILE: sqlite3 database file that contains the images table.
     """
 
@@ -31,7 +32,7 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
 
         print("Reading SMB info ...")
 
-        df_smb = pd.read_csv(smb_csv_file).\
+        df_smb = pd.read_csv(smb_csv_file, low_memory=False).\
             sort_values(["Digital.Asset.ID", "Objekt.Ident..Nr."]).\
             drop_duplicates(subset=["Digital.Asset.ID"], keep="first")
 
@@ -87,7 +88,16 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
 
         # import ipdb;ipdb.set_trace()
 
+        iiif_links = []
         for _, row in tqdm(df_images.iterrows(), total=len(df_images)):
+
+            # res = requests.get("https://id.smb.museum/digital-asset/{}".format(row['Digital.Asset.ID']))
+
+            iiif_links.append((row.rowid + 1,
+                               "http://smb.lx0246.sbb.spk-berlin.de/image/SMBAll/{}/full".format(row.rowid + 1)))
+
+            # import ipdb;
+            # ipdb.set_trace()
 
             df_links.append((row.rowid, "https://id.smb.museum/object/" + str(row['Objekt.ID'])))
 
@@ -194,6 +204,12 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
         df_iconclass.to_sql(name='iconclass', con=conn, if_exists='replace', index=True)
 
         df_links.to_sql('links', con=conn, if_exists='replace')
+
+        iiif = pd.DataFrame(iiif_links, columns=['image_id', 'url'])
+
+        iiif.to_sql('iiif_links', con=conn, if_exists='replace', index=False)
+
+        setup_iiif_links_table(conn)
 
 
 if __name__ == '__main__':

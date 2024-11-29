@@ -150,3 +150,6 @@ def setup_region_annotator_database(conn):
     conn.execute('CREATE INDEX IF NOT EXISTS "idx_annotations_by_url_and_user" ON annotations(url, user)')
 
     conn.execute('COMMIT TRANSACTION')
+
+
+# ==========================================================================================

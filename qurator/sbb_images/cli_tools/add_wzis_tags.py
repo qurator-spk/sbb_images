@@ -5,7 +5,8 @@ import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
 
-from ..database import setup_tags_table
+from qurator.sbb_images.database import setup_tags_table, setup_links_table, setup_iiif_links_table
+
 
 @click.command()
 @click.argument('wzis-csv-file', type=click.Path(exists=True))
@@ -64,7 +65,15 @@ def cli(wzis_csv_file, sqlite_file, path_prefix, append):
 
         author = "WZIS-Meta-Data"
 
+        links = []
+        iiif_links = []
         for _, row in tqdm(df_images.iterrows(), total=len(df_images)):
+
+            links.append(("https://www.wasserzeichen-online.de/wzis/struktur.php?ref={}".
+                          format(row.Refnumber), "", "", row.rowid))
+
+            iiif_links.append((row.rowid + 1,
+                               "http://wasserzeichen.lx0246.sbb.spk-berlin.de/images/WZIS/{}".format(row.rowid)))
 
             df_all_tags.append((row.rowid, row.Refnumber, author, timestamp, 1))
             df_all_tags.append((row.rowid, "IDMo_" + str(row.IDmotif), author, timestamp, 1))
@@ -83,6 +92,18 @@ def cli(wzis_csv_file, sqlite_file, path_prefix, append):
             return
 
         df_all_tags.to_sql('tags', con=conn, if_exists='append', index=False)
+
+        links = pd.DataFrame(links, columns=['url', 'ppn', 'phys_id', 'index']).set_index('index')
+
+        iiif = pd.DataFrame(iiif_links, columns=['image_id', 'url'])
+
+        links.to_sql('links', con=conn, if_exists='replace')
+
+        setup_links_table(conn)
+
+        iiif.to_sql('iiif_links', con=conn, if_exists='replace', index=False)
+
+        setup_iiif_links_table(conn)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ import sqlite3
 import click
 import pandas as pd
 
-from ..database import setup_iiif_links_table
+from qurator.sbb_images.database import setup_iiif_links_table
 
 
 @click.command()
