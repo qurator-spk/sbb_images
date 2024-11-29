@@ -530,7 +530,8 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                     df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
 
-                df_pattern = df_pattern.rename(columns={'imageid': 'image_id', 'label': 'tag'})
+                df_pattern = df_pattern.rename(columns={'imageid': 'image_id', 'label': 'tag'}).\
+                    drop_duplicates(subset=['image_id', 'tag'])
 
                 label_parts = iconclass.get_parts(pattern)
 
