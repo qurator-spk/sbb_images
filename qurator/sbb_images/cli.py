@@ -19,6 +19,9 @@ from .database import setup_image_database, setup_thumbnail_database
 
 from .annotations import update_annotation_image_and_labels, update_url_thumbnail, parse_annotation
 
+import PIL
+PIL.Image.MAX_IMAGE_PIXELS = None
+
 # noinspection PyBroadException
 try:
     import torch
