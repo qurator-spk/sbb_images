@@ -28,6 +28,7 @@ def setup_images_table(conn):
     conn.execute('CREATE INDEX IF NOT EXISTS idx_images_anchor on images(anchor);')
     conn.execute("CREATE INDEX IF NOT EXISTS idx_images_file_x_y_width_height ON images(file,x,y,width,height)")
     conn.execute('CREATE INDEX IF NOT EXISTS idx_images_anchor ON images(anchor);')
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_images_x ON images(x);')
 
     conn.execute('COMMIT TRANSACTION')
 
@@ -64,6 +65,23 @@ def setup_links_table(conn):
     conn.execute('CREATE INDEX IF NOT EXISTS ix_links_ppn on links(ppn);')
 
     conn.execute('COMMIT TRANSACTION')
+
+
+def setup_iconclass_table(conn):
+    if conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", ("iconclass",)).fetchone() is None:
+        return
+
+    conn.execute('CREATE TABLE IF NOT EXISTS "iconclass" ('
+                 '"index" INTEGER,'
+                 '"file" TEXT,'
+                 '"target" TEXT,'
+                 '"label" TEXT,'
+                 '"imageid" INTEGER)')
+
+    conn.execute('CREATE INDEX IF NOT EXISTS "ix_iconclass_index" ON "iconclass" ("index")')
+    conn.execute('CREATE INDEX IF NOT EXISTS "ix_iconclass_file" ON "iconclass" ("file")')
+    conn.execute('CREATE INDEX IF NOT EXISTS "ix_iconclass_label" ON "iconclass" ("label")')
+    conn.execute('CREATE INDEX IF NOT EXISTS "ix_iconclass_imageid" ON "iconclass" ("imageid")')
 
 
 def setup_iiif_links_table(conn):

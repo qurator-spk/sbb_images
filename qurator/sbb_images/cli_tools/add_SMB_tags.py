@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
 
-from qurator.sbb_images.database import setup_tags_table, setup_iiif_links_table
+from qurator.sbb_images.database import setup_tags_table, setup_iiif_links_table, setup_iconclass_table
 import requests
 
 
@@ -197,6 +197,8 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
             set_index("index")
 
         df_iconclass.to_sql(name='iconclass', con=conn, if_exists='replace', index=True)
+
+        setup_iconclass_table(conn)
 
         df_links.to_sql('links', con=conn, if_exists='replace')
 

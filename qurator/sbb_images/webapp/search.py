@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw, ImageStat  # ImageOps, ImageFilter
 from ..feature_extraction import load_extraction_model
 from ..saliency import load_saliency_model, process_region, find_all_regions
 from ..iconclass.data_access import IconClassDataset
-from ..database import setup_tags_table, setup_images_table
+from ..database import setup_tags_table, setup_images_table, setup_iconclass_table
 
 # noinspection PyUnresolvedReferences
 from annoy import AnnoyIndex
@@ -100,6 +100,7 @@ class ThreadStore:
 
             setup_images_table(conn)
             setup_tags_table(conn)
+            setup_iconclass_table(conn)
 
             self._connection_map[(data_conf, thid)] = conn
 
@@ -128,14 +129,14 @@ class ThreadStore:
         Returns:
             img: image thumbnail
             scale_factor: how much has the original image been scaled down
-            full_image: True if the returned image thumbnail is not the thumbnail of the corresponding
+            needs_crop: True if the returned image thumbnail is not the thumbnail of the corresponding
              rectangle selection (from region-annotator or object detection) but the entire image.
         """
         img = None
         scale_factor = None
         needs_crop = False if anchor.startswith("region-annotator:") or anchor.startswith("rectangle:") else True
 
-        anchor = anchor if anchor.startswith("region-annotator:") or anchor.startswith("rectangle:") else ""
+        anchor = anchor if anchor.startswith("region") else ""
 
         conn = self.get_thumb_db()
 
@@ -531,10 +532,14 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                 text.append(part_text)
 
                 if negate and bool_op == "|":
-                    df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label NOT LIKE ?',
+                    df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass '
+                                             'INNER JOIN images ON images.rowid=iconclass.imageid  '
+                                             'WHERE label NOT LIKE ? AND (images.x=-1 OR images.anchor GLOB "region*")',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
                 else:
-                    df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass WHERE label LIKE ?',
+                    df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass '
+                                             'INNER JOIN images ON images.rowid=iconclass.imageid  '
+                                             'WHERE label LIKE ? AND (images.x=-1 OR images.anchor GLOB "region*")',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
 
                 df_pattern = df_pattern.rename(columns={'imageid': 'image_id', 'label': 'tag'}).\
@@ -548,18 +553,25 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         if has_table("tags", data_conf) and df_pattern is None:
 
             if negate and bool_op == "|":
-                df_pattern = pd.read_sql('SELECT image_id FROM tags WHERE tag NOT GLOB ?',
+                df_pattern = pd.read_sql('SELECT image_id FROM tags '
+                                         'INNER JOIN images ON images.rowid=tags.image_id '
+                                         'WHERE tags.tag NOT GLOB ? AND (images.x=-1 OR images.anchor GLOB "region*")',
                                          con=thread_store.get_db(data_conf), params=(pattern,))
             else:
-                df_pattern = pd.read_sql('SELECT image_id, tag FROM tags WHERE tag GLOB ?',
+                df_pattern = pd.read_sql('SELECT image_id, tag FROM tags '
+                                         'INNER JOIN images ON images.rowid=tags.image_id '
+                                         'WHERE tags.tag GLOB ? AND (images.x=-1 OR images.anchor GLOB "region*")',
                                          con=thread_store.get_db(data_conf), params=(pattern,))
 
                 if df_pattern is not None and len(df_pattern) > 0:
                     highlight_tags += list(set().union(df_pattern.tag.tolist()))
 
+        print("negate:{} bool_op: {} pattern: {} pos: {} #hits:{}".
+              format(negate, bool_op, pattern, pos, len(df_pattern)))
+
         if df_pattern is None or len(df_pattern) <= 0:
 
-            if bool_op == "&":
+            if bool_op == "&" and not negate:
                 df_ids = None
 
             continue
@@ -587,15 +599,6 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     num_matches = 0
     if df_ids is not None:
-        # df_files = thread_store.get_files(data_conf)
-        #
-        # if 'tag' in df_ids.columns:
-        #     df_ids = df_ids.merge(df_files, left_on="image_id", right_on="rowid").\
-        #         sort_values(by=["order", "tag"]).drop_duplicates(subset=['file', 'anchor'], keep='first')
-        # else:
-        #     df_ids = df_ids.merge(df_files, left_on="image_id", right_on="rowid"). \
-        #         sort_values(by=["order"]).drop_duplicates(subset=['file', 'anchor'], keep='first')
-
         if 'tag' in df_ids.columns:
             df_ids = df_ids.sort_values(by=["order", "tag"])
         else:
@@ -677,15 +680,15 @@ def get_similar_by_filename(user, conf, start=0, count=100):
             pattern = pattern[1:]
 
         if negate and bool_op == "|":
-            df_pattern = pd.read_sql('SELECT rowid,file FROM images WHERE file NOT GLOB ?',
+            df_pattern = pd.read_sql('SELECT rowid,file FROM images WHERE file NOT GLOB ? AND images.x=-1',
                                      con=thread_store.get_db(data_conf), params=(pattern,))
         else:
-            df_pattern = pd.read_sql('SELECT rowid,file FROM images WHERE file GLOB ?',
+            df_pattern = pd.read_sql('SELECT rowid,file FROM images WHERE file GLOB ? AND images.x=-1',
                                      con=thread_store.get_db(data_conf), params=(pattern,))
 
         if df_pattern is None or len(df_pattern) <= 0:
 
-            if bool_op == "&":
+            if bool_op == "&" and not negate:
                 df_ids = None
                 
             continue
@@ -1048,12 +1051,14 @@ def get_ppn_images(user, data_conf, ppn=None):
         return jsonify("")
 
     if has_table('predictions', data_conf):
-        links = pd.read_sql('select links.rowid from links join predictions on predictions.rowid=links.rowid '
-                            'where links.ppn=? and '
-                            '(predictions.label="Abbildung" or predictions.label="Photo" or predictions.label="Karte")',
+        links = pd.read_sql('SELECT links.rowid FROM links JOIN predictions ON predictions.rowid=links.rowid '
+                            'WHERE links.ppn=? and '
+                            '(predictions.label="Abbildung" OR predictions.label="Photo" or predictions.label="Karte")',
                             con=thread_store.get_db(data_conf), params=(ppn,))
     else:
-        links = pd.read_sql('select links.rowid from links where links.ppn=?',
+        links = pd.read_sql('SELECT links.rowid FROM links '
+                            'INNER JOIN images ON images.rowid=links.rowid '
+                            'WHERE links.ppn=? AND images.x=-1',
                             con=thread_store.get_db(data_conf), params=(ppn,))
 
     if links is None or len(links) == 0:
@@ -1072,7 +1077,7 @@ def get_image_ppn(user, data_conf, rowid=None):
 
         return "NOT FOUND", 404
 
-    link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(data_conf), params=(rowid,))
+    link = pd.read_sql('SELECT * FROM links WHERE rowid=?', con=thread_store.get_db(data_conf), params=(rowid,))
 
     if link is None or len(link) == 0:
         return jsonify("")
@@ -1090,7 +1095,7 @@ def get_image_iconclass(user, data_conf, rowid=None):
 
         return "NOT FOUND", 404
 
-    iconclass_info = pd.read_sql('select * from iconclass where imageid=?', con=thread_store.get_db(data_conf),
+    iconclass_info = pd.read_sql('SELECT * FROM iconclass WHERE imageid=?', con=thread_store.get_db(data_conf),
                                  params=(rowid,))
 
     result = []
