@@ -1284,9 +1284,6 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
 
         img, scale_factor, full_image = thread_store.get_thumb(filename, max_img_size, anchor)
 
-        if not full_image:
-            marker = 'nomarker'
-
         if img is None:
 
             if raw_file is None:
