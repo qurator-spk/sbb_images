@@ -56,8 +56,6 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-# print(app.config['PASSWD_FILE'])
-
 htpasswd = None
 if len(app.config['PASSWD_FILE']) > 0 and os.path.exists(os.path.join(os.getcwd(), app.config['PASSWD_FILE'])):
     app.config['FLASK_HTPASSWD_PATH'] = os.path.join(os.getcwd(), app.config['PASSWD_FILE'])
@@ -126,28 +124,37 @@ class ThreadStore:
         return conn
 
     def get_thumb(self, filename, thumb_size, anchor):
+        """
+        Returns:
+            img: image thumbnail
+            scale_factor: how much has the original image been scaled down
+            full_image: True if the returned image thumbnail is not the thumbnail of the corresponding
+             rectangle selection (from region-annotator or object detection) but the entire image.
+        """
         img = None
         scale_factor = None
-        full_image = None
+        needs_crop = False if anchor.startswith("region-annotator:") or anchor.startswith("rectangle:") else True
+
+        anchor = anchor if anchor.startswith("region-annotator:") or anchor.startswith("rectangle:") else ""
 
         conn = self.get_thumb_db()
 
         if conn is not None:
 
             result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
-                                  (filename, thumb_size)).fetchone()
+                                  ("{}|{}".format(filename, anchor) if len(anchor) > 0 else filename,
+                                   thumb_size)).fetchone()
             if result is not None:
                 data, scale_factor = result
 
                 buffer = io.BytesIO(data)
 
                 img = Image.open(buffer)
-            else:
+            elif len(anchor) > 0:
                 result = conn.execute("SELECT data, scale_factor FROM thumbnails WHERE filename=? AND size=?",
-                                      ("{}|{}".format(filename, anchor),
-                                       thumb_size)).fetchone()
+                                      (filename, thumb_size)).fetchone()
                 if result is not None:
-                    full_image = False
+                    needs_crop = True
 
                     data, scale_factor = result
 
@@ -155,7 +162,7 @@ class ThreadStore:
 
                     img = Image.open(buffer)
 
-        return img, scale_factor, full_image
+        return img, float(scale_factor), needs_crop
 
     def get_search_index(self, index_conf, model_conf):
 
@@ -784,12 +791,60 @@ def get_similar_by_text(user, conf, start=0, count=100):
     return jsonify({'ids': result, 'info': '"{}"'.format(text), "user": user})
 
 
+def get_image_from_thumbnail_database_or_filesystem(image_id, image_conn, return_full=False):
+    """
+    image_id is the rowid in the images table
+
+    return_full: returns the full image instead of the rectangle selection the might correspond to the image table entry
+    """
+
+    sample = pd.read_sql('SELECT * FROM images WHERE rowid=?', con=image_conn, params=(image_id,))
+
+    if sample is None or len(sample) == 0:
+        return None
+
+    filename = sample.file.iloc[0]
+    anchor = str(sample.anchor.iloc[0])
+    x, y, width, height = float(sample.x.iloc[0]),\
+                          float(sample.y.iloc[0]),\
+                          float(sample.width.iloc[0]),\
+                          float(sample.height.iloc[0])
+
+    # first try to get it from the thumbnail-database
+    img, scale_factor, needs_crop = thread_store.get_thumb(filename, app.config['MAX_IMG_SIZE'], anchor)
+
+    # Otherwise try to load it from file
+    if img is None and os.path.exists(filename):
+        needs_crop = True
+
+        img = Image.open(filename).convert('RGB')
+
+        scale_factor = 1.0
+
+    if needs_crop and not return_full and x > 0 and y > 0 and width > 0 and height > 0:
+        # we either got a full image thumbnail or loaded the full image from disk
+        # but we shall return only the rectangle corresponding to the images table
+
+        # first scale the rectangle coordinates down to the scale factor of the loaded image
+        x, y, width, height = scale_factor*x, scale_factor*y, scale_factor*width, scale_factor*height
+
+        # then crop the rectangle
+        img = img.crop((int(x), int(y), int(width), int(height)))
+
+        needs_crop = False
+
+    return img, scale_factor, needs_crop
+
+
 @app.route('/similar-by-image/<conf>', methods=['GET', 'POST'])
 @app.route('/similar-by-image/<conf>/<start>/<count>', methods=['GET', 'POST'])
 @app.route('/similar-by-image/<conf>/<start>/<count>/<x>/<y>/<width>/<height>', methods=['GET', 'POST'])
 @htpasswd.required
 @cache_for(minutes=10)
-def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, height=-1):
+def get_similar_by_image(user, conf, start=0, count=100, x=-1.0, y=-1.0, width=-1.0, height=-1.0):
+    """
+    x,y,width,height are the selection in the cropper.
+    """
 
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
     model_conf = app.config["CONFIGURATION"][conf]["MODEL_CONF"]
@@ -801,28 +856,10 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
 
     if request.method == 'GET' and search_id is not None:
 
-        sample = pd.read_sql('select * from images where rowid=?',
-                             con=thread_store.get_db(search_id_from), params=(search_id,))
-
-        if sample is None or len(sample) == 0:
+        img, _, _ = get_image_from_thumbnail_database_or_filesystem(search_id, thread_store.get_db(search_id_from),
+                                                                    return_full=True)
+        if img is None:
             return "NOT FOUND", 404
-
-        filename = sample.file.iloc[0]
-
-        full_image = True
-        if os.path.exists(filename):
-            img = Image.open(filename).convert('RGB')
-        else:
-            img, scale_factor, full_image = thread_store.get_thumb(filename, app.config['MAX_IMG_SIZE'],
-                                                                   sample.anchor.iloc[0])
-            if img is None:
-                return "NOT FOUND", 404
-
-        if x < 0 and y < 0 and width < 0 and height < 0 and full_image:
-            x, y, width, height = float(sample.x.iloc[0]), float(sample.y.iloc[0]), \
-                                  float(sample.width.iloc[0]), float(sample.height.iloc[0])
-
-            x, y, width, height = x / img.size[0], y / img.size[1], width / img.size[0], height / img.size[1]
 
     elif request.method == 'POST' and 'file' in request.files:
 
@@ -856,34 +893,21 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
 
             img = Image.fromarray(img.astype('uint8'))
 
-            # img.save('test.jpeg', "JPEG")
-
-            # img_empty = Image.new('RGB', size=(img.width, img.height), color=tuple([int(c) for c in img_mean]))
-            # img = Image.composite(img_rgb, img_empty, mask=mask)
-
-            # img.save('test.jpeg', "JPEG")
         except ValueError:
             pass
     else:
         raise BadRequest()
 
-    full_img = img
-
     if x >= 0 and y >= 0 and width > 0 and height > 0:
+        # ok we got the full image but someone select something in the cropper
+
         # noinspection PyTypeChecker
-        img = full_img.crop((full_img.size[0]*x, full_img.size[1]*y,
-                             full_img.size[0]*x + width*full_img.size[0],
-                             full_img.size[1]*y + height*full_img.size[1]))
+        img = img.crop((img.size[0]*x, img.size[1]*y,
+                        img.size[0]*x + width*img.size[0], img.size[1]*y + height*img.size[1]))
 
     extract_features, extract_transform = thread_store.get_extraction_model(model_conf)
 
-    # import ipdb;ipdb.set_trace()
-
     img = extract_transform(img)
-
-    # import ipdb;ipdb.set_trace()
-
-    # transforms.ToPILImage()(img).save('test.jpeg', 'JPEG')
 
     img = img.unsqueeze(0)
 
@@ -893,10 +917,7 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1, y=-1, width=-1, h
 
     result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
-    if x < 0 and y < 0 and width < 0 and height < 0:
-        x, y, width, height = 0.0, 0.0, 1.0, 1.0
-
-    return jsonify({'ids': result, 'x': x, 'y': y, 'width': width, 'height': height, 'user': user})
+    return jsonify({'ids': result, 'user': user})
 
 
 def has_table(table_name, data_conf):
@@ -1259,11 +1280,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
     sample = pd.read_sql('select * from images where rowid=?', con=thread_store.get_db(data_conf), params=(image_id,))
 
     filename = sample.file.iloc[0]
-    x = sample.x.iloc[0]
-    y = sample.y.iloc[0]
-    width = sample.width.iloc[0]
-    height = sample.height.iloc[0]
-    anchor = sample.anchor.iloc[0]
+    x, y, width, height = sample.x.iloc[0], sample.y.iloc[0], sample.width.iloc[0], sample.height.iloc[0]
 
     raw_file = filename
     if not os.path.exists(raw_file):
@@ -1273,7 +1290,6 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
         raw_file = ".".join(parts[:-1]) + ".jpeg"
 
         if not os.path.exists(raw_file):
-
             raw_file = None
 
     last_mtime = None
@@ -1282,9 +1298,16 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
 
     if version == 'resize':
 
-        img, scale_factor, full_image = thread_store.get_thumb(filename, max_img_size, anchor)
+        img, scale_factor, needs_crop = \
+            get_image_from_thumbnail_database_or_filesystem(image_id, thread_store.get_db(data_conf),
+                                                            return_full=True)
 
-        if img is None:
+        if not needs_crop:
+            # we request full but nevertheless got only the selection
+            # therefore we cannot draw a marker
+            marker = "nomarker"
+
+        if img is None:  # it has not been found in thumbnail database
 
             if raw_file is None:
                 return "NOT FOUND", 404
@@ -1292,31 +1315,33 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
             img = Image.open(raw_file).convert('RGB')
 
             max_size = float(max(img.size[0], img.size[1]))
-
             scale_factor = 1.0 if max_size <= max_img_size else max_img_size / max_size
 
-            hsize = int((float(img.size[0]) * scale_factor))
-            vsize = int((float(img.size[1]) * scale_factor))
+            hsize, vsize = int((float(img.size[0]) * scale_factor)), int((float(img.size[1]) * scale_factor))
 
-            img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+            img = img.resize((hsize, vsize), PIL.Image.Resampling.LANCZOS)
 
         if x >= 0 and y >= 0 and width > 0 and height > 0:
-            x = int((float(x) * scale_factor))
-            y = int((float(y) * scale_factor))
-            width = int((float(width) * scale_factor))
-            height = int((float(height) * scale_factor))
+            x, y, width, height = int((float(x) * scale_factor)), int((float(y) * scale_factor)), \
+                                  int((float(width) * scale_factor)), int((float(height) * scale_factor))
 
     elif version == 'full':
         if raw_file is not None:
             img = Image.open(raw_file).convert('RGB')
         else:
-            img, scale_factor, full_image = thread_store.get_thumb(filename, max_img_size, anchor)
+            img, scale_factor, needs_crop = \
+                get_image_from_thumbnail_database_or_filesystem(image_id, thread_store.get_db(data_conf),
+                                                                return_full=True)
+
+            if not needs_crop:
+                # we request full but nevertheless got only the selection
+                # therefore we cannot draw a marker
+                marker = "nomarker"
 
             if img is None:
                 return "NOT FOUND", 404
-
-            if not full_image:
-                marker = 'nomarker'
+            else:
+                logger.warning("full image requested but only thumbnail available.")
     else:
         return "BAD PARAMS <version>: full/resize", 400
 

@@ -128,8 +128,6 @@ function search_setup (gconf){
     }
 
     function update_search_results(results, start) {
-        //console.log("update_search_results start:", start);
-
         search_result_list.update(results, start);
 
         $('[data-toggle="tooltip"]').tooltip();

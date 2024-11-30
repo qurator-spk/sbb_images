@@ -216,7 +216,7 @@ def update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size,
         thumb_con.execute('BEGIN EXCLUSIVE TRANSACTION')
 
         thumb_con.execute('INSERT INTO thumbnails VALUES(NULL,?,?,?,?)',
-                          (thumb_filename, sqlite3.Binary(buffer.read()), thumb_size, 1.0))
+                          (thumb_filename, sqlite3.Binary(buffer.read()), thumb_size, scale_factor))
 
         thumb_con.execute('COMMIT TRANSACTION')
 
