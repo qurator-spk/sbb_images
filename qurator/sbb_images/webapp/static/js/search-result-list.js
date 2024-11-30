@@ -72,16 +72,6 @@ function setup_search_result_list(configuration, search, next_batch) {
                     function() {
                         $(this).tooltip('hide');
                     });
-
-//                (function(filename) {
-//                $("#card-" + image_id + "-number").click(
-//                    function () {
-//                        $(this).tooltip('hide');
-//                        console.log(filename);
-//                        navigator.clipboard.writeText(filename);
-//                    }
-//                );
-//                })(result['file']);
             }
         );
     };
@@ -146,6 +136,8 @@ function setup_search_result_list(configuration, search, next_batch) {
         part = part.replace(/\?/g,"que");
         part = part.replace(/\(/g,"bo");
         part = part.replace(/\)/g,"bc");
+        part = part.replace(/\[/g,"sbo");
+        part = part.replace(/\]/g,"sbc");
         part = part.replace(/:/g,"col");
         part = part.replace(/\./g,"dot");
         part = part.replace(/\,/g,"comma");
