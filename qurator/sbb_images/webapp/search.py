@@ -876,10 +876,9 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1.0, y=-1.0, width=-
     search_id = request.args.get('search_id', default=None, type=int)
     search_id_from = request.args.get('search_id_from', default=data_conf)
 
-    needs_crop = True
     if request.method == 'GET' and search_id is not None:
 
-        img, _, needs_crop = get_image_from_thumbnail_database_or_filesystem(search_id,
+        img, _, _ = get_image_from_thumbnail_database_or_filesystem(search_id,
                                                                              thread_store.get_db(search_id_from),
                                                                              return_full=True, try_file_first=True)
         if img is None:
