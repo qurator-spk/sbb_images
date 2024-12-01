@@ -24,7 +24,7 @@ class AnnotatedDataset(Dataset):
 
         self.sqlite_file = thumbnail_sqlite_file
         self.conn = None
-        self.min_size=min_size
+        self.min_size = min_size
 
         if table_name is None:
             self.table_name = "images"

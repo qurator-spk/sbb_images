@@ -411,7 +411,7 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
     model, device, fit_transform, predict_transform, logits_func = \
         load_pretrained_model(model_name, len(label_to_class), num_trained)
 
-    model.load_state_dict(torch.load(model_file))
+    model.load_state_dict(torch.load(model_file, weights_only=True))
 
     # optimizer = optim.SGD(model_ft.parameters(), lr=start_lr, momentum=momentum)
     optimizer = AdamW(model.parameters(), lr=start_lr)
@@ -426,6 +426,8 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
 
     predictions = estimator.predict_proba(X)
 
+    predictions.to_pickle(result_file)
+
     if train_only:
 
         predictions['class'] = y
@@ -439,9 +441,7 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
             predictions.to_sql('predictions', con=con, if_exists='replace')
 
             con.execute('create index ix_predictions_labels on predictions(label)')
-            con.execute('create index ix_predictions_ppn on predictions(PPN)')
-
-    predictions.to_pickle(result_file)
+            # con.execute('create index ix_predictions_ppn on predictions(PPN)')
 
 
 @click.command()
@@ -642,7 +642,7 @@ def load_pretrained_model(mn, num_classes, num_train_layers):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    model_ft = getattr(models, mn)(pretrained=True)
+    model_ft = getattr(models, mn)(weights=True)
 
     for p in model_ft.parameters():
         p.requires_grad = False

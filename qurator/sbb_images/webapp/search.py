@@ -794,7 +794,7 @@ def get_similar_by_text(user, conf, start=0, count=100):
     return jsonify({'ids': result, 'info': '"{}"'.format(text), "user": user})
 
 
-def get_image_from_thumbnail_database_or_filesystem(image_id, image_conn, return_full=False):
+def get_image_from_thumbnail_database_or_filesystem(image_id, image_conn, return_full=False, try_file_first=False):
     """
     image_id is the rowid in the images table
 
@@ -804,7 +804,7 @@ def get_image_from_thumbnail_database_or_filesystem(image_id, image_conn, return
     sample = pd.read_sql('SELECT * FROM images WHERE rowid=?', con=image_conn, params=(image_id,))
 
     if sample is None or len(sample) == 0:
-        return None
+        return None, None, False
 
     filename = sample.file.iloc[0]
     anchor = str(sample.anchor.iloc[0])
@@ -813,16 +813,35 @@ def get_image_from_thumbnail_database_or_filesystem(image_id, image_conn, return
                           float(sample.width.iloc[0]),\
                           float(sample.height.iloc[0])
 
-    # first try to get it from the thumbnail-database
-    img, scale_factor, needs_crop = thread_store.get_thumb(filename, app.config['MAX_IMG_SIZE'], anchor)
+    try_file = try_file_first
+    try_thumb_db = True
+    img = None
+    needs_crop = True
+    scale_factor = 1.0
+    while True:
+        if try_file and os.path.exists(filename):
+            needs_crop = True
 
-    # Otherwise try to load it from file
-    if img is None and os.path.exists(filename):
-        needs_crop = True
+            img = Image.open(filename).convert('RGB')
 
-        img = Image.open(filename).convert('RGB')
+            scale_factor = 1.0
 
-        scale_factor = 1.0
+        if img is not None:
+            break
+        elif img is None and try_thumb_db:
+            # first try to get it from the thumbnail-database
+            img, scale_factor, needs_crop = thread_store.get_thumb(filename, app.config['MAX_IMG_SIZE'], anchor)
+
+            if img is not None:
+                break
+            elif img is None and try_file:
+                return None, None, False
+            else:
+                try_file = True
+                try_thumb_db = False
+                continue
+        else:
+            return None, None, False
 
     if needs_crop and not return_full and x > 0 and y > 0 and width > 0 and height > 0:
         # we either got a full image thumbnail or loaded the full image from disk
@@ -857,10 +876,12 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1.0, y=-1.0, width=-
     search_id = request.args.get('search_id', default=None, type=int)
     search_id_from = request.args.get('search_id_from', default=data_conf)
 
+    needs_crop = True
     if request.method == 'GET' and search_id is not None:
 
-        img, _, _ = get_image_from_thumbnail_database_or_filesystem(search_id, thread_store.get_db(search_id_from),
-                                                                    return_full=True)
+        img, _, needs_crop = get_image_from_thumbnail_database_or_filesystem(search_id,
+                                                                             thread_store.get_db(search_id_from),
+                                                                             return_full=True, try_file_first=True)
         if img is None:
             return "NOT FOUND", 404
 
