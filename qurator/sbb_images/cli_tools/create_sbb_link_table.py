@@ -19,7 +19,7 @@ def cli(sqlite_file):
     """
 
     with sqlite3.connect(sqlite_file) as con:
-        images = pd.read_sql('select * from images', con=con)
+        images = pd.read_sql('SELECT * FROM images', con=con)
 
     links = []
     iiif_links = []

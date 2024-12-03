@@ -49,13 +49,14 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
 
         print("Reading image table from database ...")
 
-        df_images = pd.read_sql('select rowid,file from images', conn)
+        df_images = pd.read_sql('SELECT rowid,file FROM images', conn)
 
         print("done.")
 
         print("Merging SMB meta-data ...")
 
-        df_images = df_images.merge(df_smb, left_on='file', right_on='fullpath')
+        df_images = df_images.merge(df_smb, left_on='file', right_on='fullpath').\
+            sort_values('rowid')
 
         print("done.")
 
@@ -90,9 +91,11 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
         for _, row in tqdm(df_images.iterrows(), total=len(df_images)):
 
             iiif_links.append((row.rowid,
-                               "https://id.smb.museum/digital-asset/{}".format(row['Digital.Asset.ID'])))
+                               "https://id.smb.museum/digital-asset/{}".
+                               format(row['Digital.Asset.ID'])))
 
-            df_links.append((row.rowid, "https://id.smb.museum/object/" + str(row['Objekt.ID'])))
+            df_links.append((row.rowid,
+                             "https://id.smb.museum/object/" + str(row['Objekt.ID'])))
 
             if type(row['Objekt.Titel']) == str:
 
@@ -193,14 +196,14 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
 
         df_links = pd.DataFrame(df_links, columns=["index", "url"]).set_index("index")
 
+        df_links.to_sql('links', con=conn, if_exists='replace')
+
         df_iconclass = pd.DataFrame(df_iconclass, columns=["file", "target", "label", "imageid", "index"]).\
             set_index("index")
 
         df_iconclass.to_sql(name='iconclass', con=conn, if_exists='replace', index=True)
 
         setup_iconclass_table(conn)
-
-        df_links.to_sql('links', con=conn, if_exists='replace')
 
         iiif = pd.DataFrame(iiif_links, columns=['image_id', 'url'])
 

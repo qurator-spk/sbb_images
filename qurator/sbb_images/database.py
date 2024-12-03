@@ -62,7 +62,7 @@ def setup_links_table(conn):
                  '"phys_id" TEXT);')
 
     conn.execute('CREATE INDEX IF NOT EXISTS "ix_links_index"ON "links" ("index");')
-    conn.execute('CREATE INDEX IF NOT EXISTS ix_links_ppn on links(ppn);')
+    # conn.execute('CREATE INDEX IF NOT EXISTS ix_links_ppn on links(ppn);')
 
     conn.execute('COMMIT TRANSACTION')
 
