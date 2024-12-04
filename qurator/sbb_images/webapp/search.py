@@ -469,6 +469,9 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     start, count = int(start), int(count)
 
+    max_matches = 100000
+    max_reached = False
+
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
 
     if "tag" not in request.json:
@@ -532,14 +535,16 @@ def get_similar_by_tag(user, conf, start=0, count=100):
                 text.append(part_text)
 
                 if negate and bool_op == "|":
-                    df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass '
+                    df_pattern = pd.read_sql('SELECT iconclass.imageid, iconclass.label, '
+                                             'images.file, images.width, images.height FROM iconclass '
                                              'INNER JOIN images ON images.rowid=iconclass.imageid  '
-                                             'WHERE label NOT LIKE ? AND (images.x=-1 OR images.anchor GLOB "region*")',
+                                             'WHERE label NOT LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
                 else:
-                    df_pattern = pd.read_sql('SELECT imageid, label FROM iconclass '
+                    df_pattern = pd.read_sql('SELECT iconclass.imageid, iconclass.label, '
+                                             'images.file, images.width, images.height FROM iconclass '
                                              'INNER JOIN images ON images.rowid=iconclass.imageid  '
-                                             'WHERE label LIKE ? AND (images.x=-1 OR images.anchor GLOB "region*")',
+                                             'WHERE label LIKE ?',
                                              con=thread_store.get_db(data_conf), params=(pattern + "%",))
 
                 df_pattern = df_pattern.rename(columns={'imageid': 'image_id', 'label': 'tag'}).\
@@ -553,14 +558,17 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         if has_table("tags", data_conf) and df_pattern is None:
 
             if negate and bool_op == "|":
-                df_pattern = pd.read_sql('SELECT image_id FROM tags '
+
+                df_pattern = pd.read_sql('SELECT tags.image_id, '
+                                         'images.file, images.width, images.height FROM tags '
                                          'INNER JOIN images ON images.rowid=tags.image_id '
-                                         'WHERE tags.tag NOT GLOB ? AND (images.x=-1 OR images.anchor GLOB "region*")',
+                                         'WHERE tags.tag NOT GLOB ?',
                                          con=thread_store.get_db(data_conf), params=(pattern,))
             else:
-                df_pattern = pd.read_sql('SELECT image_id, tag FROM tags '
+                df_pattern = pd.read_sql('SELECT tags.image_id, tags.tag, '
+                                         'images.file, images.width, images.height FROM tags '
                                          'INNER JOIN images ON images.rowid=tags.image_id '
-                                         'WHERE tags.tag GLOB ? AND (images.x=-1 OR images.anchor GLOB "region*")',
+                                         'WHERE tags.tag GLOB ?',
                                          con=thread_store.get_db(data_conf), params=(pattern,))
 
                 if df_pattern is not None and len(df_pattern) > 0:
@@ -599,12 +607,18 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     num_matches = 0
     if df_ids is not None:
-        if 'tag' in df_ids.columns:
-            df_ids = df_ids.sort_values(by=["order", "tag"])
-        else:
-            df_ids = df_ids.sort_values(by=["order"])
 
-        df_ids = df_ids.drop_duplicates(subset=['image_id'], keep='first')
+        # if regions of an image appear in the search results multiple times,
+        # we keep only the occurence that is most specific - i.e. has the smallest area except if the
+        # entire image is among the results - than we return the refererence to the entire image.
+        df_ids['area'] = df_ids['width']*df_ids['height']
+
+        if 'tag' in df_ids.columns:
+            df_ids = df_ids.sort_values(by=["order", "tag", "area", "file"])
+        else:
+            df_ids = df_ids.sort_values(by=["order", "area", "file"])
+
+        df_ids = df_ids.drop_duplicates(subset=['file'], keep='first')
 
         ids = df_ids['image_id'].tolist()
         num_matches = len(ids)

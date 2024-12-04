@@ -25,6 +25,8 @@ def setup_images_table(conn):
     conn.execute('CREATE INDEX IF NOT EXISTS idx_num_annotations on images(num_annotations);')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_num_annotations on images(num_annotations);')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_file on images(file);')
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_images_width on images(width);')
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_images_height on images(height);')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_images_anchor on images(anchor);')
     conn.execute("CREATE INDEX IF NOT EXISTS idx_images_file_x_y_width_height ON images(file,x,y,width,height)")
     conn.execute('CREATE INDEX IF NOT EXISTS idx_images_anchor ON images(anchor);')
