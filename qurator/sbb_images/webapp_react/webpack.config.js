@@ -20,16 +20,21 @@ module.exports = {
         use: ['style-loader', 'css-loader'],
       },
       {
-        test: /\.svg$/,
-        use: [
-          {
-            loader: 'svg-url-loader',
-            options: {
-              limit: 10000,
-            },
-          },
-        ],
+        test: /\.svg$/i,  // Match SVG files
+        issuer: /\.[jt]sx?$/, 
+        use: ['@svgr/webpack'], 
       },
+      {
+         test: /\.svg$/,
+         use: [
+           {
+             loader: 'svg-url-loader',
+             options: {
+               limit: 10000,
+             },
+           },
+         ],
+       },  
     ],
   },
   devServer: {

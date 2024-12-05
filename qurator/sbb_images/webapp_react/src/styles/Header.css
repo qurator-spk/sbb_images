@@ -1,0 +1,92 @@
+header {
+  width: 100%;
+  background-color: black;
+  color: white;
+  padding: 1rem 0;
+  width: 100%;
+  position: fixed;
+  margin: 0;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 5;
+}
+
+.header-container {
+  width: 80%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+}
+
+.logo-svg {
+  /* width: 200px; */
+  width: 15vw; 
+  min-width: 160px; /* won't get smaller than this */
+  max-width: 240px; /* won't get larger than this */
+  height: auto;
+  color: #ffffff;
+  transition: color 0.2s;
+  display: block;
+}
+
+.logo-link:hover .logo-svg {
+  color: #edd058;
+}
+
+.header-nav {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.header-nav-item {
+  color: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.header-nav-item:hover:not(.header-nav-item-current) {
+  color: #edd058;
+}
+
+/* .header-nav-item:hover {
+  color: #ffe600;
+  text-decoration: underline;
+} */
+
+.header-nav-item:visited,
+.header-nav-item:active,
+.header-nav-item:link {
+  color: #ffffff;
+}
+
+.header-nav-item-current {
+  color: #ffffff;
+  text-decoration: underline;
+  cursor: default;
+}
+
+/* Responsive logo sizes */
+/* @media (min-width: 768px) {
+  .logo-svg {
+    width: 160px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .logo-svg {
+    width: 180px;
+  }
+} */

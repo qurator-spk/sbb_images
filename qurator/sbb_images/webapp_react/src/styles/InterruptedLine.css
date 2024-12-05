@@ -1,0 +1,14 @@
+.interrupted-line {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.interrupted-line::before,
+.interrupted-line::after {
+    content: "";
+    flex: 1 0 0;
+    height: 1px;
+    background-color: #cbd5e1;
+    margin: 0 10px;
+}

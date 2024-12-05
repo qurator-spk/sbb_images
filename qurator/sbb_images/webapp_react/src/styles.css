@@ -1,3 +1,11 @@
+* {
+    box-sizing: border-box;
+
+    margin: 0;
+    padding: 0;;
+}
+
+
 body {
     margin: 0;
     padding: 0;
@@ -6,10 +14,25 @@ body {
     flex-direction: column;
 }
 
-main {
+/* main {
     flex: 1;
-}
+} */
 
-.intro-text {
+/* .intro-text {
     padding: 0 100px;
+} */
+
+.LandingPage {
+    /* width: 100vw; */
+    /* width: 100%; */
+    /* height: 100vh; */
+    display: flex;
+    flex-direction: column;
+    /* gap: 2rem;  */
+    align-items: center;
+    justify-content: center;
+    /* overflow: hidden; */
+    overflow: auto;
+    margin-top: 5rem;
+    margin-bottom: 4rem;
 }

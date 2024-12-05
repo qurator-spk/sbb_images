@@ -1,47 +1,76 @@
-import React from 'react';
-import {useState} from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import SearchTabs from '../components/SearchTabs';
-import SearchResults from '../components/SearchResults';
-import Introduction from '../components/Introduction';
+import React, { useState, useEffect } from "react"; 
+import { useNavigate } from "react-router-dom"; 
+import Header from "../components/Header"; 
+import Tabs from "../components/Tabs"; 
+import Intro from "../components/Intro"; 
+import RandomImages from "../components/RandomImages"; 
+import { makeSearchState } from "../components/SearchState";
 
-import { makeSearchState }  from '../components/SearchState';
 const LandingPage = () => {
-  console.log("Landing Page is rendered");
+  const [searchState, setSearchState] = useState(makeSearchState());
+  const [activeTab, setActiveTab] = useState("image");
+  const navigate = useNavigate();
 
-  const [searchState, setSearchState] = useState(makeSearchState);
-
-  const [ searchResult, setSearchResult] = useState({ type: null, ids: []});
-
-  const [activeTab, setActiveTab] = useState('image');
-
-  const updateResults = (results) => {
-    setSearchResult(results);
-  }
-
-  const searchMore = (img_id) => {
-        setActiveTab("image");
-
-        setSearchState(searchState.setImgUrlWithID("api/image/DIGISAM/" + img_id, img_id));
+  const handleSearchStateChange = (newState) => {
+    console.log("handleSearchStateChange called with:", newState);
+    setSearchState(newState);
   };
+//added to debug - why is imgUrl not being passed on to results page
+ /*  useEffect(() => {
+    console.log("searchState updated in LandingPage:", searchState)
+  }, [searchState]) */
+//==============================================================
 
-  console.log("LandingPage searchState", searchState);
+  //const updateResults = (results) => {
+  /* const updateResults = (results, imgUrl) => {
+    console.log("updateResults called with:", results);
+    console.log("Current searchState in updateResults: ", searchState);
+ */
+ // const serializableSearchState = {
+   // imgUrl: searchState.imgUrl,
+  /*   imgUrl: imgUrl || searchState.imgUrl,
+    description: searchState.description,
+    ppn: searchState.ppn,
+    img_id: searchState.img_id,
+  };
+ */
+
+  const updateResults = (results, searchTerm) => {
+    console.log("updateResults called with:", results, searchTerm);
+    console.log("Current searchState in updateResults: ", searchState);
+
+    const serializableSearchState = {
+      imgUrl: activeTab === "image" ? searchTerm : searchState.imgUrl,
+      description:
+        activeTab === "description" ? searchTerm : searchState.description,
+      ppn: activeTab === "ppn" ? searchTerm : searchState.ppn,
+      img_id: searchState.img_id,
+    };
+
+  console.log("Navigating with serializable state:", serializableSearchState);
+
+  navigate("/search-results", {
+    state: {
+      searchResult: results,
+      activeTab,
+      searchState: serializableSearchState,
+    },
+  });
+};
 
   return (
-    <div>
+    <div className="LandingPage">
       <Header />
-      <Introduction /> 
-      <SearchTabs
+      <Intro />
+      <Tabs
         updateResults={updateResults}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         searchState={searchState}
         setSearchState={setSearchState}
+        onSearchStateChange={handleSearchStateChange} // to communicate with Tabs
       />
-
-      <SearchResults searchResult={searchResult} searchMore={searchMore} activeTab={activeTab}/>
-      <Footer />
+      <RandomImages />
     </div>
   );
 };

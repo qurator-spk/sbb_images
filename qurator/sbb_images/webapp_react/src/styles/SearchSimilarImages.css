@@ -1,0 +1,24 @@
+/* Move to styles!!!! */
+
+body {
+    font-family: "Noto Sans", sans-serif;
+  }
+  
+  .search-button {
+    background-color: #2f3e6a;
+    width: 80%;
+    text-align: center;
+    color: white; 
+    padding: 1em 2em; 
+    border: none; 
+    border-radius: 0.5em; 
+    cursor: pointer; 
+    margin: 0 auto;
+    font-size: 1rem;
+    transition: all 0.2s ease-in-out;
+
+  }
+  
+  .search-button:hover {
+    background-color: #151c30;
+  }

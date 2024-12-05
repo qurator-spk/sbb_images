@@ -1,27 +1,45 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import Logo from './Logo'
-import './Header.css';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import Logo from "./Logo";
+import "../styles/Header.css";
 
 const Header = () => {
-  console.log('Header component rendered');
+  const location = useLocation();
+  const isLandingPage = location.pathname === "/";
+  const isAboutPage = location.pathname === "/about";
+
   return (
     <header>
-    {/* <div class="container"> */}
+      <div className="header-container">
+        <div className="logo">
+          <a
+            href="https://staatsbibliothek-berlin.de/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="logo-link"
+            data-tooltip="Startseite der SBB"
+          >
+            <Logo className="logo-svg" />
+          </a>
+        </div>
+        <nav className="header-nav">
+          {isLandingPage ? (
+            <span className="header-nav-item header-nav-item-current">Home</span>
+          ) : (
+            <Link to="/" className="header-nav-item">
+              Home
+            </Link>
+          )}
 
-    
-      <div>
-        <img src="/images/MMK.svg" alt="LogoMMK" />
-        {/* <Logo /> */}
+          {isAboutPage ? (
+            <span className="header-nav-item header-nav-item-current">About</span>
+          ) : (
+            <Link to="/about" className="header-nav-item">
+              About
+            </Link>
+          )}
+        </nav>
       </div>
-      <nav>
-        <Link to="/help">Help</Link>
-        <a href="https://github.com/qurator-spk/sbb_images" target="_blank" rel="noopener noreferrer">
-          Github
-        </a>
-      </nav>
-
-      {/* </div> */}
     </header>
   );
 };
