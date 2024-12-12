@@ -40,11 +40,7 @@
     /* margin: 20px 0; */
     margin-bottom: 4rem;
   }
-  
-  .query-image-container h3 {
-    /* margin-bottom: 10px; */
-  }
-  
+    
   .query-image {
     max-width: 5vw;
     height: 5vh;
@@ -134,12 +130,6 @@
 
   .result-card:hover .image-container {
     background-color: #e2e8f0;
-  }
-  
-
-  
-  .search-results-page h2 {
-    /* Style for "Your search results" title */
   }
   
   .search-results-container {

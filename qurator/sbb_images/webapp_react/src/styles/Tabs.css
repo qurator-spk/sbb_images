@@ -585,20 +585,20 @@ button {
     transition: background-color 0.15s ease-in-out;
 }
   
-  .close-button {
+  .close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: none;
-    font-size: 2rem;
+    top: 0.5rem;
+    right: 1.5rem;
+   /*  background: none;
+    border: none; */
+    font-size: 2.5rem;
     color: #2f3e6a;
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    line-height: 1;
+   /*  padding: 0.25rem 0.5rem;
+    line-height: 1; */
   }
   
-  .close-button:hover {
+  .close:hover {
     /* color: #1e2743; */
     color: #1c1933;
   }

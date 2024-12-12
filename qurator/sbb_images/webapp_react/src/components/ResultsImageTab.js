@@ -95,7 +95,7 @@ const ResultsImageTab = ({
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
         >
-          <button className="close-button" onClick={() => setIsExpanded(false)}>
+          <button className="close" onClick={() => setIsExpanded(false)}>
             ×
           </button>
           <div className="drag-area">

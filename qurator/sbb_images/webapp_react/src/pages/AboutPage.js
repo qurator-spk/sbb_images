@@ -14,7 +14,10 @@ const AboutPage = () => {
     <div className="about-page">
       <Header />
       <div className="about-content">
-        <h2>About this project</h2>
+        {/* <div className="page-title"> */}
+          <h2>About this project</h2>
+        {/* </div> */}
+        
   {/* <div className="text-container">  */}
         <div className="main-text">
           <p>

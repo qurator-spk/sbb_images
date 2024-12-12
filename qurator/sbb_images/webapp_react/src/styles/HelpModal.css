@@ -51,23 +51,23 @@
   .close-button {
     position: absolute; 
     top: 1rem;
-    right: 1rem;
-    background: none;
-    border: none;
+    right: 1.5rem;
+    /* background: none;
+    border: none; */
     cursor: pointer;
     color: #2f3e6a;
-    width: 2rem;
+   /*  width: 2rem;
     height: 2rem;
-    border-radius: 50%;
-    display: flex;
+    border-radius: 50%; */
+    /* display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
+    justify-content: center; */
+    font-size: 3rem;
     transition: color 0.2s;
   }
   
   .close-button:hover {
-    color: #1c2641;
+    color: #1c1933;
   }
 
   .help-content {
