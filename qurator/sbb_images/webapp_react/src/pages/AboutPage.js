@@ -27,7 +27,7 @@ const AboutPage = () => {
             >
               Berlin State Library (SBB)'s Digitized Collections
             </a>
-            . <strong>All documents in the collections date back to 1945 or earlier,
+            .<br/> <strong>All documents in the collections date back to 1945 or earlier,
             therefore all the search results will also stop at 1945.</strong>
           </p>
 
@@ -38,9 +38,10 @@ const AboutPage = () => {
                 <li>
                   {" "}
                   <strong>
-                    Drag and drop or upload an image or click on one of the examples
+                    Using an image - drag and drop or upload an image of your choice, 
+                    or click on one of the examples
                   </strong>{" "}
-                  on our homepage. Results will be ordered from the most to
+                  on our homepage. Results will be shown from the most to
                   the least similar ones.
                 </li>
                 <li>
@@ -49,8 +50,8 @@ const AboutPage = () => {
                     Describe the image you have in mind, using the Description
                     Tab
                   </strong>
-                  . The results will be, as before, ordered from the one that
-                  most closely matches your description to the least similar.
+                  . The results will be, as before, shown from the one that
+                  most closely matches your description to the least matching.
                 </li>
                 <li>
                   {" "}
@@ -60,10 +61,11 @@ const AboutPage = () => {
                   (if you are not familiar with PPNs{" "}
                   <a href="https://github.com/elektrobohemian/StabiHacks/blob/master/ppn-howto.md" target="_blank"
                   rel="noopener noreferrer">you can read more about them here</a>). This will
-                  find and display all the images within the document, in the order in which they
-                  appear in the document. You can
-                  then start a new search by clicking on the "Search Similar
-                  Images" button that appears under every image (see the example on the right).
+                  find and display all the images found inside the document, shown in the same order as 
+                  they appear - starting from images found on the first page and 
+                  continuing to the last page. 
+                  {/* You can then start a new search by clicking on the "Search Similar
+                  Images" button that appears under every image (see the example on the right). */}
                 </li>
               </ul>
             </div>

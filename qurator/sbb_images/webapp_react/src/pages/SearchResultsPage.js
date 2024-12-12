@@ -83,7 +83,7 @@ const [searchState, setSearchState] = useState(() => {
   const searchByImage = async (img_id) => {
     console.log("searchByImage called with img_id:", img_id);
       const response = await fetch(
-        `api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100?search_id=${img_id}&search_id_from=DIGISAM`
+       `api/similar-by-image/DIGISAM-DEFAULT/0/100?search_id=${img_id}&search_id_from=DIGISAM`
       );
       const result = await response.json();
       console.log("Search result:", result);
@@ -117,8 +117,8 @@ const [searchState, setSearchState] = useState(() => {
           console.log("Calculated coordinates:", { x, y, width, height });
 
           fetch(
-             `api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100/${x}/${y}/${width}/${height}?search_id=${searchState.img_id}&search_id_from=DIGISAM`
-           // `api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/10/${x}/${y}/${width}/${height}?search_id=${searchState.img_id}&search_id_from=DIGISAM` // Changed 100 to 10
+             `api/similar-by-image/DIGISAM-DEFAULT/0/100/${x}/${y}/${width}/${height}?search_id=${searchState.img_id}&search_id_from=DIGISAM`
+
           )
             .then((response) => response.json())
             .then((result) => {
@@ -150,10 +150,19 @@ const [searchState, setSearchState] = useState(() => {
       </h2>
       </div>
 
+      <Tabs
+        updateResults={updateResults}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        searchState={searchState}
+        setSearchState={setSearchState}
+        isResultsPage={true} 
+      /> 
+
     {/* {activeTab === "image" && searchState.imgUrl && ( */}
     {lastPerformedSearch === "image" && searchState.imgUrl && (
       <div className='query'>
-        <h3 className='browse-search'>Your search</h3>
+        <h3 className='browse-search'>Your search:</h3>
       <div className="query-image-container">
        {/*  <Tabs
         updateResults={updateResults}
@@ -187,14 +196,14 @@ const [searchState, setSearchState] = useState(() => {
       </div>
     )}
 
-       <Tabs
+    {/*    <Tabs
         updateResults={updateResults}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         searchState={searchState}
         setSearchState={setSearchState}
         isResultsPage={true} 
-      /> 
+      />  */}
       <SearchResults
         searchResult={searchResult}
         searchMore={searchMore}

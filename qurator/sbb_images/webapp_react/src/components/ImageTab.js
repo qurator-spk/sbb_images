@@ -60,7 +60,7 @@ const ImageTab = ({
       let fd = new FormData();
       fd.append("file", file);
       const response = await fetch(
-        "api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100",
+        "api/similar-by-image/DIGISAM-DEFAULT/0/100",
         {
           method: "POST",
           body: fd,

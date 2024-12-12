@@ -157,11 +157,12 @@ const SearchResults = ({
       <div className='search-results-container'>
 
         <h3 className="results-heading">
-          {searchResult.type === 'image' && 'Images similar to your query image'}
-          {searchResult.type === 'description' && `Images matching the description "${searchState.description}"`}
+          {searchResult.type === 'image' && 'Images similar to your query image, shown from most to least similar'}
+          {searchResult.type === 'description' && `Images matching the description "${searchState.description}", shown from most to least matching`}
           {searchResult.type === 'ppn' && (
            <>
-              Images from the document with PPN <a href={`https://digital.staatsbibliothek-berlin.de/werkansicht?PPN=PPN${searchState.ppn}`} target="_blank" rel="noopener noreferrer">{searchState.ppn}</a>
+              Images from the document with PPN <a href={`https://digital.staatsbibliothek-berlin.de/werkansicht?PPN=PPN${searchState.ppn}`} target="_blank" rel="noopener noreferrer">{searchState.ppn}</a>, 
+              shown in the order they appear in the document
             </>
           )}
         </h3>

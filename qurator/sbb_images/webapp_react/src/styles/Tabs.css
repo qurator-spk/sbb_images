@@ -78,8 +78,8 @@ ul.nav {
 /* Styling the ImageTab as drag & drop */
 
 .ImageTab {
-    outline: 1px dashed #2f3e6a;
-    border-radius: 0.1rem;
+    outline: 2px dashed #2f3e6a;
+    border-radius: 0.2rem;
     background-color: #ffffff;
     
     /* width: 100%; */
@@ -95,7 +95,8 @@ ul.nav {
 
 .ImageTab:hover{
     background-color: #e2e8f0;
-    outline: 2px dashed #798cc3;
+    /* outline: 3px dashed #798cc3; */
+    outline: 3px dashed #1c1933;
 }
 
 .ImageTab.dragging {
@@ -549,6 +550,7 @@ button {
     gap: 0.5rem;
     text-align: left;
     font-size: 1rem;
+    transition: all 0.2s ease-in-out;
   }
   
   .results-collapsed-view:hover {
@@ -557,8 +559,8 @@ button {
 
   .results-expanded-view {
     position: relative; 
-    outline: 1px dashed #2f3e6a;
-    border-radius: 0.1rem;
+    outline: 2px dashed #2f3e6a;
+    border-radius: 0.2rem;
     background-color: #ffffff;
     height: 20rem;
     display: flex;
@@ -571,8 +573,10 @@ button {
 
   
 .results-expanded-view:hover{
-    background-color: #e2e8f0;
-    outline: 2px dashed #798cc3;
+     background-color: #e2e8f0; 
+    /* background-color: #ced5e9; */
+    /* outline: 3px dashed #798cc3; */
+    outline: 3px dashed #1c1933;
 }
 
 .results-expanded-view.dragging {
@@ -595,7 +599,8 @@ button {
   }
   
   .close-button:hover {
-    color: #1e2743;
+    /* color: #1e2743; */
+    color: #1c1933;
   }
 
 

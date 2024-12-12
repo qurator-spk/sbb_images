@@ -9,7 +9,7 @@ import React, { useRef, useState, useEffect } from 'react';
       text: description,
     };
 
-    const response = await fetch('api/similar-by-text/DIGISAM-MSCLIP-B32-LAION/0/100', {
+    const response = await fetch('api/similar-by-text/DIGISAM-DEFAULT/0/100', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),

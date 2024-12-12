@@ -28,6 +28,7 @@
   
   .query-image-container {
     background-color: #f1f5f9; 
+    border-top: 1px solid #8f243e;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -142,7 +143,8 @@
   }
   
   .search-results-container {
-    margin-top: 20px;
+    /* margin-top: 20px; */
+    /* margin-top: 1em; */
   }
 
    .results-heading {

@@ -13,7 +13,7 @@ const SearchSimilarImages = ({ imageId, isFromResults, onSearchMore }) => {
     } else {
       // on landing page - fetch results and navigate
       const response = await fetch(
-        `api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100?search_id=${imageId}&search_id_from=DIGISAM`
+        `api/similar-by-image/DIGISAM-DEFAULT/0/100?search_id=${imageId}&search_id_from=DIGISAM`
       );
       const result = await response.json();
 
