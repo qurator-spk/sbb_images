@@ -12,7 +12,7 @@ import torch.nn.functional as F
 class ImageClassifier(BaseEstimator, ClassifierMixin):
 
     def __init__(self, model, model_weights, device, criterion, optimizer, scheduler,
-                 fit_transform, predict_transform, batch_size, logits_func=None):
+                 fit_transform, predict_transform, batch_size, logits_func=None, thumbnail_sqlite_file=None):
 
         self.model = model
         self.model_weights = model_weights
@@ -26,10 +26,12 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
         self.epoch_loss = None
         self.epoch_acc = None
         self.logits_func = logits_func
+        self.thumbnail_sqlite_file = thumbnail_sqlite_file
 
     def fit(self, X, y):
 
-        dataset = AnnotatedDataset(samples=X, targets=y, transform=self.fit_transform)
+        dataset = AnnotatedDataset(samples=X, targets=y, transform=self.fit_transform,
+                                   thumbnail_sqlite_file=self.thumbnail_sqlite_file, table_name="thumbnails")
 
         data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=8, drop_last=True)
 
@@ -74,7 +76,8 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
 
-        dataset = AnnotatedDataset(samples=X, targets=None, transform=self.predict_transform)
+        dataset = AnnotatedDataset(samples=X, targets=None, transform=self.predict_transform,
+                                   thumbnail_sqlite_file=self.thumbnail_sqlite_file, table_name="thumbnails")
 
         data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
@@ -97,7 +100,8 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
     def predict_proba(self, X):
 
-        dataset = AnnotatedDataset(samples=X, targets=None, transform=self.predict_transform)
+        dataset = AnnotatedDataset(samples=X, targets=None, transform=self.predict_transform,
+                                   thumbnail_sqlite_file=self.thumbnail_sqlite_file, table_name="thumbnails")
 
         data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
 

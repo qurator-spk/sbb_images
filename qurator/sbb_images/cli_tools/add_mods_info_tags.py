@@ -96,13 +96,13 @@ def cli(mods_info_file, sqlite_file, append):
             for _, (ppn, value) in tmp_tags.iterrows():
 
                 try:
-                    if value.startswith("{'") and  value.endswith("'}"):
-                         values = ast.literal_eval(value)
+                    if value.startswith("{'") and value.endswith("'}"):
+                        values = ast.literal_eval(value)
 
-                         for val in values:
-                             val = clean_str(val)
+                        for val in values:
+                            val = clean_str(val)
 
-                             df_tags.append((ppn, val))
+                            df_tags.append((ppn, val))
                     else:
                         value = clean_str(value)
 

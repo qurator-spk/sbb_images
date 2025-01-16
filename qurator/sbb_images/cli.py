@@ -19,6 +19,7 @@ from .database import setup_image_database, setup_thumbnail_database
 
 from .annotations import update_annotation_image_and_labels, update_url_thumbnail, parse_annotation
 
+from datetime import datetime
 import PIL
 PIL.Image.MAX_IMAGE_PIXELS = None
 
@@ -362,9 +363,15 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
 @click.argument('model-selection-file', type=click.Path(exists=True))
 @click.argument('model-file', type=click.Path(exists=True))
 @click.argument('result-file', type=click.Path(exists=False))
-@click.option('--train-only', type=bool, is_flag=True, default=False,
-              help="If true, write only pickled predictions but not prediction table of database. Default false.")
-def apply(sqlite_file, model_selection_file, model_file, result_file, train_only):
+@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
+                                                                      " but rather try to read them from this sqlite"
+                                                                      " thumbnail file.")
+@click.option('--train-only', type=bool, is_flag=True, default=False, help="Apply classifier only to training subset.")
+@click.option('--write-to-table', type=str, default=None, help="")
+@click.option('--label-table-name', type=str, default="images", help="")
+@click.option('--label', type=str, multiple=True, default=None, help="")
+def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, result_file,
+          train_only, write_to_table, label_table_name, label):
     """
 
     Classifies all images of an image database and writes the predictions into a predictions table of the database.
@@ -380,28 +387,56 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
 
     """
 
-    if os.path.exists(result_file) and not train_only:
+    def table_write(pred):
+
+        if write_to_table == 'predictions':
+
+            pred = pred.reset_index(drop=True)
+
+            with sqlite3.connect(sqlite_file) as _con:
+                pred.to_sql('predictions', con=_con, if_exists='replace')
+
+                con.execute('create index ix_predictions_labels on predictions(label)')
+                # con.execute('create index ix_predictions_ppn on predictions(PPN)')
+
+        elif write_to_table == 'tags':
+
+            timestamp = str(datetime.now())
+
+            pred = pred.reset_index().rename(columns={'rowid': 'image_id', 'label': 'tag'})
+
+            pred['tag'] = "Classifier:" + pred['tag']
+            pred['user'] = 'classifier'
+            pred['timestamp'] = timestamp
+            pred['read_only'] = 1
+
+            pred = pred[['image_id', 'tag', 'user', 'timestamp', 'read_only']]
+
+            with sqlite3.connect(sqlite_file) as _con:
+                _con.execute('DELETE FROM tags WHERE user="classifier"')
+
+                pred.to_sql('tags', con=_con, if_exists='append', index=False)
+        else:
+            raise RuntimeError("Unknown table format")
+
+    if os.path.exists(result_file) and write_to_table is not None:
         print("Result {} file already exists. Just writing it to the database {}.".format(result_file, sqlite_file))
 
         predictions = pd.read_pickle(result_file)
 
-        with sqlite3.connect(sqlite_file) as con:
-            predictions.to_sql('predictions', con=con, if_exists='replace')
-
-            con.execute('create index ix_predictions_labels on predictions(label)')
-            con.execute('create index ix_predictions_ppn on predictions(PPN)')
+        table_write(predictions)
 
         return
 
-    X, class_to_label, label_to_class = load_ground_truth(sqlite_file)
-
+    X, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label)
     y = None
-    if train_only:
+
+    if train_only is None:
         X['file'] = X['file'].astype(str)
         y = X['class'].astype(int)
     else:
         with sqlite3.connect(sqlite_file) as con:
-            X = pd.read_sql('select * from images', con=con)
+            X = pd.read_sql('select rowid,file from images', con=con).set_index('rowid')
 
         X['file'] = X['file'].astype(str)
 
@@ -413,42 +448,36 @@ def apply(sqlite_file, model_selection_file, model_file, result_file, train_only
 
     model.load_state_dict(torch.load(model_file, weights_only=True))
 
-    # optimizer = optim.SGD(model_ft.parameters(), lr=start_lr, momentum=momentum)
-    optimizer = AdamW(model.parameters(), lr=start_lr)
-
-    sched = lr_scheduler.StepLR(optimizer, step_size=decrease_epochs, gamma=decrease_factor)
-
     estimator = ImageClassifier(model=model, model_weights=copy.deepcopy(model.state_dict()),
-                                device=device, criterion=nn.CrossEntropyLoss(), optimizer=optimizer,
-                                scheduler=sched, fit_transform=fit_transform,
+                                device=device, criterion=nn.CrossEntropyLoss(), optimizer=None,
+                                scheduler=None, fit_transform=fit_transform,
                                 predict_transform=predict_transform, batch_size=batch_size,
-                                logits_func=logits_func)
+                                logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
     predictions = estimator.predict_proba(X)
 
+    if y is not None:
+        predictions['class_ground_truth'] = y
+        predictions['label_ground_truth'] = [class_to_label[cl] for cl in y]
+
+    predictions['class'] = predictions.idxmax(axis=1)
+    predictions['label'] = [class_to_label[cl] for cl in predictions['class']]
+
     predictions.to_pickle(result_file)
 
-    if train_only:
-
-        predictions['class'] = y
-        predictions['label'] = [class_to_label[cl] for cl in y]
-
-    else:
-        predictions['class'] = predictions.idxmax(axis=1)
-        predictions['label'] = [class_to_label[cl] for cl in predictions['class']]
-
-        with sqlite3.connect(sqlite_file) as con:
-            predictions.to_sql('predictions', con=con, if_exists='replace')
-
-            con.execute('create index ix_predictions_labels on predictions(label)')
-            # con.execute('create index ix_predictions_ppn on predictions(PPN)')
+    table_write(predictions)
 
 
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True))
 @click.argument('model-selection-file', type=click.Path(exists=True))
 @click.argument('model-file', type=click.Path(exists=False))
-def train(sqlite_file, model_selection_file, model_file):
+@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
+                                                                      " but rather try to read them from this sqlite"
+                                                                      " thumbnail file.")
+@click.option('--label-table-name', type=str, default="images", help="")
+@click.option('--label', type=str, multiple=True, default=None, help="")
+def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, label_table_name, label):
     """
 
     Selects the best model/training parameter combination from a model selection and
@@ -460,7 +489,7 @@ def train(sqlite_file, model_selection_file, model_file):
 
     """
 
-    X, class_to_label, label_to_class = load_ground_truth(sqlite_file)
+    X, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label)
 
     X['file'] = X['file'].astype(str)
     y = X['class'].astype(int)
@@ -480,7 +509,7 @@ def train(sqlite_file, model_selection_file, model_file):
                                 device=device, criterion=nn.CrossEntropyLoss(), optimizer=optimizer,
                                 scheduler=sched, fit_transform=fit_transform,
                                 predict_transform=predict_transform, batch_size=batch_size,
-                                logits_func=logits_func)
+                                logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
     for _ in range(0, epochs):
         estimator.fit(X, y)
@@ -524,6 +553,9 @@ def load_model_selection(model_selection_file):
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True))
 @click.argument('result-file', type=click.Path(exists=False))
+@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
+                                                                      " but rather try to read them from this sqlite"
+                                                                      " thumbnail file.")
 @click.option('--n-splits', type=int, default=10, help="Number of splits used in cross-validation. Default 10.")
 @click.option('--max-epoch', type=int, default=10, help="Number of training-epochs.")
 @click.option('--batch-size', type=int, default=16, help="Training batch-size.")
@@ -537,9 +569,11 @@ def load_model_selection(model_selection_file):
                    "Default resnet18.")
 @click.option('--num-trained-layers', type=int, multiple=True, default=[1],
               help="One or multiple number of layers to unfreeze. Default [1] (Unfreeze last layer).")
-def model_selection(sqlite_file, result_file, n_splits, max_epoch, batch_size,
+@click.option('--label-table-name', type=str, default="images", help="")
+@click.option('--label', type=str, multiple=True, default=None, help="")
+def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, max_epoch, batch_size,
                     start_lr, momentum, decrease_epochs, decrease_factor, model_name,
-                    num_trained_layers):
+                    num_trained_layers, label_table_name, label):
     """
 
     Performs a cross-validation in order to select an optimal model and training parameters for a given
@@ -551,7 +585,7 @@ def model_selection(sqlite_file, result_file, n_splits, max_epoch, batch_size,
 
     """
 
-    X, class_to_label, label_to_class = load_ground_truth(sqlite_file)
+    X, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label)
 
     X['file'] = X['file'].astype(str)
     y = X['class'].astype(int)
@@ -569,7 +603,7 @@ def model_selection(sqlite_file, result_file, n_splits, max_epoch, batch_size,
 
         result = cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
                                       fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits,
-                                      start_lr, logits_func)
+                                      start_lr, logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
         pprint(result.head(50))
 
@@ -585,33 +619,59 @@ def model_selection(sqlite_file, result_file, n_splits, max_epoch, batch_size,
     results.to_pickle(result_file)
 
 
-def load_ground_truth(sqlite_file):
+def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
 
-    with sqlite3.connect(sqlite_file) as con:
-        images = pd.read_sql('select * from images', con=con)
+    if label_table_name == "images":
 
-        annotations = pd.read_sql('select * from annotations', con=con)
-    # perform vote count for each label image
-    annotations = \
-        pd.DataFrame([(image_id - 1,  # -1 since sqlite indices start at 1
-                       im.label.value_counts().reset_index().max()['label'],
-                       im.label.value_counts().reset_index().max()['count'])
-                      for image_id, im in annotations.groupby('IMAGE')], columns=['IMAGE', 'label', 'consensus'])
+        with sqlite3.connect(sqlite_file) as con:
+            images = pd.read_sql('select * from images', con=con)
 
-    images = annotations.merge(images, left_on='IMAGE', right_on='index')
+            annotations = pd.read_sql('select * from annotations', con=con)
+        # perform vote count for each label image
+        annotations = \
+            pd.DataFrame([(image_id - 1,  # -1 since sqlite indices start at 1
+                           im.label.value_counts().reset_index().max()['label'],
+                           im.label.value_counts().reset_index().max()['count'])
+                          for image_id, im in annotations.groupby('IMAGE')], columns=['IMAGE', 'label', 'consensus'])
 
-    assert (images.num_annotations == 0).sum() == 0
-    # noinspection PyUnresolvedReferences
-    assert (images.consensus <= images.num_annotations).sum() == len(images)
+        images = annotations.merge(images, left_on='IMAGE', right_on='index')
 
-    images = images.loc[images.consensus > 1].copy()
+        assert (images.num_annotations == 0).sum() == 0
+        # noinspection PyUnresolvedReferences
+        assert (images.consensus <= images.num_annotations).sum() == len(images)
 
-    images['class'] = images.label.astype('category').cat.codes
+        images = images.loc[images.consensus > 1].copy()
 
-    class_to_label = images[['label', 'class']].drop_duplicates().set_index('class').sort_index().to_dict()['label']
-    label_to_class = images[['label', 'class']].drop_duplicates().set_index('label').sort_index().to_dict()['class']
+        images['class'] = images.label.astype('category').cat.codes
 
-    return images, class_to_label, label_to_class
+        class_to_label = images[['label', 'class']].drop_duplicates().set_index('class').sort_index().to_dict()['label']
+        label_to_class = images[['label', 'class']].drop_duplicates().set_index('label').sort_index().to_dict()['class']
+
+        return images, class_to_label, label_to_class
+
+    elif label_table_name == "tags":
+
+        images = []
+
+        with sqlite3.connect(sqlite_file) as con:
+            for label in labels:
+                images.append(pd.read_sql('select file, tag from images join tags on images.rowid=tags.image_id '
+                                          'where tags.tag=?', con=con, params=(label,)))
+
+        images = pd.concat(images).\
+            drop_duplicates(subset='file', keep=False).\
+            rename(columns={'tag': 'label'}).\
+            reset_index(drop=True)
+
+        images['class'] = images.label.astype('category').cat.codes
+
+        class_to_label = images[['label', 'class']].drop_duplicates().set_index('class').sort_index().to_dict()['label']
+        label_to_class = images[['label', 'class']].drop_duplicates().set_index('label').sort_index().to_dict()['class']
+
+        return images, class_to_label, label_to_class
+
+    else:
+        raise RuntimeError("Do not know how to interpret table '{}'".format(label_table_name))
 
 
 def load_pretrained_model(mn, num_classes, num_train_layers):
@@ -661,7 +721,7 @@ def load_pretrained_model(mn, num_classes, num_train_layers):
 
 def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
                          fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits, start_lr,
-                         logits_func):
+                         logits_func, thumbnail_sqlite_file=None):
 
     for fold in folds:
         # optimizer = optim.SGD(model_ft.parameters(), lr=start_lr, momentum=momentum)
@@ -673,7 +733,7 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
                                             device=device, criterion=nn.CrossEntropyLoss(), optimizer=optimizer,
                                             scheduler=sched, fit_transform=fit_transform,
                                             predict_transform=predict_transform, batch_size=batch_size,
-                                            logits_func=logits_func)
+                                            logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
     results = list()
     for epoch in range(0, max_epoch):
 
@@ -688,6 +748,8 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
         predictions = pd.concat(predictions)
 
         predictions['pred'] = predictions.idxmax(axis=1)
+
+        # import ipdb;ipdb.set_trace()
 
         epoch_result = pd.concat([predictions, y], axis=1)
 

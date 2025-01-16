@@ -461,6 +461,27 @@ def get_saliency(conf, x=-1, y=-1, width=-1, height=-1):
          'x': x, 'y': y, 'width': width, 'height': height})
 
 
+def strip_interval(search_str):
+
+    m = re.match(r"\[([0-9]+),([0-9]+|-)\](.*)", search_str)
+
+    if m:
+        start_from = int(m[1])
+
+        start_from = start_from - 1 if start_from > 0 else start_from
+
+        try:
+            list_until = int(m[2])
+        except ValueError:
+            list_until = None
+
+        search_str = m[3].strip()
+
+        return search_str, start_from, list_until
+
+    return search_str, 0, None
+
+
 @app.route('/similar-by-tag/<conf>', methods=['POST'])
 @app.route('/similar-by-tag/<conf>/<start>/<count>', methods=['POST'])
 @htpasswd.required
@@ -478,6 +499,10 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         raise BadRequest("tag missing.")
 
     search_tag = request.json['tag'].strip()
+
+    search_tag, start_from, list_until = strip_interval(search_tag)
+
+    start += start_from
 
     if not search_tag.startswith("|") and not search_tag.startswith("&"):
 
@@ -623,7 +648,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
         ids = df_ids['image_id'].tolist()
         num_matches = len(ids)
 
-        ids = ids[start: start + count]
+        ids = ids[start: start + count if list_until is None else list_until]
     else:
         ids = []
 
@@ -632,7 +657,7 @@ def get_similar_by_tag(user, conf, start=0, count=100):
 
     text += "#matches: {}".format(num_matches)
 
-    ret = {'ids': ids, 'info': text, "user": user}
+    ret = {'ids': ids, 'info': text, "user": user, "start_from": start_from}
 
     if len(highlight_iconclass) > 0:
         ret['highlight_iconclass'] = list(set().union(highlight_iconclass))
@@ -657,6 +682,10 @@ def get_similar_by_filename(user, conf, start=0, count=100):
         raise BadRequest("pattern missing.")
 
     search_pattern = request.json['pattern']
+
+    search_pattern, start_from, list_until = strip_interval(search_pattern)
+
+    start += start_from
 
     if not search_pattern.startswith("|") and not search_pattern.startswith("&"):
         search_pattern = "|" + search_pattern
@@ -737,11 +766,11 @@ def get_similar_by_filename(user, conf, start=0, count=100):
 
         ids = df_ids['image_id'].tolist()
 
-        ids = ids[start: start + count]
+        ids = ids[start: start + count if list_until is None else list_until]
     else:
         ids = []
 
-    ret = {'ids': ids, "user": user}
+    ret = {'ids': ids, "user": user, "start_from": start_from}
 
     return jsonify(ret)
 
@@ -777,7 +806,7 @@ def get_similar_by_iconclass(user, conf, start=0, count=100):
 
     result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
-    return jsonify({'ids': result, 'info': text, 'highlight_labels': label_parts, "user": user})
+    return jsonify({'ids': result, 'info': text, 'highlight_labels': label_parts, "user": user, "start_from": 0})
 
 
 @app.route('/similar-by-text/<conf>', methods=['POST'])
@@ -795,7 +824,12 @@ def get_similar_by_text(user, conf, start=0, count=100):
 
     text = request.json['text']
 
-    start, count = int(start), int(count)
+    text, start_from, list_until = strip_interval(text)
+
+    start, count = int(start) + start_from, int(count)
+
+    if list_until is not None:
+        count = count if start + count < list_until else list_until - start
 
     extract_features, extract_transform = thread_store.get_extraction_model(model_conf)
 
@@ -803,9 +837,12 @@ def get_similar_by_text(user, conf, start=0, count=100):
 
     fe = fe.squeeze()
 
-    result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
+    if count > 0:
+        result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
+    else:
+        result = []
 
-    return jsonify({'ids': result, 'info': '"{}"'.format(text), "user": user})
+    return jsonify({'ids': result, 'info': '"{}"'.format(text), "user": user, "start_from": start_from})
 
 
 def get_image_from_thumbnail_database_or_filesystem(image_id, image_conn, return_full=False, try_file_first=False):
@@ -954,7 +991,7 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1.0, y=-1.0, width=-
 
     result = get_similar_from_features(conf, count, data_conf, fe, model_conf, start)
 
-    return jsonify({'ids': result, 'user': user})
+    return jsonify({'ids': result, 'user': user, "start_from": 0})
 
 
 def has_table(table_name, data_conf):

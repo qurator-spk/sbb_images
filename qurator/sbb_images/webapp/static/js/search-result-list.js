@@ -313,7 +313,7 @@ function setup_search_result_list(configuration, search, next_batch) {
             request_counter += 1;
             batches = [ results ];
             num_results = 0;
-            result_number = 0;
+            result_number = results["start_from"];
             select_all = false;
         }
         else {
