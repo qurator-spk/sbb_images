@@ -368,10 +368,13 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
                                                                       " thumbnail file.")
 @click.option('--train-only', type=bool, is_flag=True, default=False, help="Apply classifier only to training subset.")
 @click.option('--write-to-table', type=str, default=None, help="")
-@click.option('--label-table-name', type=str, default="images", help="")
+@click.option('--label-table-name', type=str, default="annotations", help="")
 @click.option('--label', type=str, multiple=True, default=None, help="")
+@click.option('--tag-prefix', type=str, default=None, help="Tag prefix.")
+@click.option('--username', type=str, default=None, help="Tag prefix.")
+@click.option('--remove-user-tags', type=bool, is_flag=True, default=False, help="")
 def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, result_file,
-          train_only, write_to_table, label_table_name, label):
+          train_only, write_to_table, label_table_name, label, tag_prefix, username, remove_user_tags):
     """
 
     Classifies all images of an image database and writes the predictions into a predictions table of the database.
@@ -386,6 +389,12 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
     RESULT_FILE: Additionally write predictions to this pickled pandas Dataframe.
 
     """
+
+    if tag_prefix is None:
+        tag_prefix = "Classifier:"
+
+    if username is None:
+        username = "classifier"
 
     def table_write(pred):
 
@@ -405,15 +414,16 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
             pred = pred.reset_index().rename(columns={'rowid': 'image_id', 'label': 'tag'})
 
-            pred['tag'] = "Classifier:" + pred['tag']
-            pred['user'] = 'classifier'
+            pred['tag'] = tag_prefix + pred['tag']
+            pred['user'] = username
             pred['timestamp'] = timestamp
             pred['read_only'] = 1
 
             pred = pred[['image_id', 'tag', 'user', 'timestamp', 'read_only']]
 
             with sqlite3.connect(sqlite_file) as _con:
-                _con.execute('DELETE FROM tags WHERE user="classifier"')
+                if remove_user_tags:
+                    _con.execute('DELETE FROM tags WHERE user=?', parameters=(username,))
 
                 pred.to_sql('tags', con=_con, if_exists='append', index=False)
         else:
@@ -475,7 +485,7 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 @click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
                                                                       " but rather try to read them from this sqlite"
                                                                       " thumbnail file.")
-@click.option('--label-table-name', type=str, default="images", help="")
+@click.option('--label-table-name', type=str, default="annotations", help="")
 @click.option('--label', type=str, multiple=True, default=None, help="")
 def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, label_table_name, label):
     """
@@ -569,11 +579,12 @@ def load_model_selection(model_selection_file):
                    "Default resnet18.")
 @click.option('--num-trained-layers', type=int, multiple=True, default=[1],
               help="One or multiple number of layers to unfreeze. Default [1] (Unfreeze last layer).")
-@click.option('--label-table-name', type=str, default="images", help="")
+@click.option('--label-table-name', type=str, default="annotations", help="")
 @click.option('--label', type=str, multiple=True, default=None, help="")
+@click.option('--epoch-steps', type=int, default=1, help="Step size of epoch increase.")
 def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, max_epoch, batch_size,
                     start_lr, momentum, decrease_epochs, decrease_factor, model_name,
-                    num_trained_layers, label_table_name, label):
+                    num_trained_layers, label_table_name, label, epoch_steps):
     """
 
     Performs a cross-validation in order to select an optimal model and training parameters for a given
@@ -603,7 +614,7 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
         result = cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
                                       fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits,
-                                      start_lr, logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
+                                      start_lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
         pprint(result.head(50))
 
@@ -721,7 +732,7 @@ def load_pretrained_model(mn, num_classes, num_train_layers):
 
 def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
                          fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits, start_lr,
-                         logits_func, thumbnail_sqlite_file=None):
+                         logits_func, epoch_steps, thumbnail_sqlite_file=None):
 
     for fold in folds:
         # optimizer = optim.SGD(model_ft.parameters(), lr=start_lr, momentum=momentum)
@@ -735,21 +746,19 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
                                             predict_transform=predict_transform, batch_size=batch_size,
                                             logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
     results = list()
-    for epoch in range(0, max_epoch):
+    for epoch in range(epoch_steps, max_epoch + 1, epoch_steps):
 
         predictions = list()
         for fold in folds:
             estimator = fold['estimator']
 
-            estimator.fit(X.iloc[fold['train']], y.iloc[fold['train']])
+            estimator.fit(X.iloc[fold['train']], y.iloc[fold['train']], epochs=epoch_steps)
 
             predictions.append(estimator.predict_proba(X.iloc[fold['test']]))
 
         predictions = pd.concat(predictions)
 
         predictions['pred'] = predictions.idxmax(axis=1)
-
-        # import ipdb;ipdb.set_trace()
 
         epoch_result = pd.concat([predictions, y], axis=1)
 
