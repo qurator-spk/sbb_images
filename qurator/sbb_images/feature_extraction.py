@@ -13,9 +13,9 @@ from PIL import Image
 def load_extraction_model(model_name=None, layer_name='fc', layer_output=False, vit_model=None, vst_model=None,
                           clip_model=None, open_clip_model=None, open_clip_pretrained=None,
                           ms_clip_model=None, multi_lang_clip_model=None,
-                          tokenizer=None):
+                          tokenizer=None, no_cuda=False):
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() and not no_cuda else "cpu")
 
     model_extr = None
     if open_clip_model is not None and multi_lang_clip_model is not None and open_clip_pretrained is not None:
@@ -30,7 +30,7 @@ def load_extraction_model(model_name=None, layer_name='fc', layer_output=False, 
         txt_model = txt_model.to(device)
 
         def tokenizer(txt, **kwargs):
-            return _tokenizer(txt, padding=True, return_tensors='pt').to('cuda')
+            return _tokenizer(txt, padding=True, return_tensors='pt').to(device)
 
         def normalization (input):
             return input

@@ -53,8 +53,8 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
             data_seq = iter(data_loader)
 
             for e in range(1, epochs+1):
-                tqdm_seq.set_description("train (Epoch {} Train Loss: {:.4f} Acc: {:.4f})".format(e,
-                                         self.epoch_loss, self.epoch_acc))
+                tqdm_seq.set_description("train (Epoch {} Train Loss: {:.4f} Acc: {:.4f})".
+                                         format(e, running_loss/(num_samples), running_corrects/(num_samples)))
 
                 running_loss = 0.0
                 running_corrects = 0
@@ -67,9 +67,8 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
                     if batch_pos > batches_per_epoch:
                         break
 
-                self.epoch_loss = running_loss / len(X)
-                self.epoch_acc = running_corrects / len(X)
                 self.scheduler.step()
+                # print("Epoch Acc: {}, Epoch Loss: {}".format(self.epoch_acc, self.epoch_loss))
 
         tqdm_seq = tqdm(train_seq(), total=int(epochs*batches_per_epoch), desc="train")
 
@@ -95,6 +94,11 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
             running_corrects += torch.sum(preds == labels.data).double()
 
         self.model_weights = copy.deepcopy(self.model.state_dict())
+
+        self.epoch_loss = running_loss / num_samples
+        self.epoch_acc = running_corrects / num_samples
+
+        print("Epoch Acc: {}, Epoch Loss: {}".format(self.epoch_acc, self.epoch_loss))
 
         return self
 

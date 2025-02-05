@@ -715,8 +715,8 @@ def load_pretrained_model(mn, num_classes, num_train_layers):
 
     model_ft = getattr(models, mn)(weights=True)
 
-    for p in model_ft.parameters():
-        p.requires_grad = False
+    #for p in model_ft.parameters():
+    #    p.requires_grad = False
 
     in_features = getattr(model_ft, classification_layer_name).in_features
 
@@ -767,6 +767,7 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
         result['test_acc'] = (epoch_result['pred'] == epoch_result['class']).sum() / len(epoch_result)
 
         result['train_loss'] = np.mean([fold['estimator'].epoch_loss for fold in folds])
+        print([float(fold['estimator'].epoch_acc) for fold in folds])
         result['train_acc'] = np.mean([float(fold['estimator'].epoch_acc) for fold in folds])
 
         for cl, cl_res in epoch_result.groupby('class'):

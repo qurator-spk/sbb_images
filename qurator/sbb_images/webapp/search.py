@@ -240,7 +240,11 @@ class ThreadStore:
                                                                        open_clip_model=open_clip_model,
                                                                        open_clip_pretrained=open_clip_pretrained,
                                                                        multi_lang_clip_model=multi_lang_clip_model,
-                                                                       tokenizer=tokenizer)
+                                                                       tokenizer=tokenizer,
+                                                                       no_cuda=False if not os.environ.get(
+                                                                           'USE_CUDA') else
+                                                                       os.environ.get('USE_CUDA').lower() == 'false'
+                                                                       )
 
         self._model_map[model_conf] = (extract_features, extract_transform)
 
