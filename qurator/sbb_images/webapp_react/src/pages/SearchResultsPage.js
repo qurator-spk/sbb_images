@@ -269,8 +269,8 @@ const SearchResultsPage = () => {
         <h3 className='browse-search'>Your search:</h3>
         <div className="query-image-container">  
           <Cropper
+            key={searchState.imgUrl}
             src={searchState.imgUrl}
-          // style={{ height: 400, width: '100%' }}
             style={{ width: '60%', maxHeight: '40vh' }}
             aspectRatio={NaN}
             guides={true}
