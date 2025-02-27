@@ -1,6 +1,6 @@
 import React, { useState, useRef} from "react";
 import UploadIcon from "./UploadIcon";
-import { ReactComponent as DragIcon } from "../assets/D&D.svg";
+import {ReactComponent as DragAndDrop} from "../assets/Picture.svg";
 import InterruptedLine from "./InterruptedLine";
 
 const ImageTab = ({ 
@@ -34,16 +34,9 @@ const ImageTab = ({
     let fd = new FormData();
     fd.append("file", file);
     const imageUrl = URL.createObjectURL(file);
-   // console.log("Created image URL:", imageUrl);
 
     setSearchState((prevState) => {
-    //  console.log("Previous state:", prevState);
       const newState = prevState.setImgUrlWithFormData(imageUrl, fd);
-     /*  const newState = prevState.setImgUrlWithFormData(
-        URL.createObjectURL(file),
-        fd
-      ); */
-      console.log("New search state in ImageTab:", newState);
 
       if (onSearchStateChange){
         onSearchStateChange(newState); // using the prop from Tabs
@@ -87,10 +80,12 @@ const ImageTab = ({
       onDrop={handleDrop}
     >
       <div className="drag-area">
-        <p>Drag & drop an image to start the search</p>
-        <DragIcon className="DDicon"/>
+        <DragAndDrop className="DDicon"/>
+        <p>Drag & drop an image of your choice to start the search</p>  
       </div>
+
       <InterruptedLine />
+
       <div className="Upload">
         <button className="UploadButton" onClick={handleUploadButtonClick}>
         <UploadIcon className="upload-icon" /> Upload an image 

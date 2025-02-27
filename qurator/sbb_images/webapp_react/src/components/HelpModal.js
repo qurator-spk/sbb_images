@@ -10,7 +10,7 @@ const HelpModal = ({ isOpen, onClose, title, content }) => {
       <div className="modal-content">
         <div className="modal-title">
           {" "}
-          <h1>{title}</h1>
+          <h2>{title}</h2>
           <button className="close-button" onClick={onClose}>
             ×
           </button>

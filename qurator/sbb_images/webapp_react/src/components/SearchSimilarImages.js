@@ -1,10 +1,9 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-//import "./SearchSimilarImages.css";
+import { useNavigate, useState } from "react-router-dom";
 import '../styles/SearchSimilarImages.css';
 
 const SearchSimilarImages = ({ imageId, isFromResults, onSearchMore }) => {
-  const navigate = useNavigate();
+const navigate = useNavigate();
 
   const handleClick = async () => {
     if (isFromResults) {
@@ -32,11 +31,11 @@ const SearchSimilarImages = ({ imageId, isFromResults, onSearchMore }) => {
     }
   };
 
-  return (
+   return (
     <button className="search-button" onClick={handleClick}>
       Search Similar Images
     </button>
-  );
+  ); 
 };
 
 export default SearchSimilarImages;

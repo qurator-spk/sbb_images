@@ -2,17 +2,14 @@
     width: 80%;
     min-height: 30%;
     margin-bottom: 3rem;
-    /* margin-top: 5rem; */
-    /* min-height: 500px; */
+    line-height: 1.5rem;
 
     @media (max-width: 769px) {
         width: 90%;
-        /* margin-bottom: 1rem; */
     }
 
     @media (max-width: 469px) {
         width: 90%;
-        /* margin-bottom: 2rem; */
     }
 }
 
@@ -26,3 +23,11 @@
         margin-bottom: 2rem;
     }
 }
+
+.intro-text a {
+    color: #2B4474; /* SPK-Blau 100 */
+}
+
+.intro-text a:hover {
+    color: #182645; /* SPK-Blau 150 */
+  }

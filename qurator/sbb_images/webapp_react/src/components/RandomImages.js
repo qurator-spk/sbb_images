@@ -1,17 +1,12 @@
-// Maybe make the card a separate component
-
 import React, { useState, useEffect } from "react";
 import allImages from "./imageData";
 import SearchSimilarImages from "./SearchSimilarImages";
-//import "./RandomImages.css";
 import '../styles/RandomImages.css';
 
 const RandomImages = () => {
   const [images, setImages] = useState([]);
 
-  // function to extract id
   const getImageId = (src) => {
-    // for URL format "api/image/DIGISAM/257062"
     return src.split("/").pop();
   };
 

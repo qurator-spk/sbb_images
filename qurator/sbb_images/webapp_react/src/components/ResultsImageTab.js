@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import UploadIcon from "./UploadIcon";
-import { ReactComponent as DragIcon } from "../assets/D&D.svg";
+import {ReactComponent as DragAndDrop} from "../assets/Picture.svg";
 import InterruptedLine from "./InterruptedLine";
 import '../styles/Tabs.css';
 
@@ -62,7 +62,7 @@ const ResultsImageTab = ({
     let fd = new FormData();
     fd.append("file", file);
     const response = await fetch(
-      "api/similar-by-image/DIGISAM-MSCLIP-B32-LAION/0/100",
+      "api/similar-by-image/DIGISAM-DEFAULT/0/100",
       {
         method: "POST",
         body: fd,
@@ -99,8 +99,8 @@ const ResultsImageTab = ({
             ×
           </button>
           <div className="drag-area">
+            <DragAndDrop className="DDicon"/>
             <p>Drag & Drop an image to start the search</p>
-            <DragIcon className="DDicon"/>
           </div>
           <InterruptedLine />
           <div className="Upload">

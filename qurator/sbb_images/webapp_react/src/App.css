@@ -20,10 +20,8 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    /* gap: 20px; */
     align-items: center;
     justify-content: center;
-    /* overflow: hidden; */
     overflow: auto;
     margin-top: 5rem;
   }
@@ -37,7 +35,5 @@
     flex-direction: column;
     align-items: center; 
     padding: 0; 
-    /* margin: 0; */
     height: 100%;
-    /* margin-bottom: 20rem; */
   }

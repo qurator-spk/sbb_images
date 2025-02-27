@@ -4,7 +4,7 @@ import "../styles/Intro.css";
 const Intro = () => {
   return (
     <div className="intro-text">
-      <h2>Welcome to the MMK Image Search</h2>
+      <h2>Welcome to the Stabi Image Search (Beta)</h2>
       <p>
         This is an AI-based image search tool which allows you to search for
         images inside documents from 

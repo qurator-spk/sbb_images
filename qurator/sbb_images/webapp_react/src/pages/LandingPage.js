@@ -15,25 +15,6 @@ const LandingPage = () => {
     console.log("handleSearchStateChange called with:", newState);
     setSearchState(newState);
   };
-//added to debug - why is imgUrl not being passed on to results page
- /*  useEffect(() => {
-    console.log("searchState updated in LandingPage:", searchState)
-  }, [searchState]) */
-//==============================================================
-
-  //const updateResults = (results) => {
-  /* const updateResults = (results, imgUrl) => {
-    console.log("updateResults called with:", results);
-    console.log("Current searchState in updateResults: ", searchState);
- */
- // const serializableSearchState = {
-   // imgUrl: searchState.imgUrl,
-  /*   imgUrl: imgUrl || searchState.imgUrl,
-    description: searchState.description,
-    ppn: searchState.ppn,
-    img_id: searchState.img_id,
-  };
- */
 
   const updateResults = (results, searchTerm) => {
     console.log("updateResults called with:", results, searchTerm);

@@ -8,16 +8,8 @@ export const helpTexts = {
           Drag and drop or upload an image (JPEG, PNG) of your choice to find similar 
           images within the Stabi Digitized Collections. The image upload 
           automatically triggers the search, there is no button to click afterwards.<br/> 
-          {/* Results will start appearing after a few seconds. */}
           After a short delay, the results will start appearing.
         </li>
-        {/* <li>
-          The query image will appear with a blue frame. If you move the
-          margins of the frame in any direction, you can define a specific
-          region of the image that will become the basis for new queries,
-          narrowing down your search to specific parts of the initial image
-          (e.g., a ship, a person and so on).
-        </li> */}
         <li>
           The query image will appear with a blue frame. If you grab and move 
           the margins of the frame in any direction, you can define a specific 
@@ -36,11 +28,6 @@ export const helpTexts = {
           Clicking the "Search Similar Images" button in one of the results
           cards starts a new search, with the chosen image as the new query.
         </li>
-        {/* <li>
-          To see the document containing the shown image, click on "View in
-          Digitized Collections". This takes you to the document in the Stabi
-          Digitized Collections.
-        </li> */}
         <li>
           Clicking on 'View in Digitized Collections' opens the document page where 
           this image appears in the Stabi Digitized Collections.
@@ -56,9 +43,11 @@ export const helpTexts = {
           you use, the better the results. 
           But it’s not mandatory to be very specific - if all you have is, for example, “red squirrel”, 
           you can start with that.<br/>
+          <strong>We recommend starting a sentence with a capital letter and ending it with a point. 
+          This changes the results, and so do spaces, typos, and any sign you put in the input 
+          field. To repeat a search and get the same results the text must be absolutely 
+          identical.</strong><br/>
           After a short delay, the results will start appearing.
-          {/* Currently we only support text queries in the English language. Other 
-          languages will be added later, but right now please use English only. */}
         </li>
         <li>
           The description search returns images ordered according to how well they 

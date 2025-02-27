@@ -18,17 +18,11 @@ const Tabs = ({
 }) => { const [isModalOpen, setIsModalOpen] = useState(false); const [isHovering, setIsHovering] = useState(false);
 
   const hoverTexts = {
-    image: 'To learn more about the search by image, click on the yellow circle.',
-    description: 'To learn more about the search by description, click on the yellow circle.',
-    ppn: 'To learn more about the search by PPN, click on the yellow circle', 
+    image: 'To learn more about the different types of search, click on the circle for each active tab (now - Search by Image).',
+    description: 'To learn more about the different types of search, click on the circle for each active tab (now - Search by Description).',
+    ppn: 'To learn more about the different types of search, click on the circle for each active tab (now - Search by PPN).',
   };
   
-
-  /* const getModalTitle = (tab) => {
-     return `How to search by ${tab}`;
-  }; */
-
-
   const getModalTitle = (tab) => {
     if (tab === "ppn") {
       return "How to search by PPN";
@@ -40,22 +34,6 @@ const Tabs = ({
     setActiveTab(tab);
   };
   
-
-/* const Tabs = ({ updateResults, searchState, setSearchState }) => {
-  const [activeTab, setActiveTab] = useState('image');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
-
-  const hoverTexts = {
-    image: 'To learn more about the search by image, click on the yellow circle.',
-    description: 'To learn more about the search by description, click on the yellow circle.',
-    ppn: 'To learn more about the search by PPN, click on the yellow circle',
-  };
-
-  const handleTabClick = (tab) => {
-    setActiveTab(tab);
-  }; */
-
   return (
     <div className="Search">
       <div className="Tabs">
@@ -101,11 +79,6 @@ const Tabs = ({
                onSearchStateChange={onSearchStateChange}
              />
            )
-             /*  <ImageTab 
-                updateResults={updateResults} 
-                searchState={searchState} 
-                setSearchState={setSearchState}
-                onSearchStateChange={onSearchStateChange} /> //passing prop from Landing Page*/
             ) : activeTab === 'description' ? (
               <DescriptionTab updateResults={updateResults} searchState={searchState} setSearchState={setSearchState} />
             ) : (

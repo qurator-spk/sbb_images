@@ -41,7 +41,7 @@ header {
 }
 
 .logo-link:hover .logo-svg {
-  color: #edd058;
+  color: #E2E2F2; /* Lavandel 30 */
 }
 
 .header-nav {
@@ -51,29 +51,25 @@ header {
 }
 
 .header-nav-item {
-  color: #ffffff;
+  color: #FFFFFF;
   text-decoration: none;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .header-nav-item:hover:not(.header-nav-item-current) {
-  color: #edd058;
+  color: #E2E2F2; /* Lavandel 30 */
+  /* color: #C5C4E3; Lavandel 50 */
 }
-
-/* .header-nav-item:hover {
-  color: #ffe600;
-  text-decoration: underline;
-} */
 
 .header-nav-item:visited,
 .header-nav-item:active,
 .header-nav-item:link {
-  color: #ffffff;
+  color: #FFFFFF;
 }
 
 .header-nav-item-current {
-  color: #ffffff;
+  color: #FFFFFF;
   text-decoration: underline;
   cursor: default;
 }

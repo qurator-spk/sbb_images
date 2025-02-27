@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import SearchSimilarImages from "./SearchSimilarImages";
 
-const SearchResult = ({searchMore, img_id, loadPos, searchResult, activeTab, pos}) => {
+const SearchResult = ({
+  searchMore, 
+  img_id, 
+  loadPos, 
+  searchResult, 
+  activeTab, 
+  pos
+  }) => { 
 
     const minLoadInterval = 200;
 
@@ -14,15 +21,10 @@ const SearchResult = ({searchMore, img_id, loadPos, searchResult, activeTab, pos
     };
 
     const imageLoader = async() => {
-      //  console.log("Starting to load image:", img_id); 
         const response = await fetch("api/image/DIGISAM/" + img_id);
-
         const img = await response.blob();
-
         const imgUrl = URL.createObjectURL(img);
-
         setImgSrc(imgUrl);
-      //  console.log("Finished loading image:", img_id);
     };
 
     const exitCondition = (sresult) => {
@@ -42,24 +44,15 @@ const SearchResult = ({searchMore, img_id, loadPos, searchResult, activeTab, pos
               return; 
 
             if (searchResult.ids[loadPos.current] !== img_id) {
-              // block added for debugging
-             /*  console.log("Waiting for next image...", {
-                currentLoadPos: loadPos.current,
-                expectedId: searchResult.ids[loadPos.current],
-                thisId: img_id,
-              }); */
-              // ends here
                 setTimeout(() => { loadWaiter(sresult) }, minLoadInterval);
                 return;
             }
 
-           // console.log("Starting loadWaiter for image:", img_id);
             imageLoader();
 
             if (exitCondition(sresult)) return;
     
             loadPos.current = loadPos.current + 1;
-           // console.log("Increased loadPos to:", loadPos.current);
         };
 
     useEffect(() => {
@@ -72,20 +65,15 @@ const SearchResult = ({searchMore, img_id, loadPos, searchResult, activeTab, pos
     },[searchResult]);
 
     return (
-        <div style={isLoaded ? {} : { display: 'none'}} className='card-image-wrapper'>
-            <img src={imgSrc} onLoad={() => {setIsLoaded(true)}} className='card-image' /> 
-
-           {/*  <button onClick={() => searchMore(img_id)}>
-                Search Similar Images
-            </button> */}
-
-            {/* Adding the component to search similar images */}
-
-           {/*  <SearchSimilarImages 
-              imageId={img_id}
-              isFromResults={true}
-              onSearchMore={searchMore}
-            /> */}
+        // <div style={isLoaded ? {} : { display: 'none'}} className='card-image-wrapper'>
+        <div className='card-image-wrapper'>
+         {!isLoaded && <div className="imgLoader"></div>}
+            <img 
+              src={imgSrc} 
+              onLoad={() => {setIsLoaded(true)}} 
+              className='card-image' 
+              style={isLoaded ? {} : { display: "none" }} /*added for loaders*/ 
+            /> 
         </div>
     );
 };
@@ -95,27 +83,25 @@ const SearchResults = ({
     searchMore,
     activeTab,
     searchState,
+    loadNextBatch,
+    isLoadingNextBatch,
   }) => {
-    /* console.log("SearchResults rendered", {
-      searchResult,
-      activeTab,
-      searchState,
-    }); */
-  
     const loadPos = useRef(0);
-    loadPos.current = 0;
+     loadPos.current = 0; 
+
+    const isLoadingBatch = useRef(false); // tracking batch loads
   
     if (!searchState) {
       return null;
     }
 
   const [links, setLinks] = useState({});
-  // load links when results arrive
+  // Load links when results arrive
   useEffect(() => {
     if (searchResult.ids) {
       //*****************order ppn results******************** */
       if (searchResult.type === "ppn") {
-        // For PPN search: fetch all links at once and sort by page number
+        // PPN search: fetch all links at once and sort by page number
         Promise.all(
           searchResult.ids.map(async (imgID) => {
             const response = await fetch(`api/link/DIGISAM/${imgID}`);
@@ -140,7 +126,7 @@ const SearchResults = ({
           setLinks(newLinks);
         });
       } else {
-        // For other searches: fetch links without sorting
+        // Other searches: fetch links without sorting
         searchResult.ids.forEach(async (imgID) => {
           const response = await fetch(`api/link/DIGISAM/${imgID}`);
           const link = await response.text();
@@ -152,6 +138,38 @@ const SearchResults = ({
       }
     }
   }, [searchResult.ids, searchResult.type]); 
+
+  //******************SCROLL*********************** */
+
+   // scroll detection
+    useEffect(() => {
+    const handleScroll = async () => {
+      console.log(
+        "Scroll triggered, isLoadingBatch is:",
+        isLoadingBatch.current
+      );
+      if (!isLoadingBatch.current) {
+        const reachedBottom =
+          window.innerHeight + window.scrollY >=
+          document.documentElement.scrollHeight - 100;
+
+        if (reachedBottom) {
+          console.log("Bottom reached, about to set isLoadingBatch to true");
+          isLoadingBatch.current = true;
+          await loadNextBatch();
+          console.log(
+            "loadNextBatch finished, about to set isLoadingBatch to false"
+          );
+          isLoadingBatch.current = false;
+        }
+      }
+    }; 
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [loadNextBatch]);
+
+  //**************************************************** */
   
     return (
       <div className='search-results-container'>
@@ -170,7 +188,8 @@ const SearchResults = ({
         <div className="search-results-grid">
           {searchResult.ids &&
             searchResult.ids.map((imgID, pos) => (
-              <div className="result-card" key={imgID}>
+               <div className="result-card" key={imgID}>
+              {/* <div className="result-card" key={`${imgID}-${pos}`}> */}
                 <div className="image-container">
                   <SearchResult
                     key={imgID}
@@ -200,6 +219,13 @@ const SearchResults = ({
               </div>
             ))}
         </div>
+        
+        {/* Loader at the bottom */}
+        {isLoadingNextBatch && (
+          <div className="batch-loader-container">
+            <div className="batch-loader"></div>
+          </div>
+        )}
       </div>
     );
   };

@@ -30,7 +30,7 @@ const AboutPage = () => {
             >
               Berlin State Library (SBB)'s Digitized Collections
             </a>
-            .<br/> <strong>All documents in the collections date back to 1945 or earlier,
+            . <strong>All documents in the collections date back to 1945 or earlier,
             therefore all the search results will also stop at 1945.</strong>
           </p>
 
@@ -45,7 +45,10 @@ const AboutPage = () => {
                     or click on one of the examples
                   </strong>{" "}
                   on our homepage. Results will be shown from the most to
-                  the least similar ones.
+                  the least similar ones.<br/>
+                  Starting a search by uploading an image and by clicking the "Search Similar Images" 
+                  in one of the cards will lead to different results, even if the 
+                  query image is the same.
                 </li>
                 <li>
                   {" "}
@@ -133,7 +136,7 @@ const AboutPage = () => {
           <div className="links">
             <a href="https://mmk.sbb.berlin/" target="_blank"
               rel="noopener noreferrer" className="link">
-              The Group - Mensch.Maschine.Kultur
+              The Project - Mensch.Maschine.Kultur
             </a>
             <a href="https://github.com/qurator-spk/sbb_images" target="_blank"
               rel="noopener noreferrer" className="link">
