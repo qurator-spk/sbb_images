@@ -10,6 +10,8 @@ import numpy as np
 import itertools
 from tqdm import tqdm
 
+from peft import LoraConfig, get_peft_model
+
 from sklearn.model_selection import StratifiedKFold
 from pprint import pprint
 
@@ -373,8 +375,10 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
 @click.option('--tag-prefix', type=str, default=None, help="Tag prefix.")
 @click.option('--username', type=str, default=None, help="Tag prefix.")
 @click.option('--remove-user-tags', type=bool, is_flag=True, default=False, help="")
+@click.option('--training-database', type=click.Path(exists=True), default=None, help="")
 def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, result_file,
-          train_only, write_to_table, label_table_name, label, tag_prefix, username, remove_user_tags):
+          train_only, write_to_table, label_table_name, label, tag_prefix, username, remove_user_tags,
+          training_database):
     """
 
     Classifies all images of an image database and writes the predictions into a predictions table of the database.
@@ -441,6 +445,10 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
     X, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label)
     y = None
 
+    if training_database is not None:
+        _, class_to_label, label_to_class = load_ground_truth(training_database, label_table_name=label_table_name,
+                                                              labels=label)
+
     if train_only is None:
         X['file'] = X['file'].astype(str)
         y = X['class'].astype(int)
@@ -450,12 +458,13 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
         X['file'] = X['file'].astype(str)
 
-    batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, start_lr = load_model_selection(
-        model_selection_file)
+    batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_p, start_lr = \
+        load_model_selection(model_selection_file)
 
     model, device, fit_transform, predict_transform, logits_func = \
-        load_pretrained_model(model_name, len(label_to_class), num_trained)
+        load_pretrained_model(model_name, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p)
 
+    # import ipdb;ipdb.set_trace()
     model.load_state_dict(torch.load(model_file, weights_only=True))
 
     estimator = ImageClassifier(model=model, model_weights=copy.deepcopy(model.state_dict()),
@@ -504,11 +513,12 @@ def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
     X['file'] = X['file'].astype(str)
     y = X['class'].astype(int)
 
-    batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, start_lr = load_model_selection(
-        model_selection_file)
+    batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_p, start_lr = \
+        load_model_selection(model_selection_file)
 
     model, device, fit_transform, predict_transform, logits_func = \
-        load_pretrained_model(model_name, len(label_to_class), num_trained)
+        load_pretrained_model(model_name, len(label_to_class),
+                              num_train_layers=num_trained, freeze_percentage=freeze_p)
 
     # optimizer = optim.SGD(model_ft.parameters(), lr=start_lr, momentum=momentum)
     optimizer = AdamW(model.parameters(), lr=start_lr)
@@ -539,6 +549,9 @@ def load_model_selection(model_selection_file):
     num_trained = int(best_config.num_trained_layers)
     print('Number of trained layers: {}'.format(num_trained))
 
+    freeze_percentage = float(best_config.freeze_percentage)
+    print('Freeze percentage: {}'.format(freeze_percentage))
+
     epochs = int(best_config.epoch)
     print('Number of training epochs: {}'.format(epochs))
 
@@ -557,7 +570,7 @@ def load_model_selection(model_selection_file):
     momentum = float(best_config.momentum)
     print('Momentum (if SGD is used): {}'.format(momentum))
 
-    return batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, start_lr
+    return batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_percentage, start_lr
 
 
 @click.command()
@@ -578,13 +591,15 @@ def load_model_selection(model_selection_file):
                    "see https://pytorch.org/docs/stable/torchvision/models.html for possible choices. "
                    "Default resnet18.")
 @click.option('--num-trained-layers', type=int, multiple=True, default=[1],
-              help="One or multiple number of layers to unfreeze. Default [1] (Unfreeze last layer).")
+              help="Number of fully connected layers to be added-. Default [1].")
+@click.option('--freeze-percentage', type=float, multiple=True, default=[1.0],
+              help="Percentage of the pre-trained network to freeze. Default [1.0] (Freeze entire pretrained network).")
 @click.option('--label-table-name', type=str, default="annotations", help="")
 @click.option('--label', type=str, multiple=True, default=None, help="")
 @click.option('--epoch-steps', type=int, default=1, help="Step size of epoch increase.")
 def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, max_epoch, batch_size,
                     start_lr, momentum, decrease_epochs, decrease_factor, model_name,
-                    num_trained_layers, label_table_name, label, epoch_steps):
+                    num_trained_layers, freeze_percentage, label_table_name, label, epoch_steps):
     """
 
     Performs a cross-validation in order to select an optimal model and training parameters for a given
@@ -607,10 +622,10 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
     results = list() if not os.path.exists(result_file) else [pd.read_pickle(result_file)]
 
-    for mn, num_trained in itertools.product(model_name, num_trained_layers):
+    for mn, num_trained, freeze_p in itertools.product(model_name, num_trained_layers, freeze_percentage):
 
         model_ft, device, fit_transform, predict_transform, logits_func = \
-            load_pretrained_model(mn, len(label_to_class), num_trained)
+            load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p)
 
         result = cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
                                       fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits,
@@ -620,6 +635,7 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
         result['model'] = mn
         result['num_trained_layers'] = num_trained
+        result['freeze_percentage'] = freeze_p
 
         results.append(result)
 
@@ -685,7 +701,7 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
         raise RuntimeError("Do not know how to interpret table '{}'".format(label_table_name))
 
 
-def load_pretrained_model(mn, num_classes, num_train_layers):
+def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1.0):
 
     input_size = {'inception_v3': 299}
     logits_funcs = {'inception_v3': lambda output: output.logits}
@@ -715,15 +731,28 @@ def load_pretrained_model(mn, num_classes, num_train_layers):
 
     model_ft = getattr(models, mn)(weights=True)
 
-    #for p in model_ft.parameters():
-    #    p.requires_grad = False
+    model_size = 0
+    for i, p in enumerate(model_ft.parameters()):
+        p.requires_grad = False
+        model_size = i
+
+    for i, p in enumerate(model_ft.parameters()):
+
+        if freeze_percentage*model_size < i:
+            p.requires_grad = True
 
     in_features = getattr(model_ft, classification_layer_name).in_features
 
-    trained_layers =\
-        [nn.ReLU() for _ in range(0, num_train_layers-1)] + [nn.Linear(in_features, num_classes)]
+    # trained_layers =\
+    #    [nn.ReLU() for _ in range(0, num_train_layers-1)] + [nn.Linear(in_features, num_classes)]
+
+    trained_layers = \
+        [nn.Linear(in_features, in_features) for _ in range(0, num_train_layers - 1)] + \
+            [nn.Linear(in_features, num_classes)]
 
     setattr(model_ft, classification_layer_name, nn.Sequential(*trained_layers))
+
+    # import ipdb;ipdb.set_trace()
 
     model_ft = model_ft.to(device)
 
@@ -767,7 +796,6 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
         result['test_acc'] = (epoch_result['pred'] == epoch_result['class']).sum() / len(epoch_result)
 
         result['train_loss'] = np.mean([fold['estimator'].epoch_loss for fold in folds])
-        print([float(fold['estimator'].epoch_acc) for fold in folds])
         result['train_acc'] = np.mean([float(fold['estimator'].epoch_acc) for fold in folds])
 
         for cl, cl_res in epoch_result.groupby('class'):

@@ -34,13 +34,18 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
                                    thumbnail_sqlite_file=self.thumbnail_sqlite_file, table_name="thumbnails")
         running_loss = 0.0
         running_corrects = 0
+        count = 0
         num_samples = len(X)
-        batches_per_epoch = int(np.ceil(num_samples*epochs/self.batch_size))/epochs
+        # batches_per_epoch = int(np.ceil(num_samples*epochs/self.batch_size))/epochs
+        batches_per_epoch = int(np.ceil(num_samples/self.batch_size))
+
+        # print(batches_per_epoch)
 
         self.model.load_state_dict(self.model_weights)
         self.model.train()
 
-        data_loader = DataLoader(dataset=dataset, sampler=RandomSampler(dataset, num_samples=num_samples*epochs),
+        data_loader = DataLoader(dataset=dataset,
+                                 sampler=RandomSampler(dataset, num_samples=batches_per_epoch*self.batch_size*epochs),
                                  batch_size=self.batch_size, num_workers=16, drop_last=False, pin_memory=True)
 
         tqdm_seq = None
@@ -49,19 +54,22 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
             nonlocal data_loader
             nonlocal running_loss
             nonlocal running_corrects
+            nonlocal count
 
             data_seq = iter(data_loader)
 
             for e in range(1, epochs+1):
-                tqdm_seq.set_description("train (Epoch {} Train Loss: {:.4f} Acc: {:.4f})".
-                                         format(e, running_loss/(num_samples), running_corrects/(num_samples)))
 
+                count = 0
                 running_loss = 0.0
                 running_corrects = 0
 
                 batch_pos = 0
                 for _inputs, _labels, _ in data_seq:
                     yield _inputs, _labels
+
+                    tqdm_seq.set_description("train (Epoch {} Train Loss: {:.4f} Acc: {:.4f})".
+                                             format(e, running_loss / count, running_corrects / count))
 
                     batch_pos += 1
                     if batch_pos > batches_per_epoch:
@@ -92,13 +100,14 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
             # statistics
             running_loss += loss.item() * inputs.size(0)
             running_corrects += torch.sum(preds == labels.data).double()
+            count += inputs.size(0)
 
         self.model_weights = copy.deepcopy(self.model.state_dict())
 
-        self.epoch_loss = running_loss / num_samples
-        self.epoch_acc = running_corrects / num_samples
+        self.epoch_loss = running_loss / count
+        self.epoch_acc = running_corrects / count
 
-        print("Epoch Acc: {}, Epoch Loss: {}".format(self.epoch_acc, self.epoch_loss))
+        print("Epoch Acc: {:.4f}, Epoch Loss: {:.4f}".format(self.epoch_acc, self.epoch_loss))
 
         return self
 

@@ -19,3 +19,4 @@ msclip @ git+https://github.com/labusch/MSCLIP.git
 XlsxWriter==3.2.0
 urlmatch==1.0.1
 dicttoxml==1.7.16
+peft
