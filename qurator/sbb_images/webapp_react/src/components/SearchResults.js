@@ -56,8 +56,6 @@ const SearchResult = ({
         };
 
     useEffect(() => {
-        console.log("SearchResult loadPos.current", loadPos.current);
-
         ((sresult) => {
             setTimeout(() => { loadWaiter(sresult) }, minLoadInterval);
         })(searchResult);
@@ -65,7 +63,6 @@ const SearchResult = ({
     },[searchResult]);
 
     return (
-        // <div style={isLoaded ? {} : { display: 'none'}} className='card-image-wrapper'>
         <div className='card-image-wrapper'>
          {!isLoaded && <div className="imgLoader"></div>}
             <img 
@@ -144,22 +141,22 @@ const SearchResults = ({
    // scroll detection
     useEffect(() => {
     const handleScroll = async () => {
-      console.log(
+      /* console.log(
         "Scroll triggered, isLoadingBatch is:",
         isLoadingBatch.current
-      );
+      ); */
       if (!isLoadingBatch.current) {
         const reachedBottom =
           window.innerHeight + window.scrollY >=
           document.documentElement.scrollHeight - 100;
 
         if (reachedBottom) {
-          console.log("Bottom reached, about to set isLoadingBatch to true");
+         // console.log("Bottom reached, about to set isLoadingBatch to true");
           isLoadingBatch.current = true;
           await loadNextBatch();
-          console.log(
+          /* console.log(
             "loadNextBatch finished, about to set isLoadingBatch to false"
-          );
+          ); */
           isLoadingBatch.current = false;
         }
       }

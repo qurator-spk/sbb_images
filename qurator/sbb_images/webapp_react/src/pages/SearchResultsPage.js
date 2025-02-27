@@ -207,14 +207,14 @@ const SearchResultsPage = () => {
   
       // Case 1: Image has an ID (from search results)
       if (searchState.img_id) {
-        console.log("Using img_id for search:", searchState.img_id);
+       // console.log("Using img_id for search:", searchState.img_id);
         response = await fetch(
           `api/similar-by-image/DIGISAM-DEFAULT/0/100/${x}/${y}/${width}/${height}?search_id=${searchState.img_id}&search_id_from=DIGISAM`
         );
       }
       // Case 2: Uploaded image (no ID)
       else {
-        console.log("Using uploaded image blob for search");
+       // console.log("Using uploaded image blob for search");
         const imageResponse = await fetch(searchState.imgUrl);
         const imageBlob = await imageResponse.blob();
   

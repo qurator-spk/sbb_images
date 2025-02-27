@@ -12,13 +12,13 @@ const LandingPage = () => {
   const navigate = useNavigate();
 
   const handleSearchStateChange = (newState) => {
-    console.log("handleSearchStateChange called with:", newState);
+   // console.log("handleSearchStateChange called with:", newState);
     setSearchState(newState);
   };
 
   const updateResults = (results, searchTerm) => {
-    console.log("updateResults called with:", results, searchTerm);
-    console.log("Current searchState in updateResults: ", searchState);
+   // console.log("updateResults called with:", results, searchTerm);
+   // console.log("Current searchState in updateResults: ", searchState);
 
     const serializableSearchState = {
       imgUrl: activeTab === "image" ? searchTerm : searchState.imgUrl,
@@ -28,7 +28,7 @@ const LandingPage = () => {
       img_id: searchState.img_id,
     };
 
-  console.log("Navigating with serializable state:", serializableSearchState);
+  //console.log("Navigating with serializable state:", serializableSearchState);
 
   navigate("/search-results", {
     state: {
