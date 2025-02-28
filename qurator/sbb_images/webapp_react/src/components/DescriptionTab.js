@@ -31,12 +31,14 @@ import React, { useRef, useState, useEffect } from 'react';
       setTimeout(async () => {
         if (counter.current > scounter) return;
 
-        console.log(description, scounter, counter.current);
+        console.log("DescriptionTab: ", description, scounter, counter.current);
         const ids = await searchByText();
 
         if (counter.current > scounter) return;
 
         setSearchState(searchState.setDescription(description));
+
+        console.log("DescriptionTab: ", "updateResults");
         updateResults({ type: 'description', ids: ids }, description);
       }, 750);
     })(counter.current);

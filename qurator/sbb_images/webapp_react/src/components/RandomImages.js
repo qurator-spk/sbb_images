@@ -32,7 +32,7 @@ const RandomImages = () => {
           </div>
 
           <a href={image.link} target="_blank" rel="noopener noreferrer">
-            <div class="title-wrapper">{image.title}</div>
+            <div className="title-wrapper">{image.title}</div>
           </a>
 
           <SearchSimilarImages 

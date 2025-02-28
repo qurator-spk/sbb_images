@@ -20,6 +20,9 @@ export const makeSearchState = () => {
     }
 
     setImgUrlWithID = (imgUrl, img_id) => {
+
+        console.log("setImgUrlWithID");
+
         return add_functions({
             imgUrl : imgUrl,
             img_id : img_id,
@@ -29,6 +32,9 @@ export const makeSearchState = () => {
     },
 
     setImgUrlWithFormData = (imgUrl, formData) => {
+
+        console.log("setImgUrlWithFormData");
+
         return add_functions({
             imgUrl : imgUrl,
             formData : formData,
@@ -38,6 +44,9 @@ export const makeSearchState = () => {
     },
 
     setDescription = (description) => {
+
+        console.log("setDescription");
+
         return add_functions({
             description : description,
             ppn : '',
@@ -46,6 +55,9 @@ export const makeSearchState = () => {
     },
 
     setPPN = (ppn) => {
+
+        console.log("setPPN");
+
         return add_functions({
             ppn : ppn,
             description : '',
