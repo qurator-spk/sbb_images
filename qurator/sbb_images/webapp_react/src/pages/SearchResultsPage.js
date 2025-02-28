@@ -181,9 +181,11 @@ const SearchResultsPage = () => {
   };  //loadNextBatch
 
   const updateResults = (results) => {
+    console.log("SearchResultsPage: ", "updateResults", results.type);
+
     setSearchResult(results); 
     setLastPerformedSearch(results.type);  
-    setActiveTab(results.type);            
+    //setActiveTab(results.type);
   };
 
   const searchMore = (img_id) => {
