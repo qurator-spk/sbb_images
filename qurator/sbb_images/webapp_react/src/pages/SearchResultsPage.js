@@ -9,6 +9,9 @@ import "cropperjs/dist/cropper.css";
 import "../styles/SearchResultsPage.css";
 
 const SearchResultsPage = () => {
+
+  console.log("initialSearchResult: ", initialSearchResult);
+
   const location = useLocation();
   
   const {
@@ -37,6 +40,7 @@ const SearchResultsPage = () => {
   const [searchResult, setSearchResult] = useState(
     initialSearchResult || { type: null, ids: [] }
   );
+
   const [activeTab, setActiveTab] = useState(initialActiveTab || "image");
   const [isLoadingNextBatch, setIsLoadingNextBatch] = useState(false);
 
@@ -51,6 +55,7 @@ const SearchResultsPage = () => {
 
 //************************************************************** */
   const isLoadingBatch = useRef(false);
+
   const loadNextBatch = async () => {
     if (searchResult.type === "ppn" || isLoadingBatch.current) {
       return;
@@ -81,11 +86,12 @@ const SearchResultsPage = () => {
             body: JSON.stringify(params),
           }
         );
-      } else if (
+      }
+      else if (
         searchState.imgUrl &&
         searchResult.type === "image" &&
-        !searchState.formData
-      ) {
+        !searchState.formData) {
+
         const imageResponse = await fetch(searchState.imgUrl);
         const imageBlob = await imageResponse.blob();
         let fd = new FormData();
@@ -108,7 +114,8 @@ const SearchResultsPage = () => {
             }
           );
         }
-      } else if (searchState.formData) {
+      }
+      else if (searchState.formData) {
         let fd = new FormData();
         fd.append("file", searchState.formData.get("file"));
 
@@ -129,7 +136,8 @@ const SearchResultsPage = () => {
             }
           );
         }
-      } else {
+      }
+      else {
         if (hasCrop) {
           response = await fetch(
             `api/similar-by-image/DIGISAM-DEFAULT/${nextBatchPosition}/100/${x}/${y}/${width}/${height}?search_id=${searchState.img_id}&search_id_from=DIGISAM`
@@ -139,17 +147,29 @@ const SearchResultsPage = () => {
             `api/similar-by-image/DIGISAM-DEFAULT/${nextBatchPosition}/100?search_id=${searchState.img_id}&search_id_from=DIGISAM`
           );
         }
-      }
+     }
 
       const result = await response.json();
 
       if (result.ids && result.ids.length > 0) {
-        const uniqueNewIds = result.ids.filter(
-          (id) => !searchResult.ids.includes(id)
-        );
+//        const uniqueNewIds = result.ids.filter(
+//          (id) => !searchResult.ids.includes(id)
+//        );
+//
+//        const duplicateIds = result.ids.filter(
+//          (id) => searchResult.ids.includes(id)
+//        );
+//
+//        console.log("Duplicate Ids: ", duplicateIds);
+//
+//        setSearchResult((prev) => ({
+//          ...prev,
+//          ids: [...prev.ids, ...uniqueNewIds],
+//        }));
+
         setSearchResult((prev) => ({
           ...prev,
-          ids: [...prev.ids, ...uniqueNewIds],
+          ids: [...prev.ids, ...result.ids],
         }));
       }
     } catch (error) {
@@ -158,7 +178,7 @@ const SearchResultsPage = () => {
       isLoadingBatch.current = false;
       setIsLoadingNextBatch(false);
     }
-  };
+  };  //loadNextBatch
 
   const updateResults = (results) => {
     setSearchResult(results); 
@@ -240,7 +260,7 @@ const SearchResultsPage = () => {
     } catch (error) {
       console.error("Error in crop search:", error);
     }
-  };
+  }; // handleCrop
 
   return (
     <div className="search-results-page">
@@ -294,10 +314,9 @@ const SearchResultsPage = () => {
       <SearchResults
         searchResult={searchResult}
         searchMore={searchMore}
-        activeTab={activeTab}
         searchState={searchState}
         loadNextBatch={loadNextBatch}
-        isLoadingNextBatch={isLoadingNextBatch} 
+        isLoadingNextBatch={isLoadingNextBatch}
       />
     </div>
   );

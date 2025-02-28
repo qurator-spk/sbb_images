@@ -2,78 +2,23 @@ import React, { useState, useRef, useEffect } from "react";
 import SearchSimilarImages from "./SearchSimilarImages";
 
 const SearchResult = ({
-  searchMore, 
-  img_id, 
-  loadPos, 
-  searchResult, 
-  activeTab, 
-  pos
+  img_id
   }) => { 
-
-    const minLoadInterval = 200;
 
     const [ isLoaded, setIsLoaded] = useState(false);
 
-    const [ imgSrc, setImgSrc] = useState("");
-
-    const triggerNext = () => {
+    const onLoad = () => {
         setIsLoaded(true);
-    };
-
-    const imageLoader = async() => {
-        const response = await fetch("api/image/DIGISAM/" + img_id);
-        const img = await response.blob();
-        const imgUrl = URL.createObjectURL(img);
-        setImgSrc(imgUrl);
-    };
-
-    const exitCondition = (sresult) => {
-        if (sresult != searchResult) return true;
-        if (searchResult.type !== activeTab) return true;
-
-        if (loadPos.current > pos) return true;
-        if (loadPos.current >= searchResult.ids.length) return true;
-
-        return false;
     }
 
-    const loadWaiter = async(sresult) => {
-      
-             if (exitCondition(sresult)) 
-              
-              return; 
-
-            if (searchResult.ids[loadPos.current] !== img_id) {
-                setTimeout(() => { loadWaiter(sresult) }, minLoadInterval);
-                return;
-            }
-
-            imageLoader();
-
-            if (exitCondition(sresult)) return;
-    
-            loadPos.current = loadPos.current + 1;
-        };
-
-    useEffect(() => {
-        console.log("SearchResult loadPos.current", loadPos.current);
-
-        ((sresult) => {
-            setTimeout(() => { loadWaiter(sresult) }, minLoadInterval);
-        })(searchResult);
-
-    },[searchResult]);
-
     return (
-        // <div style={isLoaded ? {} : { display: 'none'}} className='card-image-wrapper'>
         <div className='card-image-wrapper'>
          {!isLoaded && <div className="imgLoader"></div>}
-            <img 
-              src={imgSrc} 
-              onLoad={() => {setIsLoaded(true)}} 
-              className='card-image' 
-              style={isLoaded ? {} : { display: "none" }} /*added for loaders*/ 
-            /> 
+            <img loading="lazy"
+              src={"api/image/DIGISAM/" + img_id}
+              onLoad={onLoad}
+              className='card-image'
+            />
         </div>
     );
 };
@@ -81,19 +26,16 @@ const SearchResult = ({
 const SearchResults = ({
     searchResult,
     searchMore,
-    activeTab,
     searchState,
     loadNextBatch,
     isLoadingNextBatch,
   }) => {
-    const loadPos = useRef(0);
-     loadPos.current = 0; 
 
-    const isLoadingBatch = useRef(false); // tracking batch loads
+  const isLoadingBatch = useRef(false); // tracking batch loads
   
-    if (!searchState) {
-      return null;
-    }
+  if (!searchState) {
+    return null;
+  }
 
   const [links, setLinks] = useState({});
   // Load links when results arrive
@@ -188,17 +130,13 @@ const SearchResults = ({
         <div className="search-results-grid">
           {searchResult.ids &&
             searchResult.ids.map((imgID, pos) => (
-               <div className="result-card" key={imgID}>
-              {/* <div className="result-card" key={`${imgID}-${pos}`}> */}
+               <div className="result-card" key={"result-card-" + imgID + "-" + pos}>
+               {/*<div> {imgID} </div>
+               <div> {pos} </div>*/}
                 <div className="image-container">
                   <SearchResult
-                    key={imgID}
-                    searchMore={searchMore}
+                    key={"result-" + imgID + "-" + pos}
                     img_id={imgID}
-                    loadPos={loadPos}
-                    searchResult={searchResult}
-                    activeTab={activeTab}
-                    pos={pos}
                   />
                 </div>
 
