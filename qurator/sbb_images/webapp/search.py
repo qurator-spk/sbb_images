@@ -275,7 +275,9 @@ def get_similar_from_features(conf, count, data_conf, fe, model_conf, start):
 
     index = thread_store.get_search_index(conf, model_conf)
     while len(result) < min_result_len:
-        neighbours = index.get_nns_by_vector(fe, start + count)
+        # important: search_k required in order to prevent it from being dynamically determined
+        # which creates problems for multiple batches being loaded
+        neighbours = index.get_nns_by_vector(fe, start + count, search_k=10000)
 
         assert (len(neighbours) == len(set(neighbours)))
 
