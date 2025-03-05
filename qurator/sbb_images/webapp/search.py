@@ -1130,12 +1130,14 @@ def get_ppn_images(user, data_conf, ppn=None):
     if has_table('predictions', data_conf):
         links = pd.read_sql('SELECT links.rowid FROM links JOIN predictions ON predictions.rowid=links.rowid '
                             'WHERE links.ppn=? and '
-                            '(predictions.label="Abbildung" OR predictions.label="Photo" or predictions.label="Karte")',
+                            '(predictions.label="Abbildung" OR predictions.label="Photo" or predictions.label="Karte") '
+                            'ORDER BY links.phys_id',
                             con=thread_store.get_db(data_conf), params=(ppn,))
     else:
         links = pd.read_sql('SELECT links.rowid FROM links '
                             'INNER JOIN images ON images.rowid=links.rowid '
-                            'WHERE links.ppn=? AND images.x=-1',
+                            'WHERE links.ppn=? AND images.x=-1 '
+                            'ORDER BY links.phys_id',
                             con=thread_store.get_db(data_conf), params=(ppn,))
 
     if links is None or len(links) == 0:
