@@ -24,11 +24,13 @@ const SearchResult = ({
 };
 
 const SearchResults = ({
+    updateResults,
     searchResult,
-    searchMore,
     searchState,
+    setSearchState,
     loadNextBatch,
     isLoadingNextBatch,
+    cropCoordinates
   }) => {
 
   const isLoadingBatch = useRef(false); // tracking batch loads
@@ -38,37 +40,10 @@ const SearchResults = ({
   }
 
   const [links, setLinks] = useState({});
+
   // Load links when results arrive
   useEffect(() => {
     if (searchResult.ids) {
-      //*****************order ppn results******************** */
-      if (searchResult.type === "ppn") {
-        // PPN search: fetch all links at once and sort by page number
-        Promise.all(
-          searchResult.ids.map(async (imgID) => {
-            const response = await fetch(`api/link/DIGISAM/${imgID}`);
-            const link = await response.text();
-            const trimmedLink = link.replace(/"/g, "").trim();
-            return { imgID, link: trimmedLink };
-          })
-        ).then((results) => {
-          // Store links
-          const newLinks = {};
-          results.forEach(({ imgID, link }) => {
-            newLinks[imgID] = link;
-          });
-
-          // Sort searchResult.ids by page number
-          searchResult.ids.sort((a, b) => {
-            const pageA = parseInt(newLinks[a].match(/PHYS_(\d+)/)[1]);
-            const pageB = parseInt(newLinks[b].match(/PHYS_(\d+)/)[1]);
-            return pageA - pageB;
-          });
-
-          setLinks(newLinks);
-        });
-      } else {
-        // Other searches: fetch links without sorting
         searchResult.ids.forEach(async (imgID) => {
           const response = await fetch(`api/link/DIGISAM/${imgID}`);
           const link = await response.text();
@@ -77,7 +52,6 @@ const SearchResults = ({
             [imgID]: link.replace(/"/g, "").trim(),
           }));
         });
-      }
     }
   }, [searchResult.ids, searchResult.type]); 
 
@@ -86,22 +60,25 @@ const SearchResults = ({
    // scroll detection
     useEffect(() => {
     const handleScroll = async () => {
-      /* console.log(
-        "Scroll triggered, isLoadingBatch is:",
-        isLoadingBatch.current
-      ); */
+
+//      console.log(
+//        "Scroll triggered, isLoadingBatch is:",
+//        isLoadingBatch.current
+//      );
+
       if (!isLoadingBatch.current) {
         const reachedBottom =
           window.innerHeight + window.scrollY >=
           document.documentElement.scrollHeight - 100;
 
         if (reachedBottom) {
-         // console.log("Bottom reached, about to set isLoadingBatch to true");
+//          console.log("Bottom reached, about to set isLoadingBatch to true");
           isLoadingBatch.current = true;
           await loadNextBatch();
-          /* console.log(
-            "loadNextBatch finished, about to set isLoadingBatch to false"
-          ); */
+//          console.log(
+//            "loadNextBatch finished, about to set isLoadingBatch to false"
+//          );
+
           isLoadingBatch.current = false;
         }
       }
@@ -149,10 +126,11 @@ const SearchResults = ({
                   View in Digitized Collections
                 </a>
 
-                <SearchSimilarImages 
+                <SearchSimilarImages
+                  searchState={searchState}
+                  setSearchState={setSearchState}
                   imageId={imgID}
-                  isFromResults={true}
-                  onSearchMore={searchMore}
+                  updateResults={updateResults}
                 />
               </div>
             ))}

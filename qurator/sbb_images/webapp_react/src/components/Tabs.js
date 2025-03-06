@@ -13,8 +13,8 @@ const Tabs = ({
   setSearchState, 
   activeTab, 
   setActiveTab,
-  onSearchStateChange,
   isResultsPage, // prop for the results page image tab
+  error
 }) => { const [isModalOpen, setIsModalOpen] = useState(false); const [isHovering, setIsHovering] = useState(false);
 
   const hoverTexts = {
@@ -68,7 +68,6 @@ const Tabs = ({
                updateResults={updateResults}
                searchState={searchState}
                setSearchState={setSearchState}
-               onSearchStateChange={onSearchStateChange}
              />
            ) : (
              // Regular ImageTab on landing page
@@ -76,13 +75,17 @@ const Tabs = ({
                updateResults={updateResults}
                searchState={searchState}
                setSearchState={setSearchState}
-               onSearchStateChange={onSearchStateChange}
              />
            )
             ) : activeTab === 'description' ? (
               <DescriptionTab updateResults={updateResults} searchState={searchState} setSearchState={setSearchState} />
             ) : (
-              <PPNTab updateResults={updateResults} searchState={searchState} setSearchState={setSearchState} />
+              <PPNTab
+                updateResults={updateResults}
+                searchState={searchState}
+                setSearchState={setSearchState}
+                error={error}
+              />
             )}
           </div>
         </div>
