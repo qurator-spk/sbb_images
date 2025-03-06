@@ -3,7 +3,7 @@ import allImages from "./imageData";
 import SearchSimilarImages from "./SearchSimilarImages";
 import '../styles/RandomImages.css';
 
-const RandomImages = () => {
+const RandomImages = ({searchState, setSearchState, updateResults}) => {
   const [images, setImages] = useState([]);
 
   const getImageId = (src) => {
@@ -35,9 +35,11 @@ const RandomImages = () => {
             <div className="title-wrapper">{image.title}</div>
           </a>
 
-          <SearchSimilarImages 
-           imageId={getImageId(image.src)}
-           isFromResults={false}
+          <SearchSimilarImages
+               searchState={searchState}
+               setSearchState={setSearchState}
+               imageId={getImageId(image.src)}
+               updateResults={updateResults}
           />
         </div>
       ))}

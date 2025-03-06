@@ -1,38 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
 
-const PPNTab = ({ updateResults, searchState, setSearchState }) => {
+const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
   const [ppn, setPPN] = useState(searchState.ppn);
-  const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState(null);
   const counter = useRef(0);
 
-  const searchByPPN = async () => {
-    setIsSearching(true);
-    try {
-      const response = await fetch("api/ppn/DIGISAM/PPN" + ppn);
-      if (!response.ok) {
-        throw new Error();
-      }
-      const result = await response.json();
-      if (!result.ids || result.ids.length === 0) {
-        throw new Error();
-      }
-      setIsSearching(false);
-      setError(null);
-      return result.ids;
-    } catch {
-      setError(
-        "The PPN you entered does not exist in our collection or is not a PPN. Check your input and try again."
-      );
-      setIsSearching(false);
-      return null;
-    }
-  };
-
   useEffect(() => {
-     if (ppn === '') {
-      return;
-    } 
+
+    if (ppn === '') return;
 
     counter.current += 1;
 
@@ -40,14 +14,13 @@ const PPNTab = ({ updateResults, searchState, setSearchState }) => {
       setTimeout(async () => {
         if (counter.current > scounter) return;
 
-        const ids = await searchByPPN();
-        if (counter.current > scounter) return;
-        if (ids && ids.length > 0) {
-          setSearchState(searchState.setPPN(ppn));
-          updateResults({ type: "ppn", ids: ids }, ppn);
-        }
+        setSearchState(searchState.setPPN(ppn));
+
+        updateResults();
+
       }, 750);
     })(counter.current);
+
   }, [ppn]);
 
   return (
@@ -63,7 +36,6 @@ const PPNTab = ({ updateResults, searchState, setSearchState }) => {
       <p>Enter PPN. <br/> 
       (Only the number, without 'PPN' in the beginning.)</p>
       {error && <div className="error-message">{error}</div>}
-      {isSearching ? <h4>Searching...</h4> : null}
     </div>
   );
 };

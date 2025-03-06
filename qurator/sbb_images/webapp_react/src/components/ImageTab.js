@@ -7,7 +7,6 @@ const ImageTab = ({
   updateResults, 
   searchState, 
   setSearchState,
-  onSearchStateChange 
  }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -35,36 +34,9 @@ const ImageTab = ({
     fd.append("file", file);
     const imageUrl = URL.createObjectURL(file);
 
-    setSearchState((prevState) => {
-      const newState = prevState.setImgUrlWithFormData(imageUrl, fd);
+    setSearchState(searchState.setImgUrlWithFormData(imageUrl, fd));
 
-      if (onSearchStateChange){
-        onSearchStateChange(newState); // using the prop from Tabs
-      }
-      
-      return newState;
-    });
-
-    searchByImage(file);
-  };
-
-  const searchByImage = async (file) => {
-    console.log("searchByImage called");
-      let fd = new FormData();
-      fd.append("file", file);
-      const response = await fetch(
-        "api/similar-by-image/DIGISAM-DEFAULT/0/100",
-        {
-          method: "POST",
-          body: fd,
-        }
-      );
-      const result = await response.json();
-      console.log("Search result:", result);
-      updateResults(
-        { type: "image", ids: result.ids },
-        URL.createObjectURL(file) // added to solve the async issue with updating the imgUrl
-      );
+    updateResults();
   };
 
   const handleUploadButtonClick = () => {

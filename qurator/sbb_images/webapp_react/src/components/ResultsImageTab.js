@@ -9,7 +9,6 @@ const ResultsImageTab = ({
   updateResults,
   searchState,
   setSearchState,
-  onSearchStateChange,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -38,42 +37,13 @@ const ResultsImageTab = ({
     fd.append("file", file);
     const imageUrl = URL.createObjectURL(file);
 
-    setSearchState((prevState) => {
-      const newState = prevState.setImgUrlWithFormData(imageUrl, fd);
-      console.log("New search state in ResultsImageTab:", newState);
+    setSearchState(searchState.setImgUrlWithFormData(imageUrl, fd));
 
-      if (onSearchStateChange) {
-        onSearchStateChange(newState);
-      }
-
-      return newState;
-    });
-
-    searchByImage(file);
     setIsExpanded(false); // close after upload
   };
 
   const handleUploadButtonClick = () => {
     fileInputRef.current.click();
-  };
-
-  const searchByImage = async (file) => {
-    console.log("searchByImage called");
-    let fd = new FormData();
-    fd.append("file", file);
-    const response = await fetch(
-      "api/similar-by-image/DIGISAM-DEFAULT/0/100",
-      {
-        method: "POST",
-        body: fd,
-      }
-    );
-    const result = await response.json();
-    console.log("Search result:", result);
-    updateResults(
-      { type: "image", ids: result.ids },
-      URL.createObjectURL(file)
-    );
   };
 
   return (
