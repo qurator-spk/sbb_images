@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Tabs from "../components/Tabs";
 import SearchResults from "../components/SearchResults";
@@ -8,7 +8,16 @@ import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import "../styles/SearchResultsPage.css";
 
-const SearchResultsPage = ({ searchState, setSearchState }) => {
+const SearchResultsPage = () => {
+
+  const location = useLocation();
+
+  const [searchState, setSearchState] =
+    useState(location.state ? makeSearchState(location.state.searchState) : makeSearchState);
+
+  console.log("location.state:" , location.state);
+
+  const navigate = useNavigate();
 
   const [searchResult, setSearchResult] = useState({ type: "no", ids: []});
 
@@ -33,8 +42,6 @@ const SearchResultsPage = ({ searchState, setSearchState }) => {
     setIsLoadingNextBatch(true);
     setSearchResult({ type: searchState.type, ids: []});
 
-//    console.log("useEffect: ", cropCoordinates);
-
     setError(null);
     try {
         searchState.loadNextBatch(0, cropCoordinates).then(
@@ -54,6 +61,18 @@ const SearchResultsPage = ({ searchState, setSearchState }) => {
      }
 
   }, [searchState, cropCoordinates]);
+
+  useEffect(() => {
+    const popState = () => {
+        navigate(0);
+    };
+
+    window.addEventListener("popstate", popState);
+
+    return () => {
+       window.removeEventListener("popstate", popState);
+    }
+  }, []);
 
 //************************************************************** */
   const isLoadingBatch = useRef(false);
@@ -87,8 +106,15 @@ const SearchResultsPage = ({ searchState, setSearchState }) => {
     }
  };  //loadNextBatch
 
-  const updateResults = () => {
-    navigate("/search-results");
+  const updateResults = (next_state) => {
+      navigate("/search-results", {
+        state: {
+            activeTab,
+            searchState: next_state.serialized,
+        }
+      });
+
+      setActiveTab(next_state.type);
   };
 
   /*******************Cropper search functionality************************/

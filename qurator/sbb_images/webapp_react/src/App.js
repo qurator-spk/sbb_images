@@ -22,23 +22,15 @@ const ScrollToTop = () => {
 
 const App = () => {
 
-  const [searchState, setSearchState] = useState( makeSearchState);
-
   return (
     <Router>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={
-            <LandingPage
-               searchState={searchState}
-               setSearchState={setSearchState}
-            />}
+            <LandingPage />}
         />
         <Route path="/search-results" element={
-           <SearchResultsPage
-              searchState={searchState}
-              setSearchState={setSearchState}
-           />}
+           <SearchResultsPage />}
         />
         <Route path="/about" element={<AboutPage />} />
       </Routes>

@@ -2,8 +2,6 @@
 
 const loadNextBatchSearchSimilar = async (pos, imageId, cropCoordinates) => {
 
-//      console.log("loadNextBatch", cropCoordinates);
-
       const hasCrop = cropCoordinates.x !== -1;
 
       const { x, y, width, height } = hasCrop ? cropCoordinates : { x: -1, y: -1, width: -1, height: -1 };
@@ -133,7 +131,7 @@ const loadNextBatchSearchImage = async (pos, imgUrl, formData, cropCoordinates) 
 }
 
 
-export const makeSearchState = () => {
+export const makeSearchState = (state=null) => {
 
    // console.log("makeSearchState");
 
@@ -148,7 +146,12 @@ export const makeSearchState = () => {
         return { type: 'no', ids: []};
     };
 
+
+
     const add_functions = (state) => {
+        console.log("add_function: ", state);
+
+        state['serialized'] = { ...state};
 
         state['setImgUrlWithID'] = setImgUrlWithID;
         state['setImgUrlWithFormData'] = setImgUrlWithFormData;
@@ -213,7 +216,7 @@ export const makeSearchState = () => {
         return add_functions({
             description : description,
             ppn : '',
-            imgUrl : '',
+//            imgUrl : '',
             type: 'description'
         });
     },
@@ -231,9 +234,24 @@ export const makeSearchState = () => {
         return add_functions({
             ppn : ppn,
             description : '',
-            imgUrl : '',
+//            imgUrl : '',
             type: 'ppn'
         });
+    }
+
+    if (state) {
+        if (('imgUrl' in state) && ('img_id' in state)) {
+            return setImgUrlWithID(state.imgUrl, state.img_id);
+        }
+        else if (('imgUrl' in state) && ('formData' in state)) {
+            return setImgUrlWithFormData(state.imgUrl, state.formData);
+        }
+        else if (('description' in state) && (state.description.length > 0)) {
+            return setDescription(state.description);
+        }
+        else if (('ppn' in state) && (state.ppn.length > 0)) {
+            return setPPN(state.ppn);
+        }
     }
 
     return add_functions({

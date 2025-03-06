@@ -15,9 +15,11 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
       setTimeout(async () => {
         if (counter.current > scounter) return;
 
-        setSearchState(searchState.setDescription(description));
+        const next_state = searchState.setDescription(description);
 
-        updateResults();
+        setSearchState(next_state);
+
+        updateResults(next_state);
       }, 750);
     })(counter.current);
   }, [description]);

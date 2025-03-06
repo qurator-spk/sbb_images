@@ -6,7 +6,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
 
   useEffect(() => {
 
-    if (ppn === '') return;
+    if ((ppn === '') || (searchState.ppn === ppn)) return;
 
     counter.current += 1;
 
@@ -14,9 +14,11 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
       setTimeout(async () => {
         if (counter.current > scounter) return;
 
-        setSearchState(searchState.setPPN(ppn));
+        const next_state = searchState.setPPN(ppn);
 
-        updateResults();
+        setSearchState(next_state);
+
+        updateResults(next_state);
 
       }, 750);
     })(counter.current);
