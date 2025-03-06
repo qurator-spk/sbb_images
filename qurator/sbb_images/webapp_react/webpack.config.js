@@ -39,7 +39,7 @@ module.exports = {
   },
   devServer: {
     static: './public',
-    port: 4748,
+    port: 4747,
     historyApiFallback: true,
     allowedHosts: "all",
     webSocketServer: false
