@@ -156,7 +156,7 @@ export const makeSearchState = () => {
         state['setPPN'] = setPPN;
 
       //  console.log("state:", state);
-      
+
         state['loadNextBatch'] = loadNextBatch;
 
         return state;
