@@ -27,12 +27,12 @@ const SearchResultsPage = () => {
 
 //****************Setting Cropper Coordinates**************** */
 
-  const [cropCoordinates, setCropCoordinates] = useState({
+  const [cropCoordinates, setCropCoordinates] = useState(() =>{ return {
     x: -1,
     y: -1,
     width: -1,
     height: -1,
-  });
+  }; });
 
 //************************************************************** */
 
@@ -87,7 +87,7 @@ const SearchResultsPage = () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     try {
-      let result = await searchState.loadNextBatch(searchResult.ids.length);
+      let result = await searchState.loadNextBatch(searchResult.ids.length, cropCoordinates);
 
       if (result.ids && result.ids.length > 0) {
         setSearchResult((prev) => ({

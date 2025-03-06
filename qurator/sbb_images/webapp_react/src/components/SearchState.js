@@ -160,12 +160,9 @@ export const makeSearchState = (state=null) => {
     setImgUrlWithID = (imgUrl, img_id) => {
 
         loadNextBatch =
-        (pos, cropCoordinates={ x: -1, y: -1, width: -1, height: -1 }) => {
-            console.log("loadNextBatchSearchSimilar");
+        (pos, cropCoordinates) => {
             return loadNextBatchSearchSimilar(pos, img_id, cropCoordinates);
         };
-
-        console.log("setImgUrlWithID");
 
         return add_functions({
             imgUrl : imgUrl,
@@ -179,12 +176,9 @@ export const makeSearchState = (state=null) => {
     setImgUrlWithFormData = (imgUrl, formData) => {
 
         loadNextBatch =
-        (pos, cropCoordinates={ x: -1, y: -1, width: -1, height: -1 }) => {
-            console.log("loadNextBatchImage");
+        (pos, cropCoordinates) => {
             return loadNextBatchSearchImage(pos, imgUrl, formData, cropCoordinates);
         };
-
-        console.log("setImgUrlWithFormData");
 
         return add_functions({
             imgUrl : imgUrl,
@@ -198,12 +192,9 @@ export const makeSearchState = (state=null) => {
     setDescription = (description) => {
 
         loadNextBatch =
-        (pos, cropCoordinates={ x: -1, y: -1, width: -1, height: -1 }) => {
-            console.log("loadNextBatchSearchDescription");
+        (pos, cropCoordinates) => {
             return loadNextBatchDescription(pos, description);
         };
-
-        console.log("setDescription");
 
         return add_functions({
             description : description,
@@ -215,12 +206,9 @@ export const makeSearchState = (state=null) => {
     setPPN = (ppn) => {
 
         loadNextBatch =
-        (pos, cropCoordinates={ x: -1, y: -1, width: -1, height: -1 }) => {
-            console.log("loadNextBatchPPN");
+        (pos, cropCoordinates) => {
             return loadNextBatchPPN(pos, ppn);
         };
-
-        console.log("setPPN");
 
         return add_functions({
             ppn : ppn,
