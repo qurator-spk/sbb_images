@@ -27,12 +27,12 @@ const SearchResultsPage = () => {
 
 //****************Setting Cropper Coordinates**************** */
 
-  const [cropCoordinates, setCropCoordinates] = useState(() =>{ return {
+  const [cropCoordinates, setCropCoordinates] = useState({
     x: -1,
     y: -1,
     width: -1,
     height: -1,
-  }; });
+  });
 
 //************************************************************** */
 
@@ -104,6 +104,7 @@ const SearchResultsPage = () => {
  };  //loadNextBatch
 
   const updateResults = (next_state) => {
+
       navigate("/search-results", {
         state: {
             activeTab,
@@ -112,6 +113,13 @@ const SearchResultsPage = () => {
       });
 
       setActiveTab(next_state.type);
+      
+      setCropCoordinates({
+        x: -1,
+        y: -1,
+        width: -1,
+        height: -1,
+      });
   };
 
   /*******************Cropper search functionality************************/
