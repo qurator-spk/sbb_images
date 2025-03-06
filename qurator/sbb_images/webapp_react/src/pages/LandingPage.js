@@ -6,34 +6,20 @@ import Intro from "../components/Intro";
 import RandomImages from "../components/RandomImages"; 
 import { makeSearchState } from "../components/SearchState";
 
-const LandingPage = ({ searchState, setSearchState }) => {
-  // const [searchState, setSearchState] = useState(makeSearchState());
+const LandingPage = () => {
+  const [searchState, setSearchState] = useState(makeSearchState);
+
   const [activeTab, setActiveTab] = useState("image");
+
   const navigate = useNavigate();
 
-  const updateResults = () => {
-//    console.log("updateResults called with:", results, searchTerm);
-//    console.log("Current searchState in updateResults: ", searchState);
-//
-//    const serializableSearchState = {
-//      imgUrl: activeTab === "image" ? searchTerm : searchState.imgUrl,
-//      description:
-//        activeTab === "description" ? searchTerm : searchState.description,
-//      ppn: activeTab === "ppn" ? searchTerm : searchState.ppn,
-//      img_id: searchState.img_id,
-//    };
-//
-//    console.log("Navigating with serializable state:", serializableSearchState);
-//
-//    navigate("/search-results", {
-//      state: {
-//        searchResult: results,
-//        activeTab,
-//        searchState: serializableSearchState,
-//      },
-//    });
-
-    navigate("/search-results");
+  const updateResults = (next_state) => {
+      navigate("/search-results", {
+        state: {
+            activeTab,
+            searchState: next_state.serialized,
+        }
+      });
   };
 
   return (
