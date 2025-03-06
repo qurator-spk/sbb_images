@@ -88,7 +88,7 @@ const SearchResultsPage = ({ searchState, setSearchState }) => {
  };  //loadNextBatch
 
   const updateResults = () => {
-    // no need to do anything!
+    navigate("/search-results");
   };
 
   /*******************Cropper search functionality************************/
