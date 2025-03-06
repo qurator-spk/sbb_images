@@ -52,6 +52,7 @@ const loadNextBatchPPN = async (pos, ppn) => {
       }
       const result = await response.json();
       result.type = 'ppn';
+      result.ppn = ppn;
 
       if (!result.ids || result.ids.length === 0) {
         throw new Error();
@@ -133,8 +134,6 @@ const loadNextBatchSearchImage = async (pos, imgUrl, formData, cropCoordinates) 
 
 export const makeSearchState = (state=null) => {
 
-   // console.log("makeSearchState");
-
     let setImgUrlWithID = null;
     let setImgUrlWithFormData = null;
     let setDescription = null;
@@ -146,20 +145,13 @@ export const makeSearchState = (state=null) => {
         return { type: 'no', ids: []};
     };
 
-
-
     const add_functions = (state) => {
-        console.log("add_function: ", state);
-
         state['serialized'] = { ...state};
 
         state['setImgUrlWithID'] = setImgUrlWithID;
         state['setImgUrlWithFormData'] = setImgUrlWithFormData;
         state['setDescription'] = setDescription;
         state['setPPN'] = setPPN;
-
-      //  console.log("state:", state);
-
         state['loadNextBatch'] = loadNextBatch;
 
         return state;
@@ -216,7 +208,6 @@ export const makeSearchState = (state=null) => {
         return add_functions({
             description : description,
             ppn : '',
-//            imgUrl : '',
             type: 'description'
         });
     },
@@ -234,7 +225,6 @@ export const makeSearchState = (state=null) => {
         return add_functions({
             ppn : ppn,
             description : '',
-//            imgUrl : '',
             type: 'ppn'
         });
     }
@@ -244,6 +234,9 @@ export const makeSearchState = (state=null) => {
             return setImgUrlWithID(state.imgUrl, state.img_id);
         }
         else if (('imgUrl' in state) && ('formData' in state)) {
+
+            state.imgUrl = URL.createObjectURL(state.formData.get('file'));
+
             return setImgUrlWithFormData(state.imgUrl, state.formData);
         }
         else if (('description' in state) && (state.description.length > 0)) {
@@ -255,7 +248,6 @@ export const makeSearchState = (state=null) => {
     }
 
     return add_functions({
-        imgUrl: '',
         description: '',
         ppn: '',
         type: 'no'

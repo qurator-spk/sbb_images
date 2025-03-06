@@ -15,8 +15,6 @@ const SearchResultsPage = () => {
   const [searchState, setSearchState] =
     useState(location.state ? makeSearchState(location.state.searchState) : makeSearchState);
 
-  // console.log("location.state:" , location.state);
-
   const navigate = useNavigate();
 
   const [searchResult, setSearchResult] = useState({ type: "no", ids: []});
@@ -39,6 +37,7 @@ const SearchResultsPage = () => {
 //************************************************************** */
 
   useEffect(() => {
+
     setIsLoadingNextBatch(true);
     setSearchResult({ type: searchState.type, ids: []});
 
@@ -75,12 +74,12 @@ const SearchResultsPage = () => {
   }, []);
 
 //************************************************************** */
+
   const isLoadingBatch = useRef(false);
 
   const loadNextBatch = async () => {
-    if (isLoadingBatch.current) {
-      return;
-    }
+    if (isLoadingBatch.current) return;
+    if ((searchResult.type === "ppn") && (searchResult.ids.length > 0)) return;
 
     isLoadingBatch.current = true;
     setIsLoadingNextBatch(true);
@@ -88,8 +87,6 @@ const SearchResultsPage = () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     try {
-      if ((searchResult.type === "ppn") && (searchResult.ids.length > 0)) return;
-
       let result = await searchState.loadNextBatch(searchResult.ids.length);
 
       if (result.ids && result.ids.length > 0) {

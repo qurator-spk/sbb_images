@@ -37,7 +37,11 @@ const ResultsImageTab = ({
     fd.append("file", file);
     const imageUrl = URL.createObjectURL(file);
 
-    setSearchState(searchState.setImgUrlWithFormData(imageUrl, fd));
+    const next_state = searchState.setImgUrlWithFormData(imageUrl, fd)
+
+    setSearchState(next_state);
+
+    updateResults(next_state);
 
     setIsExpanded(false); // close after upload
   };
