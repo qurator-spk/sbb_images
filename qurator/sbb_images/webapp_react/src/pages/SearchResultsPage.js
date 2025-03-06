@@ -15,7 +15,7 @@ const SearchResultsPage = () => {
   const [searchState, setSearchState] =
     useState(location.state ? makeSearchState(location.state.searchState) : makeSearchState);
 
-  console.log("location.state:" , location.state);
+  // console.log("location.state:" , location.state);
 
   const navigate = useNavigate();
 
