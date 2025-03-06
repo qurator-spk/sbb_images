@@ -17,7 +17,8 @@ const SearchResult = ({
             <img loading="lazy"
               src={"api/image/DIGISAM/" + img_id}
               onLoad={onLoad}
-              className='card-image'
+              //className='card-image'
+              className={`card-image ${!isLoaded ? 'not-loaded' : ''}`}
             />
         </div>
     );

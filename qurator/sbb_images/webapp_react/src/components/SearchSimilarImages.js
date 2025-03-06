@@ -6,6 +6,7 @@ const SearchSimilarImages = ({ searchState, setSearchState, imageId, updateResul
   const navigate = useNavigate();
 
   const handleClick = async () => {
+     window.scrollTo(0, 0);
 
      setSearchState(searchState.setImgUrlWithID(`api/image/DIGISAM/${imageId}`, imageId));
 

@@ -85,6 +85,7 @@
   }
 
   .card-image-wrapper {
+    position: relative; /* to center the loading dots */
     width: 100%;
     height: 100%;
     display: flex;
@@ -99,6 +100,11 @@
     object-fit: contain;
     display: block;
     margin: 0 auto;
+  }
+
+  .card-image.not-loaded {
+    /* display: none;  */ /*conflict between display:none and lazy load*/
+    visibility: hidden; /* to center the loading dots */
   }
   
   .result-card .view-link {
@@ -130,6 +136,10 @@
   } 
 
   .imgLoader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 60px;
     aspect-ratio: 4;
     background: radial-gradient(circle closest-side,#657098 90%,#0000) 0/calc(100%/3) 100% space;
