@@ -32,12 +32,13 @@ def load_extraction_model(model_name=None, layer_name='fc', layer_output=False, 
         def tokenizer(txt, **kwargs):
             return _tokenizer(txt, padding=True, return_tensors='pt').to(device)
 
-        def normalization (input):
-            return input
+        def normalization(img_input):
+            return img_input
 
         im_model, _, extract_transform = open_clip.create_model_and_transforms(open_clip_model,
-                                                                           pretrained=open_clip_pretrained,
-                                                                           device=device)
+                                                                               pretrained=open_clip_pretrained,
+                                                                               device=device)
+
         def model_extr(inputs):
             nonlocal txt_model
             nonlocal im_model

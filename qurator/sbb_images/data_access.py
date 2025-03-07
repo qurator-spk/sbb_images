@@ -12,7 +12,7 @@ import pandas as pd
 class AnnotatedDataset(Dataset):
 
     def __init__(self, samples, targets, loader=default_loader, transform=None, thumbnail_sqlite_file=None,
-                 table_name=None, pad_to_square=False, min_size=None):
+                 table_name=None, pad_to_square=False, min_size=None, report_skip=False):
 
         super(Dataset, self).__init__()
 
@@ -32,6 +32,7 @@ class AnnotatedDataset(Dataset):
             self.table_name = table_name
 
         self.pad_to_square = pad_to_square
+        self.report_skip = report_skip
 
     def __getitem__(self, index):
 
@@ -41,6 +42,7 @@ class AnnotatedDataset(Dataset):
 
         scale_factor = 1.0
         img = None
+        skip = False
 
         if self.sqlite_file is not None:
 
@@ -63,7 +65,9 @@ class AnnotatedDataset(Dataset):
 
                 if self.min_size is not None and \
                         (sample.width*scale_factor < self.min_size or sample.height*scale_factor < self.min_size):
-                    img = None  # we do not upscale images or image patches that are smaller than min_size
+                    img = Image.new('RGB', (256, 256))  # we do not upscale images or image patches that are smaller
+                                                        # than min_size
+                    skip = True
 
         if img is None:
             try:
@@ -72,6 +76,7 @@ class AnnotatedDataset(Dataset):
                 print('Something went wrong on image {} : {}'.format(sample.file, e))
                 print('Providing dummy result ...')
                 img = Image.new('RGB', (256, 256))
+                skip = True
 
         if 'x' in sample.index and sample.x >= 0 and sample.y >= 0 and sample.width > 0 and sample.height > 0:
 
@@ -92,10 +97,19 @@ class AnnotatedDataset(Dataset):
 
             img = img_sq
 
+        if self.min_size is not None and \
+                (img.width < self.min_size or img.height < self.min_size):
+
+            # skip mark images or image patches that are smaller than min_size
+            skip = True
+
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, target, sample.name
+        if self.report_skip:
+            return img, target, sample.name, skip
+        else:
+            return img, target, sample.name
 
     def __len__(self):
         return len(self.samples)

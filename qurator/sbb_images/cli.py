@@ -853,10 +853,14 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
 @click.option('--auto-contrast', is_flag=True, help="Perform automatic contrast correction.")
 @click.option('--unsharp-mask-radius', type=int, default=0, help="Perform unsharp mask with this radius if > 0 "
                                                                  "(default:0 => disabled) .")
+@click.option('--exclude-label', type=str, multiple=True, default=None, help="Do not add entries that are tagged with "
+                                                                             "this label in the 'tags' table "
+                                                                             "(can be provided multiple times).")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers, vit_model,
                         vst_model, clip_model, open_clip_model, open_clip_pretrained, ms_clip_model,
                         multi_lang_clip_model, layer_name, layer_output, use_saliency_mask, pad_to_square,
-                        thumbnail_sqlite_file, thumbnail_table_name, min_size, auto_contrast, unsharp_mask_radius):
+                        thumbnail_sqlite_file, thumbnail_table_name, min_size, auto_contrast, unsharp_mask_radius,
+                        exclude_label):
     """
 
     Creates an ANN-features based similarity search index.
@@ -866,7 +870,32 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
     """
 
     with sqlite3.connect(sqlite_file) as con:
-        X = pd.read_sql('select * from images', con=con)
+        X = pd.read_sql('SELECT rowid, file, x, y, width, height FROM images', con=con)
+        X['rowid'] -= 1
+        X = X.set_index('rowid').sort_index()
+
+        excl_expr = ''
+        for label in exclude_label:
+
+            if len(excl_expr) > 0:
+                excl_expr += " OR "
+
+            excl_expr += 'tags.tag == "{}"'.format(label)
+
+        if len(excl_expr) > 0:
+
+            E = pd.read_sql('SELECT images.rowid, images.file FROM images '
+                            'INNER JOIN tags ON images.rowid=tags.image_id '
+                            'WHERE {}'.format(excl_expr),
+                            con=con)
+            E['rowid'] -= 1
+            E = E.set_index('rowid').sort_index()
+
+            E['skip'] = True
+
+            X = X.merge(E[['skip']], left_index=True, right_index=True, how='left')
+            X.loc[X.skip.isnull(), 'skip'] = False
+            X = X.loc[X.skip == False]
 
     X['file'] = X['file'].astype(str)
 
@@ -946,23 +975,27 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
     dataset = AnnotatedDataset(samples=X, targets=None, transform=transform, pad_to_square=pad_to_square,
                                thumbnail_sqlite_file=thumbnail_sqlite_file, table_name=thumbnail_table_name,
-                               min_size=min_size)
+                               min_size=min_size, report_skip=True)
 
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     index = None
 
-    for batch, _, pos in tqdm(data_loader, total=len(data_loader), desc="Extract features"):
+    for batch, _, positions, skip_info in tqdm(data_loader, total=len(data_loader), desc="Extract features"):
 
-        pos = pos.cpu().numpy()
+        positions = positions.cpu().numpy()
+        skip_info = skip_info.cpu().numpy()
 
         fe = extract_features(*batch)
 
         if index is None:
             index = AnnoyIndex(fe.shape[1], dist_measure)
 
-        for idx, f in enumerate(fe):
-            index.add_item(pos[idx], f)
+        for idx, (f, pos, skip) in enumerate(zip(fe, positions, skip_info)):
+            if skip:
+                continue
+
+            index.add_item(pos, f)
 
     index.build(n_trees)
     index.save(index_file)
