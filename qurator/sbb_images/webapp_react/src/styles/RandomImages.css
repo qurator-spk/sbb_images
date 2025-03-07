@@ -1,0 +1,87 @@
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1em;
+    width: 80%;
+    height: auto;
+    margin-top: 5em;
+  }
+  
+.image-card {
+  border: 1px solid #D6D8DF; /* SPK Grau 30*/
+  border-radius: 0.1em;
+  display: grid;
+  grid-template-rows: auto auto auto; 
+  width: 100%;
+  max-width: 450px;
+  gap: 1em;
+  padding-bottom: 1em;
+  transition: all 0.2s ease-in-out;
+}
+  
+.image-card:hover {
+  border: 1px solid #000000;
+}
+  
+.image-container {
+  grid-row: 1;
+  background-color: #F0F0F3; /* SPK-Grau 10*/
+  border-radius: 0.1em 0.1em 0 0;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+}
+  
+.image-card:hover .image-container {
+  background-color: #E3E4E9; /* SPK-Grau 20*/
+}
+  
+.image-container .card-image {
+  max-width: 100%;
+  max-height: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+  
+.title-wrapper {
+  grid-row: 2; 
+  height: 3.6em;
+  height: 3rem;
+  line-height: 1.5rem;
+  overflow: hidden; /* prevent the title from pushing the button down*/
+  margin: 0 auto;
+  padding: 0 0.7em 0 0.7em;
+  text-align: left; /* Check this! */
+}
+  
+.image-card a {
+  color: #2B4474;
+} 
+
+.image-card a:hover {
+  color: #182645;
+} 
+
+  /* .image-card a:visited {
+    color: #42455E;
+  }  */
+
+.browse-search {
+  width: 80%;
+  margin: 0 auto 0.5rem auto;
+  font-weight: bold;
+  font-size: 1rem;
+}
+  
+.image-grid {
+  margin-top: 0; 
+  margin-bottom: 3rem;  
+}
+  

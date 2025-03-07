@@ -1,0 +1,21 @@
+body {
+  font-family: "Noto Sans", sans-serif;
+}
+  
+.search-button { 
+  background-color: #182645; /* SPK-Blau 150*/
+  width: 80%;
+  text-align: center;
+  color: #FFFFFF; 
+  padding: 1em 2em; 
+  border: none; 
+  border-radius: 0.5em; 
+  cursor: pointer; 
+  margin: 0 auto;
+  font-size: 1rem;
+  transition: all 0.2s ease-in-out;
+}
+  
+.search-button:hover { 
+  background-color: #091128; /* SPK-Blau 175*/
+}

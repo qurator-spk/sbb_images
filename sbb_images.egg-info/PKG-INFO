@@ -1,0 +1,83 @@
+Metadata-Version: 2.1
+Name: sbb-images
+Version: 0.0.1
+Summary: An image search engine plus some tool to label images.
+Home-page: https://qurator.ai
+Author: The Qurator Team
+Author-email: qurator@sbb.spk-berlin.de
+License: Apache
+Keywords: qurator
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >=3.6.0
+Description-Content-Type: text/markdown
+Requires-Dist: annoy==1.16.3
+Requires-Dist: click==8.0.4
+Requires-Dist: dataclasses
+Requires-Dist: dicttoxml==1.7.16
+Requires-Dist: Flask==2.0.3
+Requires-Dist: Flask-CacheControl==0.3.0
+Requires-Dist: flask-htpasswd==0.5.0
+Requires-Dist: gunicorn==20.1.0
+Requires-Dist: ICONCLASS==0.10
+Requires-Dist: matplotlib==3.3.4
+Requires-Dist: numpy==1.19.5
+Requires-Dist: opencv-contrib-python==4.6.0.66
+Requires-Dist: pandas==1.1.5
+Requires-Dist: Pillow==8.4.0
+Requires-Dist: scikit-learn==0.24.2
+Requires-Dist: scipy==1.5.4
+Requires-Dist: timm==0.6.7
+Requires-Dist: torch==1.10.1
+Requires-Dist: torchvision==0.11.2
+Requires-Dist: tqdm==4.64.1
+Requires-Dist: urlmatch==1.0.1
+Requires-Dist: Werkzeug==2.0.3
+Requires-Dist: requests
+Requires-Dist: xlsxwriter
+
+# sbb-images:
+
+This package currently provides:
+
+* [A tool to annotate images.](doc/annotator.md) 
+* [A tool that trains an image classifier](doc/classifier.md) on the basis of the annotations. 
+* [A tool that implements an image similarity search](doc/image-search.md) on the basis of an image classifier.
+
+## Installation
+
+Activate virtual environment:
+```
+source venv/bin/activate
+```
+Update pip:
+```
+pip install -U pip
+```
+Install sbb_images:
+```
+pip install -e ./
+```
+
+## Create Image Database
+
+All the tools require a SQLITE database that describes the set of images you are working on.
+That database does not store the actual images but only their path.
+You can create that image database using a command-line tool provided by this package: 
+
+```
+create-database --help
+Usage: create-database [OPTIONS] DIRECTORY SQLITE_FILE                                                                                                                                                 
+                                                                                                                                                                                                       
+  DIRECTORY: Recursively enlist all the image files in this directory. 
+  Write the file list into the images table of SQLITE_FILE that is a sqlite3                                                                                                                                 
+  database file.                                                                                                                                                                                       
+                                                                                                                                                                                                       
+Options:                                                                                                                                                                                               
+  --pattern TEXT  File pattern to search for. Default: *.jpg                                                                                                                                           
+  --help          Show this message and exit.
+```
+
+Note that your current `pwd` should be from where you want to run the webapp (annotator or image search) later on.
