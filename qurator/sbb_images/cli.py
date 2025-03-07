@@ -838,11 +838,11 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
 @click.option('--ms-clip-model', type=str, default=None, help='Modality Shared CLIP model configuration file.')
 @click.option('--multi-lang-clip-model', type=str, default=None, help='Multi Language CLIP model.')
 @click.option('--layer-name', type=str, default='fc', help="Name of feature layer. default: fc")
-@click.option('--layer-output', is_flag=True, help="User output of layer rather than its input.")
+@click.option('--layer-output', is_flag=True, help="Use output of layer rather than its input.")
 @click.option('--use-saliency-mask', is_flag=True, help="Mask images by saliency before feature computation. Note: you"
                                                         " need to provide vit-model and vst-model in that case.")
-@click.option('--pad-to-square', is_flag=False, help="Pad-to-square before application of model image transform"
-                                                     " (typically resize + center-crop).")
+@click.option('--pad-to-square', is_flag=True, help="Pad-to-square before application of model image transform"
+                                                    " (typically resize + center-crop).")
 @click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
                                                                       " but rather try to read them from this sqlite"
                                                                       " thumbnail file.")
@@ -850,17 +850,22 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
                                                                      " but rather try to read them from this table"
                                                                      " in the thumbnail sqlite file.")
 @click.option('--min-size', type=int, default=None, help="Do not include images smaller than min-size.")
+@click.option('--auto-contrast', is_flag=True, help="Perform automatic contrast correction.")
+@click.option('--unsharp-mask-radius', type=int, default=0, help="Perform unsharp mask with this radius if > 0 "
+                                                                 "(default:0 => disabled) .")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers, vit_model,
                         vst_model, clip_model, open_clip_model, open_clip_pretrained, ms_clip_model,
                         multi_lang_clip_model, layer_name, layer_output, use_saliency_mask, pad_to_square,
-                        thumbnail_sqlite_file, thumbnail_table_name, min_size):
+                        thumbnail_sqlite_file, thumbnail_table_name, min_size, auto_contrast, unsharp_mask_radius):
     """
 
-    Creates a CNN-features based similarity search index.
+    Creates an ANN-features based similarity search index.
 
     SQLITE_FILE: Image database (see create-database).
     INDEX_FILE: Storage file for search index.
     """
+
+    import ipdb;ipdb.set_trace()
 
     with sqlite3.connect(sqlite_file) as con:
         X = pd.read_sql('select * from images', con=con)
@@ -898,8 +903,12 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
                     transforms.CenterCrop(target_size),
                     transforms.ToTensor()])
 
-            # img = ImageOps.autocontrast(img_orig)
-            # img = img.filter(ImageFilter.UnsharpMask(radius=2))
+            if auto_contrast:
+                img_orig = ImageOps.autocontrast(img_orig)
+
+            if unsharp_mask_radius > 0:
+                img_orig = img_orig.filter(ImageFilter.UnsharpMask(radius=unsharp_mask_radius))
+
             img = img_orig
 
             img_mean = ImageStat.Stat(img).mean
@@ -921,8 +930,11 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
     else:
         def default_image_transform(img_orig):
 
-            # img = ImageOps.autocontrast(img_orig)
-            # img = img.filter(ImageFilter.UnsharpMask(radius=2))
+            if auto_contrast:
+                img_orig = ImageOps.autocontrast(img_orig)
+
+            if unsharp_mask_radius > 0:
+                img_orig = img_orig.filter(ImageFilter.UnsharpMask(radius=unsharp_mask_radius))
 
             return extract_transform(img_orig),
 
