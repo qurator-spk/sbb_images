@@ -39,29 +39,3 @@ const App = () => {
 };
 
 export default App;
-
-
-
-
-// Old, working App, before trying our results in a diff page 08.2024
-
-/* import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import SearchResultsPage from './pages/SearchResultsPage';
-import './styles.css'
-
-const App = () => {
-  
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" exact element={<LandingPage />} />
-        <Route path="/search-results" component={SearchResultsPage} />
-      </Routes>
-    </Router>
-  );
-};
-
-export default App;
- */
