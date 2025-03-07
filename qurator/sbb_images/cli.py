@@ -865,8 +865,6 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
     INDEX_FILE: Storage file for search index.
     """
 
-    import ipdb;ipdb.set_trace()
-
     with sqlite3.connect(sqlite_file) as con:
         X = pd.read_sql('select * from images', con=con)
 
