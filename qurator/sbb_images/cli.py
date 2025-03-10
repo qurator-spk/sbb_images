@@ -648,7 +648,7 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
 def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
 
-    if label_table_name == "images":
+    if label_table_name == "annotations":
 
         with sqlite3.connect(sqlite_file) as con:
             images = pd.read_sql('select * from images', con=con)
