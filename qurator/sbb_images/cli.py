@@ -574,9 +574,9 @@ def load_model_selection(model_selection_file):
 
 
 @click.command()
-@click.argument('sqlite-file', type=click.Path(exists=True))
-@click.argument('result-file', type=click.Path(exists=False))
-@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
+@click.argument('sqlite-file', type=click.Path(exists=True), nargs=-1)
+@click.argument('result-file', type=click.Path(exists=False), nargs=1)
+@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the images from the file system"
                                                                       " but rather try to read them from this sqlite"
                                                                       " thumbnail file.")
 @click.option('--n-splits', type=int, default=10, help="Number of splits used in cross-validation. Default 10.")
@@ -594,8 +594,14 @@ def load_model_selection(model_selection_file):
               help="Number of fully connected layers to be added-. Default [1].")
 @click.option('--freeze-percentage', type=float, multiple=True, default=[1.0],
               help="Percentage of the pre-trained network to freeze. Default [1.0] (Freeze entire pretrained network).")
-@click.option('--label-table-name', type=str, default="annotations", help="")
-@click.option('--label', type=str, multiple=True, default=None, help="")
+@click.option('--label-table-name', type=str, default="annotations", help="Either 'annotations' or 'tags'."
+                                                                          "Use 'annotations' if labels have been made"
+                                                                          "with the annotator, use 'tags' if labels "
+                                                                          "stem from tags in the image search "
+                                                                          "interface, default is 'annotations'.")
+@click.option('--label', type=str, multiple=True, default=None, help="This option has to provided multiple times,"
+                                                                     "listing all the labels from the tags table that"
+                                                                     "should be used as classifier classes.")
 @click.option('--epoch-steps', type=int, default=1, help="Step size of epoch increase.")
 def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, max_epoch, batch_size,
                     start_lr, momentum, decrease_epochs, decrease_factor, model_name,
@@ -603,22 +609,37 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
     """
 
     Performs a cross-validation in order to select an optimal model and training parameters for a given
-    image classification task that is defined by an annotated image database (see also annotator).
+    image classification task that is defined by annotated image database(s).
 
-    SQLITE_FILE: image database (see also create-database).
+    It can use either the annotations provided by the annotator or tags that have been added in the image search
+    interface.
+
+    SQLITE_FILE ...: One or more image database(s) containing the labels in either the annoations or tags table
+    (see also create-database).
 
     RESULT_FILE: A pickled pandas DataFrame that contains the results of the cross-validation.
 
     """
 
-    X, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label)
+    data = []
 
-    X['file'] = X['file'].astype(str)
-    y = X['class'].astype(int)
+    for sq_file in sqlite_file:
+
+        images, _, _ = load_ground_truth(sq_file, label_table_name=label_table_name, labels=label)
+
+        data.append(images)
+
+    images = pd.concat(data)
+
+    images['file'] = images['file'].astype(str)
+
+    images, class_to_label, label_to_class = make_class_from_labels(images)
+
+    y = images['class'].astype(int)
 
     sk_fold = StratifiedKFold(n_splits=n_splits)
 
-    folds = [{'train': tr, 'test': te} for tr, te in sk_fold.split(X, y)]
+    folds = [{'train': tr, 'test': te} for tr, te in sk_fold.split(images, y)]
 
     results = list() if not os.path.exists(result_file) else [pd.read_pickle(result_file)]
 
@@ -627,8 +648,8 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
         model_ft, device, fit_transform, predict_transform, logits_func = \
             load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p)
 
-        result = cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
-                                      fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits,
+        result = cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor,
+                                      device, fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits,
                                       start_lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
         pprint(result.head(50))
@@ -644,6 +665,15 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
     results = pd.concat(results)
 
     results.to_pickle(result_file)
+
+
+def make_class_from_labels(images):
+    images['class'] = images.label.astype('category').cat.codes
+
+    class_to_label = images[['label', 'class']].drop_duplicates().set_index('class').sort_index().to_dict()['label']
+    label_to_class = images[['label', 'class']].drop_duplicates().set_index('label').sort_index().to_dict()['class']
+
+    return images, class_to_label, label_to_class
 
 
 def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
@@ -669,14 +699,10 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
 
         images = images.loc[images.consensus > 1].copy()
 
-        images['class'] = images.label.astype('category').cat.codes
-
-        class_to_label = images[['label', 'class']].drop_duplicates().set_index('class').sort_index().to_dict()['label']
-        label_to_class = images[['label', 'class']].drop_duplicates().set_index('label').sort_index().to_dict()['class']
-
-        return images, class_to_label, label_to_class
-
     elif label_table_name == "tags":
+
+        if labels is None:
+            raise RuntimeError("Need label specification if tags table is to be used.")
 
         images = []
 
@@ -689,16 +715,10 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
             drop_duplicates(subset='file', keep=False).\
             rename(columns={'tag': 'label'}).\
             reset_index(drop=True)
-
-        images['class'] = images.label.astype('category').cat.codes
-
-        class_to_label = images[['label', 'class']].drop_duplicates().set_index('class').sort_index().to_dict()['label']
-        label_to_class = images[['label', 'class']].drop_duplicates().set_index('label').sort_index().to_dict()['class']
-
-        return images, class_to_label, label_to_class
-
     else:
         raise RuntimeError("Do not know how to interpret table '{}'".format(label_table_name))
+
+    return make_class_from_labels(images)
 
 
 def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1.0):
