@@ -22,8 +22,12 @@ class AnnotatedDataset(Dataset):
         self.samples = samples
         self.targets = targets
 
-        self.sqlite_file = thumbnail_sqlite_file
-        self.conn = None
+        if type(thumbnail_sqlite_file) == str:
+            self.thumbnail_sqlite_file = (thumbnail_sqlite_file,)
+        else:
+            self.thumbnail_sqlite_file = thumbnail_sqlite_file
+
+        self.conn = dict()
         self.min_size = min_size
 
         if table_name is None:
@@ -44,15 +48,21 @@ class AnnotatedDataset(Dataset):
         img = None
         skip = False
 
-        if self.sqlite_file is not None:
+        if self.thumbnail_sqlite_file is not None:
 
-            if self.conn is None:
-                self.conn = sqlite3.connect(self.sqlite_file)
+            thumbs = []
 
-                self.conn.execute('pragma journal_mode=wal')
+            for th_file in self.thumbnail_sqlite_file:
 
-            thumbs = pd.read_sql('select * from {} where filename=?'.format(self.table_name),
-                                 con=self.conn, params=(sample.file,))
+                if th_file not in self.conn:
+                    self.conn[th_file] = sqlite3.connect(th_file)
+
+                    self.conn[th_file].execute('pragma journal_mode=wal')
+
+                thumbs = pd.read_sql('select * from {} where filename=?'.format(self.table_name),
+                                     con=self.conn[th_file], params=(sample.file,))
+                if len(thumbs) > 0:
+                    break
 
             if len(thumbs) > 0:
                 max_thumb = thumbs.iloc[thumbs['size'].idxmax()]

@@ -81,6 +81,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
         tqdm_seq = tqdm(train_seq(), total=int(epochs*batches_per_epoch), desc="train")
 
         for inputs, labels in tqdm_seq:
+
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
 

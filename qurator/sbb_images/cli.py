@@ -576,9 +576,9 @@ def load_model_selection(model_selection_file):
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True), nargs=-1)
 @click.argument('result-file', type=click.Path(exists=False), nargs=1)
-@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the images from the file system"
-                                                                      " but rather try to read them from this sqlite"
-                                                                      " thumbnail file.")
+@click.option('--thumbnail-sqlite-file', type=str, default=None, multiple=True,
+              help="Do not read the images from the file system but rather try to read them from one of these sqlite "
+                   "thumbnail file(s).")
 @click.option('--n-splits', type=int, default=10, help="Number of splits used in cross-validation. Default 10.")
 @click.option('--max-epoch', type=int, default=10, help="Number of training-epochs.")
 @click.option('--batch-size', type=int, default=16, help="Training batch-size.")
@@ -709,7 +709,8 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
         with sqlite3.connect(sqlite_file) as con:
             for label in labels:
                 images.append(pd.read_sql('select file, tag from images join tags on images.rowid=tags.image_id '
-                                          'where tags.tag=?', con=con, params=(label,)))
+                                          'where tags.tag=? and images.anchor not glob "region-annotator*"',
+                                          con=con, params=(label,)))
 
         images = pd.concat(images).\
             drop_duplicates(subset='file', keep=False).\
@@ -779,7 +780,7 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
     return model_ft, device, fit_transform, predict_transform, logits_func
 
 
-def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
+def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
                          fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits, start_lr,
                          logits_func, epoch_steps, thumbnail_sqlite_file=None):
 
@@ -801,9 +802,9 @@ def cross_validate_model(X, y, folds, batch_size, class_to_label, decrease_epoch
         for fold in folds:
             estimator = fold['estimator']
 
-            estimator.fit(X.iloc[fold['train']], y.iloc[fold['train']], epochs=epoch_steps)
+            estimator.fit(images.iloc[fold['train']], y.iloc[fold['train']], epochs=epoch_steps)
 
-            predictions.append(estimator.predict_proba(X.iloc[fold['test']]))
+            predictions.append(estimator.predict_proba(images.iloc[fold['test']]))
 
         predictions = pd.concat(predictions)
 
