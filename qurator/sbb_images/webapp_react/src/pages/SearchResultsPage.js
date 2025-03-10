@@ -105,12 +105,18 @@ const SearchResultsPage = () => {
 
   const updateResults = (next_state) => {
 
-      navigate("/search-results", {
-        state: {
-            activeTab,
-            searchState: next_state.serialized,
-        }
-      });
+      try {
+          navigate("/search-results", {
+            state: {
+                activeTab,
+                searchState: next_state.serialized,
+            }
+          });
+      }
+      catch(error) {
+        console.log("Failed to navigate:", error.message)
+        setSearchState(next_state);
+      }
 
       setActiveTab(next_state.type);
       

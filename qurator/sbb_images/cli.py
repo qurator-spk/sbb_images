@@ -629,7 +629,7 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
         data.append(images)
 
-    images = pd.concat(data)
+    images = pd.concat(data).reset_index(drop=True)
 
     images['file'] = images['file'].astype(str)
 

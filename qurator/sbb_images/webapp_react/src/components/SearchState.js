@@ -65,7 +65,7 @@ const loadNextBatchPPN = async (pos, ppn) => {
     }
 };
 
-const loadNextBatchSearchImage = async (pos, imgUrl, formData, cropCoordinates) => {
+const loadNextBatchSearchImage = async (pos, imgUrl, cropCoordinates) => {
 
     const hasCrop = cropCoordinates.x !== -1;
 
@@ -73,29 +73,7 @@ const loadNextBatchSearchImage = async (pos, imgUrl, formData, cropCoordinates) 
 
     let response=null;
 
-    if (formData) {
-        let fd = new FormData();
-        fd.append("file", formData.get("file"));
-
-        if (hasCrop) {
-          response = await fetch(
-            `api/similar-by-image/DIGISAM-DEFAULT/${pos}/100/${x}/${y}/${width}/${height}`,
-            {
-              method: "POST",
-              body: fd,
-            }
-          );
-        } else {
-          response = await fetch(
-            `api/similar-by-image/DIGISAM-DEFAULT/${pos}/100`,
-            {
-              method: "POST",
-              body: fd,
-            }
-          );
-        }
-    }
-    else if (imgUrl) {
+    if (imgUrl) {
        const imageResponse = await fetch(imgUrl);
        const imageBlob = await imageResponse.blob();
        let fd = new FormData();
@@ -173,16 +151,15 @@ export const makeSearchState = (state=null) => {
         });
     },
 
-    setImgUrlWithFormData = (imgUrl, formData) => {
+    setImgUrlWithFormData = (imgUrl) => {
 
         loadNextBatch =
         (pos, cropCoordinates) => {
-            return loadNextBatchSearchImage(pos, imgUrl, formData, cropCoordinates);
+            return loadNextBatchSearchImage(pos, imgUrl, cropCoordinates);
         };
 
         return add_functions({
             imgUrl : imgUrl,
-            formData : formData,
             description : '',
             ppn : '',
             type: 'image'
@@ -221,11 +198,9 @@ export const makeSearchState = (state=null) => {
         if (('imgUrl' in state) && ('img_id' in state)) {
             return setImgUrlWithID(state.imgUrl, state.img_id);
         }
-        else if (('imgUrl' in state) && ('formData' in state)) {
+        else if ('imgUrl' in state) {
 
-            state.imgUrl = URL.createObjectURL(state.formData.get('file'));
-
-            return setImgUrlWithFormData(state.imgUrl, state.formData);
+            return setImgUrlWithFormData(state.imgUrl);
         }
         else if (('description' in state) && (state.description.length > 0)) {
             return setDescription(state.description);

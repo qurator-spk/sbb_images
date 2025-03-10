@@ -30,15 +30,19 @@ const ImageTab = ({
 
   const handleImageUpload = (file) => {
     console.log("Image upload initiated");
-    let fd = new FormData();
-    fd.append("file", file);
-    const imageUrl = URL.createObjectURL(file);
 
-    const next_state = searchState.setImgUrlWithFormData(imageUrl, fd);
+    let reader = new FileReader();
 
-    setSearchState(next_state);
+    reader.onload = (e) => {
+            const imageUrl = e.target.result;
 
-    updateResults(next_state);
+            const next_state = searchState.setImgUrlWithFormData(imageUrl);
+
+            setSearchState(next_state);
+
+            updateResults(next_state);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUploadButtonClick = () => {
