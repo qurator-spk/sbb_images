@@ -7,6 +7,7 @@ import { makeSearchState } from "../components/SearchState";
 import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import "../styles/SearchResultsPage.css";
+import MinimizedSearchBar from "../components/MinimizedSearchBar"; 
 
 const SearchResultsPage = () => {
 
@@ -35,6 +36,30 @@ const SearchResultsPage = () => {
   });
 
 //************************************************************** */
+  const cropTimeoutRef = useRef(null);
+
+  const [showMinimizedBar, setShowMinimizedBar] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const tabsElement = document.querySelector('.Tabs');
+    
+      if (tabsElement) {
+        const tabsPosition = tabsElement.getBoundingClientRect().bottom;      
+        setShowMinimizedBar(tabsPosition < 0);
+      }
+    };
+  
+    window.addEventListener('scroll', handleScroll);
+  
+    handleScroll();
+  
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleBackToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
 
@@ -73,7 +98,13 @@ const SearchResultsPage = () => {
     }
   }, []);
 
-//************************************************************** */
+  useEffect(() => {
+    return () => {
+      if (cropTimeoutRef.current) {
+        clearTimeout(cropTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const isLoadingBatch = useRef(false);
 
@@ -144,13 +175,32 @@ const SearchResultsPage = () => {
     const width = cropData.width / imageData.width;
     const height = cropData.height / imageData.height;
 
-    setCropCoordinates({ x, y, width, height });
+    if (cropTimeoutRef.current) {
+      clearTimeout(cropTimeoutRef.current);
+    }
+  
+    // timeout to delay the search
+    cropTimeoutRef.current = setTimeout(() => {
+      setCropCoordinates({ x, y, width, height });
+    }, 1500); 
+
+  //  setCropCoordinates({ x, y, width, height });
 
   }; // handleCrop
 
   return (
     <div className="search-results-page">
       <Header />
+
+      {/* Show minimized bar when scrolled */}
+      {showMinimizedBar && (
+        <MinimizedSearchBar 
+          searchState={searchState}
+          cropCoordinates={cropCoordinates}  // for canvas
+          onBackToTopClick={handleBackToTop}
+        />
+      )}
+
       <div className="search-page-title">
        <h2>
        {searchResult.type === "ppn"
@@ -160,16 +210,6 @@ const SearchResultsPage = () => {
           " Search Results"}
       </h2>
       </div>
-
-      <Tabs
-        updateResults={updateResults}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        searchState={searchState}
-        setSearchState={setSearchState}
-        isResultsPage={true}
-        error={error}
-      /> 
 
       {searchResult.type === "image" && searchState.imgUrl && (
       <div className='query'>
@@ -197,6 +237,16 @@ const SearchResultsPage = () => {
         </div>
       </div>
       )}
+
+      <Tabs
+        updateResults={updateResults}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        searchState={searchState}
+        setSearchState={setSearchState}
+        isResultsPage={true}
+        error={error}
+      /> 
 
       <SearchResults
         updateResults={updateResults}

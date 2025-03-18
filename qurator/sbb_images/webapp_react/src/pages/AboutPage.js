@@ -2,8 +2,28 @@ import React from "react";
 import Header from "../components/Header";
 import SearchSimilarImages from "../components/SearchSimilarImages";
 import "../styles/AboutPage.css";
+import { useNavigate } from "react-router-dom";
+import { makeSearchState } from "../components/SearchState";
 
 const AboutPage = () => {
+  // Making the card functional
+  const navigate = useNavigate();
+  const [searchState, setSearchState] = React.useState(makeSearchState());
+
+  const updateResults = (next_state) => {
+    try {
+      navigate("/search-results", {
+        state: {
+          activeTab: "image",
+          searchState: next_state.serialized,
+        }
+      });
+    } catch(error) {
+      console.log("Failed to navigate:", error.message);
+      setSearchState(next_state);
+    }
+  };
+
   const exampleCard = {
     src: "api/image/DIGISAM/257062",
     title: "Kupfer-Sammlung besonders zu F. P. Wilmsens Handbuch der ...",
@@ -93,8 +113,12 @@ const AboutPage = () => {
                   <div className="title-wrapper">{exampleCard.title}</div>
                 </a>
                 <SearchSimilarImages
+                  /* imageId={exampleCard.src.split("/").pop()}
+                  isFromResults={false} */
+                  searchState={searchState}
+                  setSearchState={setSearchState}
                   imageId={exampleCard.src.split("/").pop()}
-                  isFromResults={false}
+                  updateResults={updateResults}
                 />
               </div>
               <p className="example-caption">
@@ -118,7 +142,7 @@ const AboutPage = () => {
               start a different search or try a more detailed description. It
               may be that the database doesn't contain any images similar to the
               one you are looking for, or it may be that your description could
-              use more detail (it is better to use sentences rather than single
+              use more detail (it is better to use longer descriptions rather than single
               words - think about those school exercises asking you to describe
               an image and be as specific as you can in a search bar).
             </p>

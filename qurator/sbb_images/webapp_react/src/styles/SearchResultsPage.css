@@ -19,7 +19,7 @@
 .query-image-container {
     background-color: #F0F0F3; /*SPK-Grau 10*/
     border-top: 1px solid #D6D8DF; /* SPK Grau 30*/
-    border-bottom: 1px solid #D6D8DF; /* SPK Grau 30*/;
+    border-bottom: 1px solid #D6D8DF; /* SPK Grau 30*/
     display: flex;
     flex-direction: column;
     justify-content: center;
