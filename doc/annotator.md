@@ -1,7 +1,7 @@
 # Single Label Annotator
 
-The single label annotator is a very simple tool the supports to label sets of images according to a small 
-number of pre-defined classes. It supports multiple users and stores the labels on a per-user basis.
+The single label annotator is a very simple tool that supports to annotate sets of images according to a small 
+number of pre-defined classes. It supports multiple users and stores the annotations on a per-user basis.
 It writes into the 'annotations' table of the connected sqlite database. This table can be used with the 
 [classification tools](classifier.md) to train a classifier.
 
