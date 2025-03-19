@@ -9,7 +9,7 @@ using the tagging interface of the [image-search](image-search.md).
 
 ## Model selection:
 
-Once you have sufficiently [annotated](annotator.md) your image dataset,
+Once you have sufficiently annotated your image dataset,
 you can find an optimal classifier configuration by means of the model selection tool:
 
 ```
