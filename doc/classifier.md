@@ -24,7 +24,7 @@ Usage: model-selection [OPTIONS] [SQLITE_FILE]... RESULT_FILE
   have been added in the image search interface.
 
   SQLITE_FILE ...: One or more image database(s) containing the labels in
-  either the annoations or tags table (see also create-database).
+  either the annotations or tags table (see also create-database).
 
   RESULT_FILE: A pickled pandas DataFrame that contains the results of the
   cross-validation.
@@ -45,10 +45,13 @@ Options:
                                 rch.org/docs/stable/torchvision/models.html
                                 for possible choices. Default resnet18.
   --num-trained-layers INTEGER  Number of fully connected layers to be added-.
-                                Default [1].
+                                Default [1]. Can be provided multiple times to
+                                try different settings in a grid-search.
   --freeze-percentage FLOAT     Percentage of the pre-trained network to
                                 freeze. Default [1.0] (Freeze entire
-                                pretrained network).
+                                pretrained network).Can be provided multiple
+                                times to try different settings in a grid-
+                                search.
   --label-table-name TEXT       Either 'annotations' or 'tags'. Use
                                 'annotations' if labels have been made with
                                 the annotator, use 'tags' if labels stem from

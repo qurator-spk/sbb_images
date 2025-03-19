@@ -638,9 +638,12 @@ def load_model_selection(model_selection_file):
                    "see https://pytorch.org/docs/stable/torchvision/models.html for possible choices. "
                    "Default resnet18.")
 @click.option('--num-trained-layers', type=int, multiple=True, default=[1],
-              help="Number of fully connected layers to be added-. Default [1].")
+              help="Number of fully connected layers to be added-. Default [1]. Can be provided multiple times to try "
+                   "different settings in a grid-search.")
 @click.option('--freeze-percentage', type=float, multiple=True, default=[1.0],
-              help="Percentage of the pre-trained network to freeze. Default [1.0] (Freeze entire pretrained network).")
+              help="Percentage of the pre-trained network to freeze. Default [1.0] (Freeze entire pretrained network)."
+                   "Can be provided multiple times to try "
+                   "different settings in a grid-search.")
 @click.option('--label-table-name', type=str, default="annotations",
               help="Either 'annotations' or 'tags'. Use 'annotations' if labels have been made with the annotator, use "
                    "'tags' if labels stem from tags in the image search interface, default is 'annotations'.")
