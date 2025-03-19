@@ -7,6 +7,14 @@ It writes into the 'annotations' table of the connected sqlite database. This ta
 
 ![sbb-ner-demo example](screenshots/annotator_demo.png?raw=true)
 
+## User-Interface
+
+* A : The image to be labeled.
+* B : The label that has been proposed by a classifier.
+* C : Re-label the image according to one of these classes.
+* D : Confirm the current label below the image and go to the next randomly chosen image.
+* E : Preselect subset of images to be labeled based on predictions provided by a classifier.
+
 ## Setup Annotator:
 
 Edit qurator/sbb_images/webapp/annotator-config.json such that it points to the 
@@ -20,14 +28,6 @@ htpasswd -c .htpasswd username
 Edit qurator/sbb_images/webapp/config/annotator-config.json such that it points to ".htpasswd".
 
 Adapt the other options in that file such that they fit your desired image classification task:
-
-## User-Interface
-
-* A : The image to be labeled.
-* B : The label that has been proposed by a classifier.
-* C : Re-label the image according to one of these classes.
-* D : Confirm the current label below the image and go to the next randomly chosen image.
-* E : Preselect subset of images to be labeled based on predictions provided by a classifier.
 
 ### annotator-config.json:
 * LABELS: The image classes that you want to assign to your images. 
