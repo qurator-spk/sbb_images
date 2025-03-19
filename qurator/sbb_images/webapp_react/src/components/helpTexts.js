@@ -5,7 +5,7 @@ export const helpTexts = {
     <div className="help-content">
       <ol>
         <li>
-          Drag and drop or upload an image (JPEG, PNG) of your choice to find similar 
+          Drag and drop, upload or paste an image (JPEG, PNG) of your choice to find similar 
           images within the Stabi Digitized Collections. The image upload 
           automatically triggers the search, there is no button to click afterwards.<br/> 
           After a short delay, the results will start appearing.

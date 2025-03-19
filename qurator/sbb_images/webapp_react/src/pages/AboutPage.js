@@ -61,7 +61,7 @@ const AboutPage = () => {
                 <li>
                   {" "}
                   <strong>
-                    Using an image - drag and drop or upload an image of your choice, 
+                    Using an image - drag and drop, upload or paste an image of your choice, 
                     or click on one of the examples
                   </strong>{" "}
                   on our homepage. Results will be shown from the most to
@@ -76,7 +76,9 @@ const AboutPage = () => {
                     Describe the image you have in mind, using the Description
                     Tab
                   </strong>
-                  . The results will be, as before, shown from the one that
+                  . This works in German, English, and several other languages, which you can 
+                  find <a href="https://github.com/FreddeFrallan/Multilingual-CLIP/blob/main/translation/data/fine_tune_languages.csv" target="_blank"
+              rel="noopener noreferrer" className="link">listed here</a>. The results will be, as before, shown from the one that
                   most closely matches your description to the least matching.
                 </li>
                 <li>

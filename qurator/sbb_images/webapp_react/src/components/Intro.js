@@ -12,7 +12,7 @@ const Intro = () => {
         Collections</a> of 
         the&nbsp;<a href="https://staatsbibliothek-berlin.de/" target="_blank">Berlin
         State Library (SBB)</a>. You can start your search either by using an
-        image of your choice (drag and drop in the designated area or upload), describing the image you are looking for, using a document’s
+        image of your choice (drag and drop in the designated area, upload or paste), describing the image you are looking for, using a document’s
         unique identifier (PPN) to find the images inside a specific work, or by
         exploring our random image selection below. All the search results will
         be images. The underlying technology 

@@ -4,6 +4,8 @@
     left: 0;
     width: 100%;
     background-color: #F0F0F3;
+    background-color: #E8E8F1;
+
     border-top: 1px solid #EC6726;
     border-bottom: 1px solid #D6D8DF;/* SPK Grau 30*/
     z-index: 5; /* same as header */
@@ -92,6 +94,9 @@
   
   .preview-image {
     max-width: 100%;
+    max-width: 18rem;
+    max-height: 300px;
+    max-height: 18rem;
     display: block;
   }
   

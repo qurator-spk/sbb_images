@@ -5,24 +5,25 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
   const [description, setDescription] = useState(searchState.description);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [shuffledSuggestions, setShuffledSuggestions] = useState([]);
-  const SUGGESTIONS_TO_SHOW = 10;
+  // const SUGGESTIONS_TO_SHOW = 8;
   const counter = useRef(0);
 
-  // shuffle
-  const getRandomSuggestions = (array, count) => {
+  const shuffleArray = (array) => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    return shuffled.slice(0, count);
+    return shuffled;
   };
-
+  
   useEffect(() => {
     if (showSuggestions) {
-      setShuffledSuggestions(getRandomSuggestions(descriptionSuggestions, SUGGESTIONS_TO_SHOW));
+      const shuffled = shuffleArray(descriptionSuggestions);
+      setShuffledSuggestions(shuffled.slice(0, 8));
     }
   }, [showSuggestions]);
+  
 
   const handleSuggestionClick = (suggestion) => {
     //console.log("Suggestion clicked:", suggestion);
