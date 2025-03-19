@@ -45,6 +45,9 @@ const loadNextBatchSearchSimilar = async (pos, imageId, cropCoordinates) => {
 
 const loadNextBatchPPN = async (pos, ppn) => {
     try {
+      if (!ppn.startsWith("PPN")) ppn = "PPN" + ppn;
+      if (ppn.startsWith("ppn")) ppn = "PPN" + ppn.substring(3);
+
       const response = await fetch("api/ppn/DIGISAM/PPN" + ppn);
 
       if (!response.ok) {
