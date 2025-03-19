@@ -59,7 +59,7 @@
 
   .result-card {
     border: 1px solid #D6D8DF; /* SPK Grau 30*/
-    border-radius: 0.1em;
+    border-radius: 0.3em;
     display: grid;
     grid-template-rows: auto auto auto;
     width: 100%;
@@ -73,7 +73,7 @@
   .result-card .image-container {
     grid-row: 1;
     background-color: #F0F0F3; /* SPK-Grau 10*/
-    border-radius: 0.1em 0.1em 0 0;
+    border-radius: 0.3em 0.3em 0 0;
     max-width: 100%;
     max-height: 100%;
     aspect-ratio: 1 / 1;

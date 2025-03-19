@@ -36,7 +36,7 @@
     object-fit: contain;
     border: 1px solid #D6D8DF; /* SPK Grau 30*/
     background-color: #FFFFFF;
-    /* border-radius: 2px; */
+    border-radius: 0.3em; 
     cursor: pointer;
     transition: transform 0.2s;
   }
@@ -77,11 +77,12 @@
     left: calc((100% - 80%) / 2);
     max-width: 25rem;
     background: rgba(255, 255, 255, 0.90);
-    border: 1px solid #B5B9C4;
+    /* border: 1px solid #B5B9C4; */
+    border: 1px solid #D6D8DF;
+    border-radius: 0.3em;
     box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 0.6);
     padding: 2rem;
     z-index: 10;
-    border-radius: 0.1em;
   }
   
   .preview-image-container {

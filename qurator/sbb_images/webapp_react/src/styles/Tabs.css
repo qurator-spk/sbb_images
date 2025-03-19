@@ -475,3 +475,59 @@ button {
 .DescriptionTab a:hover {
     color: #182645; /* SPK-Blau 150 */
 }
+
+.suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: auto;
+    background: #FFFFFF;
+    border: 1px solid #D6D8DF;
+    /* border: 1px solid #000000; */
+    border-top: none;
+    border-radius: 0 0 0.5rem 0.5rem;
+    /* max-height: 200px; */
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 0.4rem 0.2rem rgba(0,0,0,0.15);
+}
+  
+.suggestion-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+  
+.suggestion-item:hover {
+    background-color: #F0F0F3;
+}
+  
+.try-it {
+    color: #2B4474;
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0; 
+    transition: opacity 0.2s;
+}
+
+.suggestion-item:hover .try-it {
+    opacity: 1; 
+}
+
+.input-container {
+    position: relative;
+    width: 100%;
+  }
+
+.suggestions-header {
+    padding: 0.95rem 1rem;
+    font-weight: 600;
+    color: #3C3C3C;
+    background-color: #F0F0F3;
+    background-color: #E8E8F1;
+    border-bottom: 1px solid #D6D8DF;
+}

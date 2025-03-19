@@ -71,7 +71,8 @@ export const helpTexts = {
       <ol>
         <li>
           Enter the PPN of a specific document from the Stabi Digitized Collections in 
-          the input field. Do not use "PPN" before, enter only the number - like this: "77137920X".<br/> 
+          the input field. You can enter only the number (like this: "77137920X"), or 
+          use "PPN" before (like this: "PPN77137920X"), as you prefer.<br/> 
           The PPN - Pica Production Number - is 
           a unique document identifier used at the Berlin State Library. You can use it to 
           find a specific document in the collection. 

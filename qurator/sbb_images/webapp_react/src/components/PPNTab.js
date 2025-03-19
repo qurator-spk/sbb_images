@@ -35,8 +35,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
         onChange={(e) => setPPN(e.target.value)}
         placeholder="E.g. 744086949"
       />
-      <p>Enter PPN. <br/> 
-      (Only the number, without 'PPN' in the beginning.)</p>
+      <p>Enter PPN.</p>
       {error && <div className="error-message"><strong>{error}</strong></div>}
     </div>
   );

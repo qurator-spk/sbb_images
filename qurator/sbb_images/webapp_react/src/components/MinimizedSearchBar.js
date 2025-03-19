@@ -90,8 +90,8 @@ const MinimizedSearchBar = ({
     );
   } else if (searchState.type === "description" && searchState.description) {
     const displayText =
-      searchState.description.length > 30
-        ? searchState.description.substring(0, 30) + "..."
+      searchState.description.length > 50
+        ? searchState.description.substring(0, 50) + "..."
         : searchState.description;
 
     searchContent = <span>Searching for description: "<strong>{displayText}</strong>"</span>;
