@@ -1,8 +1,9 @@
 ## Prerequisites:
 
 In order to train a classifier for some image classification task,
-you first need to [annotate](annotator.md) 
-a sufficiently large part of your image database according to that task.
+you first need to annotate a sufficiently large part of your image database according to that task.
+You can do that either using the single label [Annotator](annotator.md) or 
+using the tagging interface of the [image-search](image-search.md).
 
 ## Model selection:
 
@@ -68,7 +69,7 @@ Options:
   --help                        Show this message and exit.
 ```
 
-# Model training:
+## Model training:
 
 Once you have successfully performed model selection, you can create a 
 final classifier that has been trained on the entire annotated part of 
@@ -111,6 +112,8 @@ Options:
                                 "Vignette", "Exlibris"]}'
   --help                        Show this message and exit.
 ```
+
+## Model application
 
 Finally, you can classify all the images in the database:
 ```
