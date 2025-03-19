@@ -1,3 +1,5 @@
+# Single Label Annotator
+
 ![sbb-ner-demo example](screenshots/annotator_demo.png?raw=true)
 
 ## Setup Annotator:
@@ -10,9 +12,16 @@ Create a passwd file:
 htpasswd -c .htpasswd username
 ```
 
-Edit qurator/sbb_images/webapp/annotator-config.json such that it points to ".htpasswd".
+Edit qurator/sbb_images/webapp/config/annotator-config.json such that it points to ".htpasswd".
 
 Adapt the other options in that file such that they fit your desired image classification task:
+
+## User-Interface
+
+* A : Preselect subset of images to be labeled based on predictions provided by a classifier.
+* B : The label that has been proposed by a classifier.
+* C : Re-label the image according to one of these classes.
+* D : Confirm the current label below the image and go to the next randomly chosen image.
 
 ### annotator-config.json:
 * LABELS: The image classes that you want to assign to your images. 
