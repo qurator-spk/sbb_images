@@ -1142,11 +1142,15 @@ def get_ppn_images(user, data_conf, ppn=None):
 
         links = pd.read_sql('SELECT DISTINCT links.rowid from links '
                             'INNER JOIN images ON images.rowid=links.rowid '
-                            'INNER JOIN tags ON tags.image_id=links.rowid '
-                            'WHERE links.ppn=? AND images.x=-1 and tags.tag!=? '
+                            'WHERE links.ppn=? AND images.x=-1 AND links.rowid NOT IN '
+                            '(SELECT DISTINCT tags.image_id FROM tags WHERE tags.image_id=links.rowid '
+                            'AND tags.tag=?) '
                             'ORDER BY links.phys_id', con=thread_store.get_db(data_conf),
                             params=(ppn, app.config["EXCLUDE-TAG"],))
     else:
+
+
+
         links = pd.read_sql('SELECT links.rowid FROM links '
                             'INNER JOIN images ON images.rowid=links.rowid '
                             'WHERE links.ppn=? AND images.x=-1 '
