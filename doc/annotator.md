@@ -12,10 +12,10 @@ Single Label Annotator is optimized for smartphone usage.
 ## User-Interface
 
 * A : The image to be labeled.
-* B : The label that has been proposed by a classifier.
+* B : The label that has been proposed by a classifier (if a pre-classification is available).
 * C : Re-label the image according to one of these classes.
 * D : Confirm the current label below the image and go to the next randomly chosen image.
-* E : Preselect subset of images to be labeled based on predictions provided by a classifier.
+* E : Preselect subset of images to be labeled based on predictions provided by a classifier (if a pre-classification is available).
 
 ## Setup Annotator:
 
