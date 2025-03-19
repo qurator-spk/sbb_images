@@ -1129,9 +1129,6 @@ def get_ppn_images(user, data_conf, ppn=None):
     if ppn is None:
         return jsonify("")
 
-    if ppn.startswith("PPN") or ppn.startswith("ppn"):
-        ppn = ppn[3:]
-
     if has_table('predictions', data_conf):
         links = pd.read_sql('SELECT links.rowid FROM links JOIN predictions ON predictions.rowid=links.rowid '
                             'WHERE links.ppn=? and '
