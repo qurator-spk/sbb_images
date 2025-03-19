@@ -9,8 +9,7 @@ from fnmatch import fnmatch
 import numpy as np
 import itertools
 from tqdm import tqdm
-
-from peft import LoraConfig, get_peft_model
+from ast import literal_eval
 
 from sklearn.model_selection import StratifiedKFold
 from pprint import pprint
@@ -35,7 +34,6 @@ try:
     from torchvision import models, transforms
     from .classifier import ImageClassifier
     from .feature_extraction import load_extraction_model
-    # from feature_extraction import FeatureExtractor
     from .data_access import AnnotatedDataset
     # noinspection PyUnresolvedReferences
     from annoy import AnnoyIndex
@@ -46,7 +44,7 @@ from .detections import summarize_detections
 from .saliency import load_saliency_model
 
 import PIL
-from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageStat
+from PIL import Image, ImageOps, ImageFilter, ImageStat
 from torchvision import transforms
 
 
@@ -365,24 +363,48 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
 @click.argument('model-selection-file', type=click.Path(exists=True))
 @click.argument('model-file', type=click.Path(exists=True))
 @click.argument('result-file', type=click.Path(exists=False))
-@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
-                                                                      " but rather try to read them from this sqlite"
-                                                                      " thumbnail file.")
-@click.option('--train-only', type=bool, is_flag=True, default=False, help="Apply classifier only to training subset.")
-@click.option('--write-to-table', type=str, default=None, help="")
-@click.option('--label-table-name', type=str, default="annotations", help="")
-@click.option('--label', type=str, multiple=True, default=None, help="")
-@click.option('--tag-prefix', type=str, default=None, help="Tag prefix.")
-@click.option('--username', type=str, default=None, help="Tag prefix.")
-@click.option('--remove-user-tags', type=bool, is_flag=True, default=False, help="")
-@click.option('--training-database', type=click.Path(exists=True), default=None, help="")
+@click.option('--thumbnail-sqlite-file', type=str, default=None,
+              help="Do not read the images from the file system but rather try to read them from this sqlite thumbnail "
+                   "file.")
+@click.option('--train-only', type=bool, is_flag=True, default=False,
+              help="Apply classifier only to training subset.")
+@click.option('--write-to-table', type=str, default="tags",
+              help="Either \"tags\" or \"predictions\". Use \"tags\" if you want to add new classifier tags to an "
+                   "image search interface and use \"predictions\" if you want to use the classifier output in the "
+                   "annotator interface.")
+@click.option('--label-table-name', type=str, default="annotations",
+              help="Either 'annotations' or 'tags'. Use 'annotations' if labels have been made with the annotator, use "
+                   "'tags' if labels stem from tags in the image search interface, default is 'annotations'.")
+@click.option('--label', type=str, multiple=True, default=None,
+              help="This option has to be provided multiple times in case of \"label-table-name=tags\". "
+                   "List all the labels from the tags table that should be used for the classifier.")
+@click.option('--label-groups', type=str, default=None,
+              help="Optional: dictionary definition how to summarize labels in groups "
+                   "and train a new classifier for those label groups. "
+                   "Example for a classifier with two classes \"exclude\" and \"include\":  "
+                   "'{\"exclude\": [\"Übriges\", \"Gesetzter_Text\", \"Einband\", \"Stempel\", \"Farbtafel\", "
+                   "\"Ornament\", \"Signatur\", \"Handschrift\", \"Noten\"], "
+                   "\"include\": [\"Abbildung\", \"Photo\", \"Karte\", \"Initiale\", \"Druckermarke\", \"Noten\", "
+                   "\"Vignette\", \"Exlibris\"]}'.")
+@click.option('--tag-prefix', type=str, default=None,
+              help="Prefix for the classification tags that will be added to the tags table. "
+                   "default is \"Classifier:\".")
+@click.option('--username', type=str, default=None, help="Tag prefix. default is  \"classifier\".")
+@click.option('--remove-user-tags', type=bool, is_flag=True, default=False,
+              help="Specify this option in order to remove all tags from the user \"username\" from the tags table "
+                   "before additing the new tags. BEWARE: All tags for that user will be deleted and cannot be restored"
+                   " without a backup of the sqlite file.")
+@click.option('--training-database', multiple=True, type=click.Path(exists=True), default=None,
+              help="The database where the training images come form is different from the database that the classifier"
+                   "is applied to. In that case use this parameter (multiple times) in order to specifiy all the "
+                   "training databases.")
 def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, result_file,
-          train_only, write_to_table, label_table_name, label, tag_prefix, username, remove_user_tags,
+          train_only, write_to_table, label_table_name, label, label_groups, tag_prefix, username, remove_user_tags,
           training_database):
     """
 
     Classifies all images of an image database and writes the predictions into a predictions table of the database.
-    The annotator tool can than display those predictions.
+    The annotator tool can then display those predictions.
 
     SQLITE_FILE: An annotated image database (see create-database).
 
@@ -410,7 +432,6 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
                 pred.to_sql('predictions', con=_con, if_exists='replace')
 
                 con.execute('create index ix_predictions_labels on predictions(label)')
-                # con.execute('create index ix_predictions_ppn on predictions(PPN)')
 
         elif write_to_table == 'tags':
 
@@ -427,7 +448,7 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
             with sqlite3.connect(sqlite_file) as _con:
                 if remove_user_tags:
-                    _con.execute('DELETE FROM tags WHERE user=?', parameters=(username,))
+                    _con.execute('DELETE FROM tags WHERE user=?', (username,))
 
                 pred.to_sql('tags', con=_con, if_exists='append', index=False)
         else:
@@ -442,21 +463,31 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
         return
 
-    X, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label)
+    images, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label,
+                                                          label_groups=label_groups)
     y = None
 
     if training_database is not None:
-        _, class_to_label, label_to_class = load_ground_truth(training_database, label_table_name=label_table_name,
-                                                              labels=label)
+
+        tr_data = []
+        for tr_db in training_database:
+
+            tmp, _, _ = load_ground_truth(tr_db, label_table_name=label_table_name,
+                                          labels=label, label_groups=label_groups)
+            tr_data.append(tmp)
+
+        images_train = pd.concat(tr_data).reset_index(drop=True)
+
+        images_train, class_to_label, label_to_class = make_class_from_labels(images_train)
 
     if train_only is None:
-        X['file'] = X['file'].astype(str)
-        y = X['class'].astype(int)
+        images['file'] = images['file'].astype(str)
+        y = images['class'].astype(int)
     else:
         with sqlite3.connect(sqlite_file) as con:
-            X = pd.read_sql('select rowid,file from images', con=con).set_index('rowid')
+            images = pd.read_sql('select rowid,file from images', con=con).set_index('rowid')
 
-        X['file'] = X['file'].astype(str)
+        images['file'] = images['file'].astype(str)
 
     batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_p, start_lr = \
         load_model_selection(model_selection_file)
@@ -464,7 +495,6 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
     model, device, fit_transform, predict_transform, logits_func = \
         load_pretrained_model(model_name, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p)
 
-    # import ipdb;ipdb.set_trace()
     model.load_state_dict(torch.load(model_file, weights_only=True))
 
     estimator = ImageClassifier(model=model, model_weights=copy.deepcopy(model.state_dict()),
@@ -473,7 +503,7 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
                                 predict_transform=predict_transform, batch_size=batch_size,
                                 logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
-    predictions = estimator.predict_proba(X)
+    predictions = estimator.predict_proba(images)
 
     if y is not None:
         predictions['class_ground_truth'] = y
@@ -488,15 +518,27 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
 
 @click.command()
-@click.argument('sqlite-file', type=click.Path(exists=True))
-@click.argument('model-selection-file', type=click.Path(exists=True))
-@click.argument('model-file', type=click.Path(exists=False))
-@click.option('--thumbnail-sqlite-file', type=str, default=None, help="Do not read the image from the file system"
-                                                                      " but rather try to read them from this sqlite"
-                                                                      " thumbnail file.")
-@click.option('--label-table-name', type=str, default="annotations", help="")
-@click.option('--label', type=str, multiple=True, default=None, help="")
-def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, label_table_name, label):
+@click.argument('sqlite-file', type=click.Path(exists=True), nargs=-1)
+@click.argument('model-selection-file', type=click.Path(exists=True), nargs=1)
+@click.argument('model-file', type=click.Path(exists=False), nargs=1)
+@click.option('--thumbnail-sqlite-file', multiple=True, type=str, default=None,
+              help="Do not read the image from the file system but rather try to read them from one of these sqlite "
+                   "thumbnail file(s).")
+@click.option('--label-table-name', type=str, default="annotations",
+              help="Either 'annotations' or 'tags'. Use 'annotations' if labels have been made with the annotator, use "
+                   "'tags' if labels stem from tags in the image search interface, default is 'annotations'.")
+@click.option('--label', type=str, multiple=True, default=None,
+              help="This option has to be provided multiple times, listing all the labels from the tags table that "
+                   "should be used as classifier classes.")
+@click.option('--label-groups', type=str, default=None,
+              help="Dictionary definition how to summarize labels in groups "
+                   "and train a new classifier for those label groups. "
+                   "Example for a classifier with two classes \"exclude\" and \"include\":  "
+                   "'{\"exclude\": [\"Übriges\", \"Gesetzter_Text\", \"Einband\", \"Stempel\", \"Farbtafel\", "
+                   "\"Ornament\", \"Signatur\", \"Handschrift\", \"Noten\"], "
+                   "\"include\": [\"Abbildung\", \"Photo\", \"Karte\", \"Initiale\", \"Druckermarke\", \"Noten\", "
+                   "\"Vignette\", \"Exlibris\"]}'")
+def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, label_table_name, label, label_groups):
     """
 
     Selects the best model/training parameter combination from a model selection and
@@ -508,10 +550,19 @@ def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
     """
 
-    X, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label)
+    data = []
 
-    X['file'] = X['file'].astype(str)
-    y = X['class'].astype(int)
+    for sq_file in sqlite_file:
+        images, class_to_label, label_to_class = load_ground_truth(sq_file, label_table_name=label_table_name, labels=label,
+                                                              label_groups=label_groups)
+        data.append(images)
+
+    images = pd.concat(data).reset_index(drop=True)
+
+    images['file'] = images['file'].astype(str)
+    y = images['class'].astype(int)
+
+    images, class_to_label, label_to_class = make_class_from_labels(images)
 
     batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_p, start_lr = \
         load_model_selection(model_selection_file)
@@ -520,7 +571,6 @@ def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
         load_pretrained_model(model_name, len(label_to_class),
                               num_train_layers=num_trained, freeze_percentage=freeze_p)
 
-    # optimizer = optim.SGD(model_ft.parameters(), lr=start_lr, momentum=momentum)
     optimizer = AdamW(model.parameters(), lr=start_lr)
 
     sched = lr_scheduler.StepLR(optimizer, step_size=decrease_epochs, gamma=decrease_factor)
@@ -532,7 +582,7 @@ def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
                                 logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
     for _ in range(0, epochs):
-        estimator.fit(X, y)
+        estimator.fit(images, y)
 
     torch.save(model.state_dict(), model_file)
 
@@ -567,9 +617,6 @@ def load_model_selection(model_selection_file):
     start_lr = float(best_config.start_lr)
     print('Start learning rate: {}'.format(start_lr))
 
-    momentum = float(best_config.momentum)
-    print('Momentum (if SGD is used): {}'.format(momentum))
-
     return batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_percentage, start_lr
 
 
@@ -583,7 +630,6 @@ def load_model_selection(model_selection_file):
 @click.option('--max-epoch', type=int, default=10, help="Number of training-epochs.")
 @click.option('--batch-size', type=int, default=16, help="Training batch-size.")
 @click.option('--start-lr', type=float, default=0.001, help="Start learning rate in lr-schedule.")
-@click.option('--momentum', type=float, default=0.9)
 @click.option('--decrease-epochs', type=int, default=10, help="Step size of lr-schedule.")
 @click.option('--decrease-factor', type=float, default=0.1, help="Decrease factor of lr-schedule.")
 @click.option('--model-name', type=str, multiple=True, default=['resnet18'],
@@ -594,18 +640,24 @@ def load_model_selection(model_selection_file):
               help="Number of fully connected layers to be added-. Default [1].")
 @click.option('--freeze-percentage', type=float, multiple=True, default=[1.0],
               help="Percentage of the pre-trained network to freeze. Default [1.0] (Freeze entire pretrained network).")
-@click.option('--label-table-name', type=str, default="annotations", help="Either 'annotations' or 'tags'."
-                                                                          "Use 'annotations' if labels have been made"
-                                                                          "with the annotator, use 'tags' if labels "
-                                                                          "stem from tags in the image search "
-                                                                          "interface, default is 'annotations'.")
-@click.option('--label', type=str, multiple=True, default=None, help="This option has to provided multiple times,"
-                                                                     "listing all the labels from the tags table that"
-                                                                     "should be used as classifier classes.")
+@click.option('--label-table-name', type=str, default="annotations",
+              help="Either 'annotations' or 'tags'. Use 'annotations' if labels have been made with the annotator, use "
+                   "'tags' if labels stem from tags in the image search interface, default is 'annotations'.")
+@click.option('--label', type=str, multiple=True, default=None,
+              help="This option has to be provided multiple times, listing all the labels from the tags table that "
+                   "should be used as classifier classes.")
+@click.option('--label-groups', type=str, default=None,
+              help="Dictionary definition how to summarize labels in groups "
+                   "and train a new classifier for those label groups. "
+                   "Example for a classifier with two classes \"exclude\" and \"include\":  "
+                   "'{\"exclude\": [\"Übriges\", \"Gesetzter_Text\", \"Einband\", \"Stempel\", \"Farbtafel\", "
+                   "\"Ornament\", \"Signatur\", \"Handschrift\", \"Noten\"], "
+                   "\"include\": [\"Abbildung\", \"Photo\", \"Karte\", \"Initiale\", \"Druckermarke\", \"Noten\", "
+                   "\"Vignette\", \"Exlibris\"]}'")
 @click.option('--epoch-steps', type=int, default=1, help="Step size of epoch increase.")
 def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, max_epoch, batch_size,
-                    start_lr, momentum, decrease_epochs, decrease_factor, model_name,
-                    num_trained_layers, freeze_percentage, label_table_name, label, epoch_steps):
+                    start_lr, decrease_epochs, decrease_factor, model_name,
+                    num_trained_layers, freeze_percentage, label_table_name, label, label_groups, epoch_steps):
     """
 
     Performs a cross-validation in order to select an optimal model and training parameters for a given
@@ -625,8 +677,8 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
     for sq_file in sqlite_file:
 
-        images, _, _ = load_ground_truth(sq_file, label_table_name=label_table_name, labels=label)
-
+        images, _, _ = load_ground_truth(sq_file, label_table_name=label_table_name, labels=label,
+                                         label_groups=label_groups)
         data.append(images)
 
     images = pd.concat(data).reset_index(drop=True)
@@ -649,7 +701,7 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
             load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p)
 
         result = cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor,
-                                      device, fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits,
+                                      device, fit_transform, predict_transform, max_epoch, model_ft,  n_splits,
                                       start_lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
         pprint(result.head(50))
@@ -676,7 +728,16 @@ def make_class_from_labels(images):
     return images, class_to_label, label_to_class
 
 
-def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
+def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None, label_groups=None):
+
+    labels=list(set(labels))
+
+    label_map=None
+    if label_groups is not None:
+
+        label_groups = literal_eval(label_groups)
+
+        label_map = {  cl: group for group, mapped_classes in label_groups.items() for cl in mapped_classes}
 
     if label_table_name == "annotations":
 
@@ -711,11 +772,13 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None):
                 images.append(pd.read_sql('select file, tag from images join tags on images.rowid=tags.image_id '
                                           'where tags.tag=? and images.anchor not glob "region-annotator*"',
                                           con=con, params=(label,)))
-
         images = pd.concat(images).\
             drop_duplicates(subset='file', keep=False).\
             rename(columns={'tag': 'label'}).\
             reset_index(drop=True)
+
+        if label_map is not None:
+            images['label'] = images['label'].map(label_map)
     else:
         raise RuntimeError("Do not know how to interpret table '{}'".format(label_table_name))
 
@@ -781,11 +844,10 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
 
 
 def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
-                         fit_transform, predict_transform, max_epoch, model_ft, momentum, n_splits, start_lr,
+                         fit_transform, predict_transform, max_epoch, model_ft, n_splits, start_lr,
                          logits_func, epoch_steps, thumbnail_sqlite_file=None):
 
     for fold in folds:
-        # optimizer = optim.SGD(model_ft.parameters(), lr=start_lr, momentum=momentum)
         optimizer = AdamW(model_ft.parameters(), lr=start_lr)
 
         sched = lr_scheduler.StepLR(optimizer, step_size=decrease_epochs, gamma=decrease_factor)
@@ -830,7 +892,6 @@ def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_
     results['batch_size'] = batch_size
     results['n_splits'] = n_splits
     results['start_lr'] = start_lr
-    results['momentum'] = momentum
     results['decrease_epochs'] = decrease_epochs
     results['decrease_factor'] = decrease_factor
 

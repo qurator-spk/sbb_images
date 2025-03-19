@@ -1130,17 +1130,31 @@ def get_ppn_images(user, data_conf, ppn=None):
         return jsonify("")
 
     if has_table('predictions', data_conf):
-        links = pd.read_sql('SELECT links.rowid FROM links JOIN predictions ON predictions.rowid=links.rowid '
+
+        links = pd.read_sql('SELECT DISTINCT links.rowid FROM links '
+                            'JOIN predictions ON predictions.rowid=links.rowid '
                             'WHERE links.ppn=? and '
                             '(predictions.label="Abbildung" OR predictions.label="Photo" or predictions.label="Karte") '
                             'ORDER BY links.phys_id',
                             con=thread_store.get_db(data_conf), params=(ppn,))
+
+    elif has_table('tags', data_conf) and "EXCLUDE-TAG" in app.config:
+
+        links = pd.read_sql('SELECT DISTINCT links.rowid from links '
+                            'INNER JOIN images ON images.rowid=links.rowid '
+                            'WHERE links.ppn=? AND images.x=-1 AND links.rowid NOT IN '
+                            '(SELECT DISTINCT tags.image_id FROM tags WHERE tags.image_id=links.rowid '
+                            'AND tags.tag=?) '
+                            'ORDER BY links.phys_id', con=thread_store.get_db(data_conf),
+                            params=(ppn, app.config["EXCLUDE-TAG"],))
     else:
+
+
+
         links = pd.read_sql('SELECT links.rowid FROM links '
                             'INNER JOIN images ON images.rowid=links.rowid '
                             'WHERE links.ppn=? AND images.x=-1 '
-                            'ORDER BY links.phys_id',
-                            con=thread_store.get_db(data_conf), params=(ppn,))
+                            'ORDER BY links.phys_id', con=thread_store.get_db(data_conf), params=(ppn,))
 
     if links is None or len(links) == 0:
         return jsonify("")
