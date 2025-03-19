@@ -14,6 +14,7 @@
 * Tags can be used to train [image classifiers](classifier.md)
 * Image classifiers can be used in order to [create new tags](classifier.md)
 * Can be connected to [region-annotation tool](region-annotator.md)
+* Various meta-data can be easily imported as tags
 
 ## Setup 
 
