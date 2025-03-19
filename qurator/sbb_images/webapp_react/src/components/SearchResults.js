@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import SearchSimilarImages from "./SearchSimilarImages";
+import { sanitizePPN } from "../components/SearchState";
 
 const SearchResult = ({
   img_id
@@ -99,7 +100,7 @@ const SearchResults = ({
           {searchResult.type === 'description' && `Images matching the description "${searchState.description}", shown from most to least matching`}
           {searchResult.type === 'ppn' && (
            <>
-              Images from the document with PPN <a href={`https://digital.staatsbibliothek-berlin.de/werkansicht?PPN=PPN${searchState.ppn}`} target="_blank" rel="noopener noreferrer">{searchState.ppn}</a>, 
+              Images from the document with PPN <a href={`https://digital.staatsbibliothek-berlin.de/werkansicht?PPN=PPN${searchState.ppn}`} target="_blank" rel="noopener noreferrer">{sanitizePPN(searchState.ppn)}</a>,
               shown in the order they appear in the document
             </>
           )}

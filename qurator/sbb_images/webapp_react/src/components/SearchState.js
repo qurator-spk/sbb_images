@@ -43,12 +43,14 @@ const loadNextBatchSearchSimilar = async (pos, imageId, cropCoordinates) => {
     return result;
 };
 
+export const sanitizePPN = (ppn) => {
+    if (ppn.startsWith("ppn") || ppn.startsWith("PPN") || ppn.startsWith("pPn") || ppn.startsWith("Ppn") || ppn.startsWith("pPN")) return ppn.substring(3);
+    else return ppn;
+}
+
 const loadNextBatchPPN = async (pos, ppn) => {
     try {
-      if (!ppn.startsWith("PPN")) ppn = "PPN" + ppn;
-      if (ppn.startsWith("ppn")) ppn = "PPN" + ppn.substring(3);
-
-      const response = await fetch("api/ppn/DIGISAM/PPN" + ppn);
+      const response = await fetch("api/ppn/DIGISAM/PPN" + sanitizePPN(ppn));
 
       if (!response.ok) {
         throw new Error();
