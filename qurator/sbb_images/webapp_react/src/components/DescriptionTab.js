@@ -20,7 +20,7 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
         setSearchState(next_state);
 
         updateResults(next_state);
-      }, 750);
+      }, 1500);
     })(counter.current);
   }, [description]);
 
@@ -30,7 +30,7 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
         type="text"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="E.g. Big ship entering port"
+        placeholder="E.g. Big ship entering port."
       />
       <p>
         Enter image description (in German, English or one of the other languages <a href="https://github.com/FreddeFrallan/Multilingual-CLIP/blob/main/translation/data/fine_tune_languages.csv" target="_blank"

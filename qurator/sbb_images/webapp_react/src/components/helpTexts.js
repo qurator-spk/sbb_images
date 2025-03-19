@@ -43,7 +43,7 @@ export const helpTexts = {
           you use, the better the results. 
           But it’s not mandatory to be very specific - if all you have is, for example, “red squirrel”, 
           you can start with that.<br/>
-          <strong>We recommend starting a sentence with a capital letter and ending it with a point. 
+          <strong>We recommend starting the search text with a capital letter and ending it with a point. 
           This changes the results, and so do spaces, typos, and any sign you put in the input 
           field. To repeat a search and get the same results the text must be absolutely 
           identical.</strong><br/>

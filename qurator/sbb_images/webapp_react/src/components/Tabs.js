@@ -14,13 +14,14 @@ const Tabs = ({
   activeTab, 
   setActiveTab,
   isResultsPage, // prop for the results page image tab
-  error
+  error,
+ // isCompact = false // new prop for the min bar
 }) => { const [isModalOpen, setIsModalOpen] = useState(false); const [isHovering, setIsHovering] = useState(false);
 
   const hoverTexts = {
-    image: 'To learn more about the different types of search, click on the circle for each active tab (now - Search by Image).',
-    description: 'To learn more about the different types of search, click on the circle for each active tab (now - Search by Description).',
-    ppn: 'To learn more about the different types of search, click on the circle for each active tab (now - Search by PPN).',
+    image: 'To learn more about the different types of search, click on the circle for each active tab (now active - Search by Image).',
+    description: 'To learn more about the different types of search, click on the circle for each active tab (now active - Search by Description).',
+    ppn: 'To learn more about the different types of search, click on the circle for each active tab (now active - Search by PPN).',
   };
   
   const getModalTitle = (tab) => {
@@ -35,7 +36,8 @@ const Tabs = ({
   };
   
   return (
-    <div className="Search">
+    // <div className={`Search ${isCompact ? 'compact' : ''}`}>
+     <div className="Search"> 
       <div className="Tabs">
         <div className="SearchTabs">
           {/* Tab nav */}

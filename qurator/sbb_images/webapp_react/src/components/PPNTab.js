@@ -20,7 +20,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
 
         updateResults(next_state);
 
-      }, 750);
+      }, 1500);
     })(counter.current);
 
   }, [ppn]);
@@ -37,7 +37,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
       />
       <p>Enter PPN. <br/> 
       (Only the number, without 'PPN' in the beginning.)</p>
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message"><strong>{error}</strong></div>}
     </div>
   );
 };
