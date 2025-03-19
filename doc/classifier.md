@@ -123,9 +123,9 @@ apply-classifier --help
 Usage: apply-classifier [OPTIONS] SQLITE_FILE MODEL_SELECTION_FILE MODEL_FILE
                         RESULT_FILE
 
-  Classifies all images of an image database and writes the predictions into a
-  predictions table of the database. The annotator tool can then display those
-  predictions.
+  Classifies all images of an image database and writes the predictions into
+  either a predictions table or the tags table of the database. Both the image
+  search interface and the annotator tool can then display the predictions.
 
   SQLITE_FILE: An annotated image database (see create-database).
 
@@ -147,8 +147,8 @@ Options:
                                 image search interface and use "predictions"
                                 if you want to use the classifier output in
                                 the annotator interface.
-  --label-table-name TEXT       Either 'annotations' or 'tags'. Use
-                                'annotations' if labels have been made with
+  --label-table-name TEXT       Either 'predictions' or 'tags'. Use
+                                'predictions' if labels have been made with
                                 the annotator, use 'tags' if labels stem from
                                 tags in the image search interface, default is
                                 'annotations'.
@@ -183,11 +183,17 @@ Options:
                                 parameter (multiple times) in order to
                                 specifiy all the training databases.
   --help                        Show this message and exit.
+
 ```
 By default, apply-classifier will store the classification results 
 within the image database.
-Once that has been done, the [annotator](annotator.md) will present 
-you the classification results below each image 
-such that you only have to correct them. 
+
+In case of --write-to-table=predictions the [annotator](annotator.md) will present 
+you the classification results below each image  such that you only have to correct them.
 Additionally, it provides a filter functionality for the pre-classified image classes 
 in order to selectively add training data for some particular image class.
+
+In case of --write-to-table=tags the [image-search interface](image-search.md) will show the predictions 
+produced by the classifier as tags with prefix --tag-prefix=... . These classifier tags can be used to filter the image
+database by means of the tag search in the image search interface.
+

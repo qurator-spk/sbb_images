@@ -403,8 +403,9 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
           training_database):
     """
 
-    Classifies all images of an image database and writes the predictions into a predictions table of the database.
-    The annotator tool can then display those predictions.
+    Classifies all images of an image database and writes the predictions into either a predictions table or the tags
+    table of the database.
+    Both the image search interface and the annotator tool can then display the predictions.
 
     SQLITE_FILE: An annotated image database (see create-database).
 
