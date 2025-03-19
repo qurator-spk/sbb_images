@@ -1,3 +1,5 @@
+# Image Database Classification
+
 ## Prerequisites:
 
 In order to train a classifier for some image classification task,
