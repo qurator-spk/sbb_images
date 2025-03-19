@@ -502,7 +502,7 @@ button {
     /* max-height: 200px; */
     overflow-y: auto;
     z-index: 10;
-    box-shadow: 0 0.4rem 0.2rem rgba(0,0,0,0.15);
+    box-shadow: 0 0.4rem 0.2rem rgba(0,0,0,0.25);
 }
   
 .suggestion-item {
