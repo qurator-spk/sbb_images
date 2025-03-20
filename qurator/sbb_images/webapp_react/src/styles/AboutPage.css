@@ -87,12 +87,12 @@
   border: 2px solid #D6D8DF; /* SPK Grau 30*/
   padding: 2rem 1rem;
   height: fit-content;
-  /* border-radius: 1rem; */
+  border-radius: 0.5rem; 
 }
 
 .example-section .image-card {
   border: 1px solid #D6D8DF; /* SPK Grau 30*/
-  border-radius: 0.1em;
+  border-radius: 0.3em;
   display: grid;
   grid-template-rows: auto auto auto;
   width: 100%;
@@ -110,7 +110,7 @@
 .example-section .image-container {
   grid-row: 1;
   background-color: #F0F0F3; /* SPK-Grau 10*/
-  border-radius: 0.1em 0.1em 0 0;
+  border-radius: 0.3em 0.3em 0 0;
   max-width: 100%;
   max-height: 100%;
   aspect-ratio: 1 / 1;
@@ -136,7 +136,7 @@
 
 .example-section .title-wrapper {
   height: 3.6em;
-  line-height: 1.5em; /* used to be 1.8, why?*/
+  line-height: 1.5rem; 
   overflow: hidden;
   margin: 0 auto;
   /* padding: 0 0.7em 0 0.7em; */

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import allImages from "./imageData";
+import allImages from "../data/imageData";
 import SearchSimilarImages from "./SearchSimilarImages";
 import '../styles/RandomImages.css';
 

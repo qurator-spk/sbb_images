@@ -80,6 +80,8 @@ ul.nav {
     justify-content: space-around;
     align-items: center;
     transition: all 0.2s ease-in-out;
+    cursor: copy;
+    padding: 1.5rem;
 }
 
 .ImageTab:hover{
@@ -90,8 +92,14 @@ ul.nav {
 .ImageTab.dragging {
     background-color: #C9CCD5; /* SPK-Grau 40 */
     transition: background-color 0.15s ease-in-out;
+    cursor: grabbing;
 }
 
+/* .ImageTab:focus {
+    outline: none; 
+    background-color: #f0f0f5; 
+  }
+ */
 
 .drag-area {
     flex: 2;
@@ -206,6 +214,7 @@ ul.nav {
 .error-message {
     color: #D20A11; /* Verkehrsrot = UDL-Signalrot */
     text-align: left; 
+    font-weight: 600;
   }
 
 ul.nav {
@@ -441,8 +450,10 @@ button {
     flex-direction: column;
     justify-content: space-around;
     align-items: center;
-    padding: 20px;
+    /* padding: 20px; */
+    padding: 1.5rem;
     transition: all 0.2s ease-in-out;
+    cursor: copy;
 }
   
 .results-expanded-view:hover{
@@ -453,6 +464,7 @@ button {
 .results-expanded-view.dragging {
     background-color: #C9CCD5; /* SPK-Grau 40 */
     transition: background-color 0.15s ease-in-out;
+    cursor: grabbing;
 }
   
 .close {
@@ -475,3 +487,67 @@ button {
 .DescriptionTab a:hover {
     color: #182645; /* SPK-Blau 150 */
 }
+
+.suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: auto;
+    background: #FFFFFF;
+    border: 1px solid #D6D8DF;
+    /* border: 1px solid #000000; */
+    border-top: none;
+    border-radius: 0 0 0.5rem 0.5rem;
+    /* max-height: 200px; */
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 0.4rem 0.2rem rgba(0,0,0,0.25);
+}
+  
+.suggestion-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+  
+.suggestion-item:hover {
+    background-color: #F0F0F3;
+    /* border-top: 1px solid #D6D8DF;
+    border-bottom: 1px solid #D6D8DF; */
+}
+  
+.try-it {
+    color: #2B4474;
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0; 
+    transition: opacity 0.2s;
+}
+
+.suggestion-item:hover .try-it {
+    opacity: 1; 
+}
+
+.input-container {
+    position: relative;
+    width: 100%;
+  }
+
+.suggestions-header {
+    padding: 0.95rem 1rem;
+    font-weight: 600;
+    color: #3C3C3C;
+    /* background-color: #F0F0F3; */
+    background-color: #E8E8F1;
+    border-bottom: 1px solid #D6D8DF;
+}
+
+.paste-hint {
+    color: #67717E;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
