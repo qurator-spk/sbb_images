@@ -1131,7 +1131,7 @@ def get_ppn_images(user, data_conf, ppn=None):
 
     if has_table('predictions', data_conf):
 
-        links = pd.read_sql('SELECT DISTINCT links.rowid FROM links '
+        links = pd.read_sql('SELECT links.rowid FROM links '
                             'JOIN predictions ON predictions.rowid=links.rowid '
                             'WHERE links.ppn=? and '
                             '(predictions.label="Abbildung" OR predictions.label="Photo" or predictions.label="Karte") '
@@ -1140,7 +1140,7 @@ def get_ppn_images(user, data_conf, ppn=None):
 
     elif has_table('tags', data_conf) and "EXCLUDE-TAG" in app.config:
 
-        links = pd.read_sql('SELECT DISTINCT links.rowid from links '
+        links = pd.read_sql('SELECT links.rowid from links '
                             'INNER JOIN images ON images.rowid=links.rowid '
                             'WHERE links.ppn=? AND images.x=-1 AND links.rowid NOT IN '
                             '(SELECT DISTINCT tags.image_id FROM tags WHERE tags.image_id=links.rowid '
