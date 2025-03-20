@@ -50,7 +50,7 @@ export const sanitizePPN = (ppn) => {
 
 const loadNextBatchPPN = async (pos, ppn) => {
     try {
-      const response = await fetch("api/ppn/DIGISAM/PPN" + sanitizePPN(ppn));
+      const response = await fetch("api/ppn/DIGISAM/PPN" + sanitizePPN(ppn) +"/"+ pos + "/100");
 
       if (!response.ok) {
         throw new Error();
@@ -59,9 +59,9 @@ const loadNextBatchPPN = async (pos, ppn) => {
       result.type = 'ppn';
       result.ppn = ppn;
 
-      if (!result.ids || result.ids.length === 0) {
-        throw new Error();
-      }
+      //if (!result.ids || result.ids.length === 0) {
+      //  throw new Error();
+      //}
 
       return result;
     }

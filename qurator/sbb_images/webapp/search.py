@@ -1096,38 +1096,59 @@ def get_iiif_link(user, data_conf, image_id=None):
 
     return jsonify(url)
 
-
-@app.route('/link/<data_conf>/<image_id>')
+@app.route('/link/<data_conf>', methods=['POST'])
+@app.route('/link/<data_conf>/<image_id>', methods=['GET'])
 @htpasswd.required
 @cache_for(minutes=10)
 def get_link(user, data_conf, image_id=None):
     del user
 
     if not has_table('links', data_conf):
-
         return jsonify("")
 
-    link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(data_conf), params=(image_id,))
+    if request.method == 'GET':
+        link = pd.read_sql('select * from links where rowid=?', con=thread_store.get_db(data_conf), params=(image_id,))
 
-    if link is None or len(link) == 0:
-        return jsonify("")
+        if link is None or len(link) == 0:
+            return jsonify("")
 
-    url = link.url.iloc[0]
+        url = link.url.iloc[0]
 
-    return jsonify(url)
+        return jsonify(url)
+    else:
+        data = request.json
+
+        result = dict()
+
+        for _id in data['ids']:
+
+            link = pd.read_sql('SELECT * FROM links WHERE rowid=?',
+                               con=thread_store.get_db(data_conf),
+                               params=(_id,))
+
+            if link is None or len(link) == 0:
+                continue
+
+            result[_id] = link.url.iloc[0]
+
+        return jsonify(result)
 
 
 @app.route('/ppn/<data_conf>/<ppn>')
+@app.route('/ppn/<data_conf>/<ppn>/<start>/<count>')
 @htpasswd.required
 @cache_for(minutes=10)
-def get_ppn_images(user, data_conf, ppn=None):
+def get_ppn_images(user, data_conf, ppn=None, start=-1, count=-1):
     del user
 
+    start = int(start)
+    count = int(count)
+
     if not has_table('links', data_conf):
-        return jsonify("")
+        return "NOT FOUND", 404
 
     if ppn is None:
-        return jsonify("")
+        return "NOT FOUND", 404
 
     if has_table('predictions', data_conf):
 
@@ -1148,18 +1169,20 @@ def get_ppn_images(user, data_conf, ppn=None):
                             'ORDER BY links.phys_id', con=thread_store.get_db(data_conf),
                             params=(ppn, app.config["EXCLUDE-TAG"],))
     else:
-
-
-
         links = pd.read_sql('SELECT links.rowid FROM links '
                             'INNER JOIN images ON images.rowid=links.rowid '
                             'WHERE links.ppn=? AND images.x=-1 '
                             'ORDER BY links.phys_id', con=thread_store.get_db(data_conf), params=(ppn,))
 
     if links is None or len(links) == 0:
-        return jsonify("")
+        return "NOT FOUND", 404
 
-    return jsonify({'ids': links.rowid.tolist()})
+    ids = links.rowid.tolist()
+
+    if start == -1 or count == -1:
+        return jsonify({'ids': ids })
+    else:
+        return jsonify({'ids': ids[start:start+count]})
 
 
 @app.route('/image-ppn/<data_conf>/<rowid>')

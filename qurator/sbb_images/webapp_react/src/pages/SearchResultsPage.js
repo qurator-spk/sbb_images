@@ -61,6 +61,8 @@ const SearchResultsPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const endReached = useRef(false);
+
   useEffect(() => {
 
     setIsLoadingNextBatch(true);
@@ -68,8 +70,10 @@ const SearchResultsPage = () => {
 
     setError(null);
     try {
+        endReached.current=false;
         searchState.loadNextBatch(0, cropCoordinates).then(
             (r) => {
+
                 setSearchResult(r)
                 setIsLoadingNextBatch(false);
             }
@@ -108,9 +112,12 @@ const SearchResultsPage = () => {
 
   const isLoadingBatch = useRef(false);
 
+
   const loadNextBatch = async () => {
+    console.log("hello");
     if (isLoadingBatch.current) return;
-    if ((searchResult.type === "ppn") && (searchResult.ids.length > 0)) return;
+    if (endReached.current) return;
+    //if ((searchResult.type === "ppn") && (searchResult.ids.length > 0)) return;
 
     isLoadingBatch.current = true;
     setIsLoadingNextBatch(true);
@@ -121,10 +128,17 @@ const SearchResultsPage = () => {
       let result = await searchState.loadNextBatch(searchResult.ids.length, cropCoordinates);
 
       if (result.ids && result.ids.length > 0) {
+
+        if (result.ids.length >= 100) endReached.current = false;
+        else endReached.current = true;
+
         setSearchResult((prev) => ({
           ...prev,
           ids: [...prev.ids, ...result.ids],
         }));
+      }
+      else {
+        endReached.current=true;
       }
     } catch (error) {
       console.error("Error loading batch:", error);

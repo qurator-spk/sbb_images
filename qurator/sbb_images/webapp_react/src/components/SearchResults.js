@@ -45,16 +45,35 @@ const SearchResults = ({
 
   // Load links when results arrive
   useEffect(() => {
-    if (searchResult.ids) {
-        searchResult.ids.forEach(async (imgID) => {
-          const response = await fetch(`api/link/DIGISAM/${imgID}`);
-          const link = await response.text();
-          setLinks((prev) => ({
-            ...prev,
-            [imgID]: link.replace(/"/g, "").trim(),
-          }));
-        });
-    }
+
+    const fetchLinks = async () => {
+        if (searchResult.ids) {
+
+            const response = await fetch(
+              `api/link/DIGISAM`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({"ids" : searchResult.ids} ),
+              }
+            );
+
+            let result = await response.json();
+
+            setLinks(result);
+
+    //        searchResult.ids.forEach(async (imgID) => {
+    //          const response = await fetch(`api/link/DIGISAM/${imgID}`);
+    //          const link = await response.text();
+    //          setLinks((prev) => ({
+    //            ...prev,
+    //            [imgID]: link.replace(/"/g, "").trim(),
+    //          }));
+    //        });
+        }
+     };
+
+     fetchLinks();
   }, [searchResult.ids, searchResult.type]); 
 
   //******************SCROLL*********************** */
