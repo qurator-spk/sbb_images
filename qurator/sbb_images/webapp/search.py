@@ -1129,21 +1129,32 @@ def get_ppn_images(user, data_conf, ppn=None):
     if ppn is None:
         return jsonify("")
 
-    if ppn.startswith("PPN") or ppn.startswith("ppn"):
-        ppn = ppn[3:]
-
     if has_table('predictions', data_conf):
-        links = pd.read_sql('SELECT links.rowid FROM links JOIN predictions ON predictions.rowid=links.rowid '
+
+        links = pd.read_sql('SELECT links.rowid FROM links '
+                            'JOIN predictions ON predictions.rowid=links.rowid '
                             'WHERE links.ppn=? and '
                             '(predictions.label="Abbildung" OR predictions.label="Photo" or predictions.label="Karte") '
                             'ORDER BY links.phys_id',
                             con=thread_store.get_db(data_conf), params=(ppn,))
+
+    elif has_table('tags', data_conf) and "EXCLUDE-TAG" in app.config:
+
+        links = pd.read_sql('SELECT links.rowid from links '
+                            'INNER JOIN images ON images.rowid=links.rowid '
+                            'WHERE links.ppn=? AND images.x=-1 AND links.rowid NOT IN '
+                            '(SELECT DISTINCT tags.image_id FROM tags WHERE tags.image_id=links.rowid '
+                            'AND tags.tag=?) '
+                            'ORDER BY links.phys_id', con=thread_store.get_db(data_conf),
+                            params=(ppn, app.config["EXCLUDE-TAG"],))
     else:
+
+
+
         links = pd.read_sql('SELECT links.rowid FROM links '
                             'INNER JOIN images ON images.rowid=links.rowid '
                             'WHERE links.ppn=? AND images.x=-1 '
-                            'ORDER BY links.phys_id',
-                            con=thread_store.get_db(data_conf), params=(ppn,))
+                            'ORDER BY links.phys_id', con=thread_store.get_db(data_conf), params=(ppn,))
 
     if links is None or len(links) == 0:
         return jsonify("")
@@ -1167,6 +1178,38 @@ def get_image_ppn(user, data_conf, rowid=None):
         return jsonify("")
 
     return jsonify(json.loads(link.iloc[0].to_json()))
+
+
+@app.route('/mods_info/<data_conf>/<rowid>', methods=['GET'])
+@cache_for(minutes=3)
+def get_mods_info(data_conf, rowid):
+
+    if not has_table('links', data_conf):
+
+        return "NOT FOUND", 404
+
+    if not has_table('links', data_conf):
+
+        return "NOT FOUND", 404
+
+    link = pd.read_sql('SELECT * FROM links WHERE rowid=?',
+                       con=thread_store.get_db(data_conf),
+                       params=(rowid,))
+
+    if link is None or len(link) == 0:
+        return "NOT FOUND", 404
+
+    ppn = link.iloc[0].ppn
+
+    meta = pd.read_sql("SELECT * FROM mods_info WHERE ppn=?",con=thread_store.get_db(data_conf),
+                       params=(ppn,))
+    
+    if len(meta)==0:
+        return "NOT FOUND", 404
+
+    meta = meta.iloc[0]
+
+    return jsonify({"title": meta.titleInfo_title})
 
 
 @app.route('/image-iconclass/<data_conf>/<rowid>')

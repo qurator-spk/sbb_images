@@ -11,7 +11,10 @@
 * Search by boolean expression on filename
 * Search by Iconclass label (if supported by configured model)
 * Tagging of images / export of tag-sets as Excel file
+* Tags can be used to train [image classifiers](classifier.md)
+* Image classifiers can be used in order to [create new tags](classifier.md)
 * Can be connected to [region-annotation tool](region-annotator.md)
+* Various meta-data can be easily imported as tags
 
 ## Setup 
 

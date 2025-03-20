@@ -1,4 +1,21 @@
+# Single Label Annotator
+
+The single label annotator is a very simple tool that supports to annotate sets of images according to a small 
+number of pre-defined classes. It supports multiple users and stores the annotations on a per-user basis.
+It writes into the 'annotations' table of the connected sqlite database. This table can be used with the 
+[classification tools](classifier.md) to train a classifier. 
+
+Single Label Annotator is optimized for smartphone usage.
+
 ![sbb-ner-demo example](screenshots/annotator_demo.png?raw=true)
+
+## User-Interface
+
+* A : The image to be labeled.
+* B : The label that has been proposed by a classifier (if a pre-classification is available).
+* C : Re-label the image according to one of these classes.
+* D : Confirm the current label below the image and go to the next randomly chosen image.
+* E : Preselect subset of images to be labeled based on predictions provided by a classifier (if a pre-classification is available).
 
 ## Setup Annotator:
 
@@ -10,7 +27,7 @@ Create a passwd file:
 htpasswd -c .htpasswd username
 ```
 
-Edit qurator/sbb_images/webapp/annotator-config.json such that it points to ".htpasswd".
+Edit qurator/sbb_images/webapp/config/annotator-config.json such that it points to ".htpasswd".
 
 Adapt the other options in that file such that they fit your desired image classification task:
 

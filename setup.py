@@ -30,6 +30,7 @@ setup(
         "apply-classifier=qurator.sbb_images.cli:apply",
         "create-search-index=qurator.sbb_images.cli:create_search_index",
         "create-sbb-links=qurator.sbb_images.cli_tools.create_sbb_link_table:cli",
+        "create-mods-info=qurator.sbb_images.cli_tools.create_mods_info_table:cli",
         "add-detections=qurator.sbb_images.cli:add_detections",
         "add-region-annotations=qurator.sbb_images.cli:add_region_annotations",
         "add-page-info-tags=qurator.sbb_images.cli_tools.add_page_info_tags:cli",
