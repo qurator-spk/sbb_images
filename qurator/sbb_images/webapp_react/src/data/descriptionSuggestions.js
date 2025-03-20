@@ -38,7 +38,17 @@ export const descriptionSuggestions = [
   "Spinnen und Insekten.",
   "Ein Pferd zieht eine Kutsche.",
   "Mehrere Pferde ziehen eine Kutsche.",
+
+  //neu
   "Pyramiden in der Wüste.",
+  "Der Arzt untersucht den Patienten.",
+  "Der Schneider näht Kleidung.",
+  "Verschiedene Pilzsorten.",
+  "Der Waidmann auf der Jagd.",
+  "Heiligabend vor dem Weihnachtsbaum.",
+  "Ein beeindruckender Wasserfall.",
+  "Eine tiefe Schlucht.",
+  "Eine schematische Darstellung einer eukaryotischen Zelle.",
 
   "A unicorn.",
   "Illustration of chemical processes.",
@@ -79,6 +89,16 @@ export const descriptionSuggestions = [
   "Spiders and insects.",
   "A horse pulls a carriage.",
   "Several horses pull a carriage.",
+
+  "Pyramids in the desert.",
+  "The doctor examines the patient.",
+  "The tailor sews clothes.",
+  "Different types of mushrooms.",
+  "The Waidmann on the hunt.",
+  "Christmas Eve in front of the Christmas tree.",
+  "An impressive waterfall.",
+  "A deep gorge.",
+  "A schematic representation of a eukaryotic cell.",
   
   "Une licorne.",
   "Cartographie des processus chimiques. ",
@@ -119,6 +139,16 @@ export const descriptionSuggestions = [
   "Araignées et insectes. ",
   "Un cheval tire une voiture. ",
   "Plusieurs chevaux tirent une voiture. ",
+
+  "Pyramides dans le désert.",
+  "Le médecin examine le patient.",
+  "Le tailleur coud des vêtements.",
+  "Différents types de champignons.",
+  "Le Waidmann à la chasse.",
+  "La veille de Noël devant l'arbre de Noël.",
+  "Une cascade impressionnante.",
+  "Une gorge profonde.",
+  "Une représentation schématique d'une cellule eucaryote.",
 
   "Un unicornio.",
   "Ilustración de procesos químicos.",
