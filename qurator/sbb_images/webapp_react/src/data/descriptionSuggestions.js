@@ -49,6 +49,7 @@ export const descriptionSuggestions = [
   "Ein beeindruckender Wasserfall.",
   "Eine tiefe Schlucht.",
   "Eine schematische Darstellung einer eukaryotischen Zelle.",
+  "Eine Sonnenfinsternis.",
 
   "A unicorn.",
   "Illustration of chemical processes.",
