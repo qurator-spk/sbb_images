@@ -5,6 +5,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
   const [ppn, setPPN] = useState(searchState.ppn);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [shuffledSuggestions, setShuffledSuggestions] = useState([]);
+  const SUGGESTIONS_TO_SHOW = 5;
   const counter = useRef(0);
 
   const shuffleArray = (array) => {
@@ -26,7 +27,8 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
   useEffect(() => {
     if (showSuggestions) {
       const shuffled = shuffleArray(ppnSuggestions);
-      setShuffledSuggestions(shuffled.slice(0, 5));
+      // setShuffledSuggestions(shuffled.slice(0, 5));
+      setShuffledSuggestions(shuffled.slice(0, SUGGESTIONS_TO_SHOW));
     }
     }, [showSuggestions]);
 
@@ -86,7 +88,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
       />
 
       {showSuggestions && (
-          <div className="suggestions-dropdown">
+          <div className="suggestions-dropdown-ppn">
             <div className="suggestions-header">Enter PPN or try one of these:</div>
             {shuffledSuggestions.map((suggestion, index) => (
               <div 

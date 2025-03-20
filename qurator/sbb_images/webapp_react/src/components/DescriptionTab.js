@@ -5,7 +5,7 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
   const [description, setDescription] = useState(searchState.description);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [shuffledSuggestions, setShuffledSuggestions] = useState([]);
-  // const SUGGESTIONS_TO_SHOW = 8;
+  const SUGGESTIONS_TO_SHOW = 50;
   const counter = useRef(0);
 
   const shuffleArray = (array) => {
@@ -20,7 +20,8 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
   useEffect(() => {
     if (showSuggestions) {
       const shuffled = shuffleArray(descriptionSuggestions);
-      setShuffledSuggestions(shuffled.slice(0, 8));
+      // setShuffledSuggestions(shuffled.slice(0, 50));
+      setShuffledSuggestions(shuffled.slice(0, SUGGESTIONS_TO_SHOW));
     }
   }, [showSuggestions]);
   
