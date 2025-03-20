@@ -9,6 +9,11 @@ const MinimizedSearchBar = ({
   const [showImagePreview, setShowImagePreview] = useState(false);
   const canvasRef = useRef(null);
 
+  // Dragging state
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewPosition, setPreviewPosition] = useState(null);
+  const dragStartPosition = useRef({ x: 0, y: 0, left: 0, top: 0 });
+
   useEffect(() => {
     if (
       searchState.type === "image" &&
@@ -72,6 +77,68 @@ const MinimizedSearchBar = ({
     }
   }, [searchState.imgUrl, cropCoordinates, searchState.type]);
 
+//================================================================
+
+  const isDraggingRef = useRef(false);
+
+  const handleDragStart = (e) => {
+   // console.log("Drag start");
+    if (e.target.className === 'close-preview') return;
+    
+    e.preventDefault();
+    setIsDragging(true);
+    isDraggingRef.current = true;
+    
+    const previewElement = e.currentTarget;
+    const rect = previewElement.getBoundingClientRect();
+    
+    dragStartPosition.current = {
+      x: e.clientX,
+      y: e.clientY,
+      left: previewPosition ? previewPosition.x : rect.left,
+      top: previewPosition ? previewPosition.y : rect.top
+    };
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+  };
+
+  const handleDragMove = (e) => {
+    //console.log("Dragging", isDragging);
+    // if (!isDragging) return;
+    if (!isDraggingRef.current) return;
+    
+    const deltaX = e.clientX - dragStartPosition.current.x;
+    const deltaY = e.clientY - dragStartPosition.current.y;
+    
+    setPreviewPosition({
+      x: dragStartPosition.current.left + deltaX,
+      y: dragStartPosition.current.top + deltaY
+    });
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    isDraggingRef.current = false;
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('mouseup', handleDragEnd);
+  };
+
+  useEffect(() => {
+    if (!showImagePreview) {
+      setPreviewPosition(null);
+    }
+  }, [showImagePreview]);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+    };
+  }, []);
+
+  //================================================================
+
   let searchContent = null;
 
   if (searchState.type === "image" && searchState.imgUrl) {
@@ -113,7 +180,16 @@ const MinimizedSearchBar = ({
       </div>
 
       {showImagePreview && searchState.type === 'image' &&(
-        <div className="thumbnail-preview">
+        <div 
+        className={`thumbnail-preview ${isDragging ? 'dragging' : ''}`}
+        style={previewPosition ? {
+          left: `${previewPosition.x}px`,
+          top: `${previewPosition.y}px`
+        } : null}
+        onMouseDown={handleDragStart}
+        onDragStart={(e) => e.preventDefault()}
+      >
+        {/* <div className="thumbnail-preview"> */}
           <button
             className="close-preview"
             onClick={() => setShowImagePreview(false)}
@@ -125,6 +201,7 @@ const MinimizedSearchBar = ({
               src={searchState.imgUrl}
               className="preview-image"
               alt="Search query"
+              draggable="false"
             />
             {cropCoordinates && cropCoordinates.x !== -1 && (
               <div

@@ -372,7 +372,7 @@ button {
     transform: translateY(-50%);
     background-color: #EC6726;
     padding: 1rem;
-    border-radius: 5px;
+    /* border-radius: 5px; */
     border-radius: 0.25rem;
     /* width: 200px; */
     /* width: auto; */
@@ -380,7 +380,7 @@ button {
     text-align: left;
     /* Text styling */
     color: white;                
-    font-size: 0.9rem;           
+    font-size: 0.8rem;           
     font-weight: 500;            
     line-height: 1.5;            
     letter-spacing: 0.01em;      

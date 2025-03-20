@@ -218,7 +218,7 @@ const SearchResultsPage = () => {
           <Cropper
             key={searchState.imgUrl}
             src={searchState.imgUrl}
-            style={{ width: '60%', maxHeight: '40vh' }}
+            style={{ width: '60%', maxHeight: '30vh' }}
             aspectRatio={NaN}
             guides={true}
             viewMode={2}
