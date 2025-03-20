@@ -38,6 +38,7 @@ export const descriptionSuggestions = [
   "Spinnen und Insekten.",
   "Ein Pferd zieht eine Kutsche.",
   "Mehrere Pferde ziehen eine Kutsche.",
+  "Pyramiden in der Wüste.",
 
   "A unicorn.",
   "Illustration of chemical processes.",
