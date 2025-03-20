@@ -114,7 +114,7 @@ const SearchResultsPage = () => {
 
 
   const loadNextBatch = async () => {
-    console.log("hello");
+
     if (isLoadingBatch.current) return;
     if (endReached.current) return;
     //if ((searchResult.type === "ppn") && (searchResult.ids.length > 0)) return;
