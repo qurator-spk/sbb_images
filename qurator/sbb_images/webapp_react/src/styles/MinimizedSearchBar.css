@@ -136,6 +136,10 @@
     font-size: 2rem;
   }
 
+   .close-icon {
+    fill: #FFFFFF; 
+  } 
+
   .close-preview:hover{
     background-color: #182645;
   }

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../styles/MinimizedSearchBar.css";
+import { ReactComponent as CloseIcon } from '../assets/close-icon.svg';
 
 const MinimizedSearchBar = ({
   searchState,
@@ -194,7 +195,8 @@ const MinimizedSearchBar = ({
             className="close-preview"
             onClick={() => setShowImagePreview(false)}
           >
-            ×
+            <CloseIcon className="close-icon" />
+            {/* × */}
           </button>
           <div className="preview-image-container">
             <img
