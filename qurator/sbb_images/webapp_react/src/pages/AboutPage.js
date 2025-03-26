@@ -66,9 +66,9 @@ const AboutPage = () => {
                   </strong>{" "}
                   on our homepage. Results will be shown from the most to
                   the least similar ones.<br/>
-                  Starting a search by uploading an image and by clicking the "Search Similar Images" 
+                  {/* Starting a search by uploading an image and by clicking the "Search Similar Images" 
                   in one of the cards will lead to different results, even if the 
-                  query image is the same.
+                  query image is the same. */}
                 </li>
                 <li>
                   {" "}

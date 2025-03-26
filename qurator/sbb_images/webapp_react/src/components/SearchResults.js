@@ -86,19 +86,14 @@ const SearchResults = ({
 //        "Scroll triggered, isLoadingBatch is:",
 //        isLoadingBatch.current
 //      );
-
       if (!isLoadingBatch.current) {
         const reachedBottom =
           window.innerHeight + window.scrollY >=
           document.documentElement.scrollHeight - 100;
 
         if (reachedBottom) {
-//          console.log("Bottom reached, about to set isLoadingBatch to true");
           isLoadingBatch.current = true;
           await loadNextBatch();
-//          console.log(
-//            "loadNextBatch finished, about to set isLoadingBatch to false"
-//          );
 
           isLoadingBatch.current = false;
         }
@@ -108,7 +103,6 @@ const SearchResults = ({
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loadNextBatch]);
-
   //**************************************************** */
   
     return (

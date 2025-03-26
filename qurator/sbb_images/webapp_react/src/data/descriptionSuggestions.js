@@ -51,6 +51,8 @@ export const descriptionSuggestions = [
   "Eine schematische Darstellung einer eukaryotischen Zelle.",
   "Eine Sonnenfinsternis.",
 
+  //==============Englisch===============
+
   "A unicorn.",
   "Illustration of chemical processes.",
   "Representation of optical principles.",
@@ -100,6 +102,8 @@ export const descriptionSuggestions = [
   "An impressive waterfall.",
   "A deep gorge.",
   "A schematic representation of a eukaryotic cell.",
+
+  //==============Französisch===============
   
   "Une licorne.",
   "Cartographie des processus chimiques. ",
@@ -151,6 +155,8 @@ export const descriptionSuggestions = [
   "Une gorge profonde.",
   "Une représentation schématique d'une cellule eucaryote.",
 
+  //==============Spanisch===============
+
   "Un unicornio.",
   "Ilustración de procesos químicos.",
   "Presentación de principios ópticos.",
@@ -192,6 +198,19 @@ export const descriptionSuggestions = [
   "Un caballo tira de un carruaje.",
   "Varios caballos tiran de un carruaje.",  
 
+  "Pirámides en el desierto.",
+  "El médico examina al paciente.",
+  "El sastre cose ropa.",
+  "Diferentes tipos de hongos.",
+  "El cazador en la caza.",
+  "Nochebuena frente al árbol de Navidad.",
+  "Una cascada impresionante.",
+  "Un barranco profundo.", 
+  "Una representación esquemática de una célula eucariota.",
+  "Un eclipse solar.",
+
+  //==============Rumänisch===============
+
   "Un unicorn.",
   "Ilustrație a proceselor chimice.",
   "Ilustrarea principiilor optice.",
@@ -232,6 +251,19 @@ export const descriptionSuggestions = [
   "Păianjeni și insecte.",
   "Un cal trage o trăsură.",
   "Mai mulți cai trăgând o trăsură.",
+
+  "Piramide în deșert.",
+  "Medicul examinează pacientul.",
+  "Croitorul coase haine.",
+  "Diferite tipuri de ciuperci.",
+  "Vânătorul la vânătoare.",
+  "Ajunul Crăciunului în fața bradului de Crăciun.",
+  "O cascadă impresionantă.",
+  "O râpă adâncă.",
+  "O reprezentare schematică a unei celule eucariote.",
+  "O eclipsă de soare.",
+
+  //==============Polnisch===============
 
   "Jednorożec.",
   "Ilustracja procesów chemicznych.",
