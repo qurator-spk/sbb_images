@@ -114,7 +114,6 @@ const loadNextBatchSearchImage = async (pos, imgUrl, cropCoordinates) => {
     return result;
 }
 
-
 export const makeSearchState = (state=null) => {
 
     let setImgUrlWithID = null;
@@ -137,6 +136,8 @@ export const makeSearchState = (state=null) => {
         state['setPPN'] = setPPN;
         state['loadNextBatch'] = loadNextBatch;
 
+        console.log("Link: ", state.link);
+
         return state;
     }
 
@@ -152,7 +153,8 @@ export const makeSearchState = (state=null) => {
             img_id : img_id,
             description : '',
             ppn : '',
-            type: 'image'
+            type: 'image',
+            link: window.location.protocol + "//" + window.location.host + "/searchfor?img_id=" + encodeURIComponent(img_id)
         });
     },
 
@@ -167,7 +169,8 @@ export const makeSearchState = (state=null) => {
             imgUrl : imgUrl,
             description : '',
             ppn : '',
-            type: 'image'
+            type: 'image',
+            link: ''
         });
     },
 
@@ -181,7 +184,8 @@ export const makeSearchState = (state=null) => {
         return add_functions({
             description : description,
             ppn : '',
-            type: 'description'
+            type: 'description',
+            link: window.location.protocol + "//" + window.location.host + "/searchfor?description=" + encodeURIComponent(description)
         });
     },
 
@@ -195,7 +199,8 @@ export const makeSearchState = (state=null) => {
         return add_functions({
             ppn : ppn,
             description : '',
-            type: 'ppn'
+            type: 'ppn',
+            link: window.location.protocol + "//" + window.location.host + "/searchfor?ppn=" + encodeURIComponent(ppn)
         });
     }
 
