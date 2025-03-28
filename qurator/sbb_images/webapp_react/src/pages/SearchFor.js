@@ -15,7 +15,7 @@ const SearchFor = () => {
         let state = null;
 
         if (img_id != null) {
-            state = makeSearchState().setImgUrlWithID("", img_id);
+            state = makeSearchState().setImgUrlWithID(window.location.protocol + "//" + window.location.host + "/api/image/DIGISAM/" + img_id, img_id);
         }
         else if (description != null) {
             state = makeSearchState().setDescription(description);
