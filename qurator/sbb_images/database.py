@@ -43,7 +43,8 @@ def setup_tags_table(conn):
                  'image_id integer, '
                  'tag text not null, '
                  'user text not null, '
-                 'timestamp text not null)')
+                 'timestamp text not null, '
+                 'read_only integer)')
 
     conn.execute('CREATE INDEX IF NOT EXISTS idx_tags_imageid on tags(image_id)')
 

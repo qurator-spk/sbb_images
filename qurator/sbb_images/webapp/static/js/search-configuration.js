@@ -8,6 +8,7 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
     let datasets = new Set();
 
     let default_data_conf = null;
+    let showSettings=false;
 
     $.each(gconf["CONFIGURATION"],
         function(conf_name, conf) {
@@ -33,16 +34,37 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
     );
 
     let dataset_select_html="";
-    datasets.forEach(
-        function(data_conf) {
-            let friendly_name = gconf["DATA_CONFIGURATION"][data_conf]["FRIENDLY_NAME"];
 
-            dataset_select_html += `<option value="${data_conf}"> ${friendly_name} </option>`;
+    if ("__MENU__" in gconf["DATA_CONFIGURATION"]) {
+        gconf["DATA_CONFIGURATION"]["__MENU__"].forEach(
+            function(data_conf) {
+                try {
+                    let friendly_name = gconf["DATA_CONFIGURATION"][data_conf]["FRIENDLY_NAME"];
+
+                    dataset_select_html += `<option value="${data_conf}"> ${friendly_name} </option>`;
+                }
+                catch {
+                    console.log("Error processing data_conf: " + data_conf);
+                }
             }
-    );
+        );
+     }
+     else {
+        datasets.forEach(
+            function(data_conf) {
+                try {
+                    let friendly_name = gconf["DATA_CONFIGURATION"][data_conf]["FRIENDLY_NAME"];
+
+                    dataset_select_html += `<option value="${data_conf}"> ${friendly_name} </option>`;
+                }
+                catch {
+                    console.log("Error processing data_conf: " + data_conf);
+                }
+            }
+        );
+    }
 
     $("#dataset-select").html(dataset_select_html);
-
 
     function updateModelSelect() {
         let data_conf = gconf["CONFIGURATION"][active_conf]["DATA_CONF"];
@@ -102,6 +124,24 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
         }
     );
 
+    $("#settingsCollapse").on('hidden.bs.collapse',
+        function(e) {
+            showSettings=false;
+            let url = new URL(window.location);
+            url.searchParams.set("showSettings", showSettings);
+            history.pushState(null, '', url);
+        }
+    );
+//
+    $("#settingsCollapse").on('show.bs.collapse',
+        function(e) {
+            showSettings=true;
+            let url = new URL(window.location);
+            url.searchParams.set("showSettings", showSettings);
+            history.pushState(null, '', url);
+        }
+    );
+
     function showWarning(msg) {
         $("#settings-info-group").removeClass("d-none");
         $("#settings-info").addClass("alert");
@@ -124,12 +164,12 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
 
                 url_params.set("data_conf", data_conf);
                 url_params.set("model_conf", model_conf);
+                url_params.set("showSettings", showSettings);
 
                 state.active_conf = active_conf;
             },
         popState:
             function (event=null) {
-
                 if (event !== null) {
                     if (event.state == null) return;
                     if (!("active_conf" in event.state)) return;
@@ -144,6 +184,13 @@ function setup_configuration(gconf, configuration_updated, global_push_state) {
                     }
                     else {
                         active_conf = conf_map[[default_data_conf, default_model_conf[default_data_conf]]];
+                    }
+
+                    if (url_params.has("showSettings")) {
+                        showSettings=(url_params.get("showSettings") == "true");
+
+                        $("#settingsCollapse").collapse({"toggle": showSettings,
+                                                        "parent": $("#settings-accordion")});
                     }
                 }
             },

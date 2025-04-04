@@ -51,10 +51,6 @@
         .selected-6 {
             background: rgb(0, 210, 0)
         }
-
-
-
-
     </style>
     <title>Image Search</title>
 </head>
@@ -69,7 +65,7 @@
                         <a class="btn btn-link" href="https://github.com/qurator-spk/sbb_images" target="_blank"
                            tabindex="-1">Github</a>
                         <button id="settings-button" class="btn btn-link" data-toggle="collapse"
-                                data-target="#settingsCollapse" aria-expanded="true" aria-controls="settingsCollapse">
+                                data-target="#settingsCollapse"  aria-expanded="true" aria-controls="settingsCollapse">
                             Settings
                         </button>
                     </div>
@@ -79,8 +75,10 @@
                     <div class="card-body text-left" id="search-settings">
                         <div class="form">
                             <div class="from-group row">
-                                <label class="col-3 col-form-label">Search in:</label>
-                                <div class="col-9">
+                                <label class="col-12 col-form-label">Search in:</label>
+                            </div>
+                            <div class="from-group row">
+                                <div class="col-12">
                                     <select class="form-control" id="dataset-select">
                                     </select>
                                 </div>
@@ -91,8 +89,10 @@
                                 </div>
                             </div>
                             <div class="from-group row">
-                                <label class="col-3 col-form-label">Model:</label>
-                                <div class="col-9">
+                                <label class="col-12 col-form-label">Similarity model:</label>
+                            </div>
+                            <div class="from-group row">
+                                <div class="col-12">
                                     <select class="form-control" id="model-select">
                                     </select>
                                 </div>

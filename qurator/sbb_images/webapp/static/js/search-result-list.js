@@ -85,7 +85,7 @@ function setup_search_result_list(configuration, search, next_batch) {
         $.each(tags_highlighted,
             function(idx, tag) {
                 $(`.${tag}`).addClass('selected-6');
-                console.log(tag);
+                //console.log(tag);
             }
         );
     }
@@ -154,7 +154,7 @@ function setup_search_result_list(configuration, search, next_batch) {
         part = part.replace(/\//g,"sl");
         part = part.replace(/\"/g,"dhyph");
         part = part.replace(/\'/g,"hyph");
-
+        part = part.replace(/`/g,"thyph");
         return part;
     }
 

@@ -106,25 +106,40 @@ class ThreadStore:
 
         return conn
 
-    def get_thumb_db(self):
+    def get_thumb_db(self, data_conf):
 
         thid = threading.current_thread().ident
 
         conn = self._connection_map.get(("__THUMBNAILS__", thid))
 
-        if conn is None and "THUMBNAILS" in app.config:
+        if conn is not None:
+            return conn
 
-            logger.info('Create database connection: {}'.format(app.config['THUMBNAILS']))
+        conn = self._connection_map.get(("__THUMBNAILS__:{}".format(data_conf), thid))
 
-            conn = sqlite3.connect(app.config['THUMBNAILS'])
+        if conn is not None:
+            return conn
+
+        if "THUMBNAILS" in app.config:
+
+            if type(app.config['THUMBNAILS'])==str:
+                thumbnail_sq_file = app.config['THUMBNAILS']
+                conn_id = "__THUMBNAILS__"
+            else:
+                thumbnail_sq_file = app.config['THUMBNAILS'][data_conf]
+                conn_id = "__THUMBNAILS__:{}".format(data_conf)
+
+            logger.info('Create database connection: {}'.format(thumbnail_sq_file))
+
+            conn = sqlite3.connect(thumbnail_sq_file)
 
             conn.execute('pragma journal_mode=wal')
 
-            self._connection_map[("__THUMBNAILS__", thid)] = conn
+            self._connection_map[(conn_id, thid)] = conn
 
         return conn
 
-    def get_thumb(self, filename, thumb_size, anchor):
+    def get_thumb(self, data_conf, filename, thumb_size, anchor):
         """
         Returns:
             img: image thumbnail
@@ -138,7 +153,7 @@ class ThreadStore:
 
         anchor = anchor if anchor.startswith("region") else ""
 
-        conn = self.get_thumb_db()
+        conn = self.get_thumb_db(data_conf)
 
         if conn is not None:
 
@@ -823,7 +838,7 @@ def get_similar_by_text(user, conf, start=0, count=100):
     data_conf = app.config["CONFIGURATION"][conf]["DATA_CONF"]
     model_conf = app.config["CONFIGURATION"][conf]["MODEL_CONF"]
 
-    print(request.json)
+    # print(request.json)
 
     if "text" not in request.json:
         raise BadRequest()
@@ -851,12 +866,14 @@ def get_similar_by_text(user, conf, start=0, count=100):
     return jsonify({'ids': result, 'info': '"{}"'.format(text), "user": user, "start_from": start_from})
 
 
-def get_image_from_thumbnail_database_or_filesystem(image_id, image_conn, return_full=False, try_file_first=False):
+def get_image_from_thumbnail_database_or_filesystem(image_id, data_conf, return_full=False, try_file_first=False):
     """
     image_id is the rowid in the images table
 
     return_full: returns the full image instead of the rectangle selection the might correspond to the image table entry
     """
+
+    image_conn = thread_store.get_db(data_conf)
 
     sample = pd.read_sql('SELECT * FROM images WHERE rowid=?', con=image_conn, params=(image_id,))
 
@@ -887,7 +904,8 @@ def get_image_from_thumbnail_database_or_filesystem(image_id, image_conn, return
             break
         elif img is None and try_thumb_db:
             # first try to get it from the thumbnail-database
-            img, scale_factor, needs_crop = thread_store.get_thumb(filename, app.config['MAX_IMG_SIZE'], anchor)
+            img, scale_factor, needs_crop =\
+                thread_store.get_thumb(data_conf, filename, app.config['MAX_IMG_SIZE'], anchor)
 
             if img is not None:
                 break
@@ -935,9 +953,8 @@ def get_similar_by_image(user, conf, start=0, count=100, x=-1.0, y=-1.0, width=-
 
     if request.method == 'GET' and search_id is not None:
 
-        img, _, _ = get_image_from_thumbnail_database_or_filesystem(search_id,
-                                                                             thread_store.get_db(search_id_from),
-                                                                             return_full=True, try_file_first=True)
+        img, _, _ = get_image_from_thumbnail_database_or_filesystem(search_id, search_id_from,
+                                                                    return_full=True, try_file_first=True)
         if img is None:
             return "NOT FOUND", 404
 
@@ -1454,8 +1471,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
     if version == 'resize':
 
         img, scale_factor, needs_crop = \
-            get_image_from_thumbnail_database_or_filesystem(image_id, thread_store.get_db(data_conf),
-                                                            return_full=True)
+            get_image_from_thumbnail_database_or_filesystem(image_id, data_conf, return_full=True)
 
         if not needs_crop:
             # we request full but nevertheless got only the selection
@@ -1485,8 +1501,7 @@ def get_image(user, data_conf, image_id=None, version='resize', marker='regionma
             img = Image.open(raw_file).convert('RGB')
         else:
             img, scale_factor, needs_crop = \
-                get_image_from_thumbnail_database_or_filesystem(image_id, thread_store.get_db(data_conf),
-                                                                return_full=True)
+                get_image_from_thumbnail_database_or_filesystem(image_id, data_conf, return_full=True)
 
             if not needs_crop:
                 # we request full but nevertheless got only the selection

@@ -194,7 +194,7 @@ def cli(smb_csv_file, sqlite_file, path_prefix, append):
 
         df_tags.to_sql('tags', con=conn, if_exists='append', index=False)
 
-        df_links = pd.DataFrame(df_links, columns=["index", "url"]).set_index("index")
+        df_links = pd.DataFrame(df_links, columns=["index", "url"]).set_index("index").sort_index()
 
         df_links.to_sql('links', con=conn, if_exists='replace')
 

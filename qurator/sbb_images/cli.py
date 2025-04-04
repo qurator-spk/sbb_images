@@ -140,12 +140,13 @@ class ThumbTask:
             hsize = int((float(img.size[0]) * scale_factor))
             vsize = int((float(img.size[1]) * scale_factor))
 
-            img = img.resize((hsize, vsize), PIL.Image.ANTIALIAS)
+            img = img.resize((hsize, vsize), PIL.Image.LANCZOS)
 
             buffer = io.BytesIO()
             img.save(buffer, "JPEG")
             buffer.seek(0)
-        except:
+        except Exception as e:
+            print(e)
             return None, None, None
 
         return self._filename, buffer, scale_factor
@@ -939,14 +940,17 @@ def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_
 @click.option('--auto-contrast', is_flag=True, help="Perform automatic contrast correction.")
 @click.option('--unsharp-mask-radius', type=int, default=0, help="Perform unsharp mask with this radius if > 0 "
                                                                  "(default:0 => disabled) .")
-@click.option('--exclude-label', type=str, multiple=True, default=None, help="Do not add entries that are tagged with "
-                                                                             "this label in the 'tags' table "
-                                                                             "(can be provided multiple times).")
+@click.option('--exclude-label', type=str, multiple=True, default=None,
+              help="Do not add entries that are tagged with this label in the 'tags' table "
+                   "(can be provided multiple times).")
+@click.option('--include-label', type=str, multiple=True, default=None,
+              help="Add only entries that are tagged with this label in the 'tags' table "
+                   "(can be provided multiple times).")
 def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_measure, n_trees, num_workers, vit_model,
                         vst_model, clip_model, open_clip_model, open_clip_pretrained, ms_clip_model,
                         multi_lang_clip_model, layer_name, layer_output, use_saliency_mask, pad_to_square,
                         thumbnail_sqlite_file, thumbnail_table_name, min_size, auto_contrast, unsharp_mask_radius,
-                        exclude_label):
+                        exclude_label, include_label):
     """
 
     Creates an ANN-features based similarity search index.
@@ -955,18 +959,25 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
     INDEX_FILE: Storage file for search index.
     """
 
+    def make_expr(labels):
+        expr = ''
+        for l in labels:
+
+            if len(expr) > 0:
+                expr += " OR "
+
+            expr += 'tags.tag == "{}"'.format(l)
+
+        return expr
+
     with sqlite3.connect(sqlite_file) as con:
         X = pd.read_sql('SELECT rowid, file, x, y, width, height FROM images', con=con)
         X['rowid'] -= 1
         X = X.set_index('rowid').sort_index()
 
-        excl_expr = ''
-        for label in exclude_label:
+        excl_expr = make_expr(exclude_label)
 
-            if len(excl_expr) > 0:
-                excl_expr += " OR "
-
-            excl_expr += 'tags.tag == "{}"'.format(label)
+        incl_expr = make_expr(include_label)
 
         if len(excl_expr) > 0:
 
@@ -981,7 +992,22 @@ def create_search_index(sqlite_file, index_file, model_name, batch_size, dist_me
 
             X = X.merge(E[['skip']], left_index=True, right_index=True, how='left')
             X.loc[X.skip.isnull(), 'skip'] = False
-            X = X.loc[X.skip == False]
+            X = X.loc[X.skip == False].drop(columns=['skip'])
+
+        if len(incl_expr) > 0:
+
+            E = pd.read_sql('SELECT images.rowid, images.file FROM images '
+                            'INNER JOIN tags ON images.rowid=tags.image_id '
+                            'WHERE {}'.format(incl_expr),
+                            con=con)
+            E['rowid'] -= 1
+            E = E.set_index('rowid').sort_index()
+
+            E['skip'] = False
+
+            X = X.merge(E[['skip']], left_index=True, right_index=True, how='left')
+            X.loc[X.skip.isnull(), 'skip'] = True
+            X = X.loc[X.skip == False].drop(columns=['skip'])
 
     X['file'] = X['file'].astype(str)
 
