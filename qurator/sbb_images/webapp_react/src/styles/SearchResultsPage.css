@@ -128,12 +128,11 @@
     
   } */
 
-   .results-heading {
-    /* width: 80%; */
+  /*  .results-heading {
     margin-bottom: 0.5rem;
     text-align: left;
     font-size: 1rem;
-  } 
+  }  */
 
   .imgLoader {
     position: absolute;
@@ -257,5 +256,28 @@
   to {
     transform: rotate(1turn);
   }
+}
+
+/* share search button */
+.title-with-share {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.search-results-heading-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.results-heading {
+  margin-bottom: 0;
+  text-align: left;
+  font-size: 1rem;
+  flex: 1;
 }
   

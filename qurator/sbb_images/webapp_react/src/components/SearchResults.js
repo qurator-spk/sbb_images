@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import SearchSimilarImages from "./SearchSimilarImages";
 import { sanitizePPN } from "../components/SearchState";
+import ShareButton from "../components/ShareButton";
 
 const SearchResult = ({
   img_id
@@ -107,7 +108,7 @@ const SearchResults = ({
   
     return (
       <div className='search-results-container'>
-
+        <div className='search-results-heading-container'>
         <h3 className="results-heading">
           {searchResult.type === 'image' && 'Images similar to your query image, shown from most to least similar'}
           {searchResult.type === 'description' && `Images matching the description "${searchState.description}", shown from most to least matching`}
@@ -118,6 +119,8 @@ const SearchResults = ({
             </>
           )}
         </h3>
+        <ShareButton searchState={searchState} />
+        </div>
 
         <div className="search-results-grid">
           {searchResult.ids &&

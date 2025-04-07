@@ -15,7 +15,7 @@ const SearchSimilarImages = ({ searchState, setSearchState, imageId, updateResul
 
    return (
     <button className="search-button" onClick={handleClick}>
-      Search Similar Images
+      Search similar images
     </button>
   ); 
 };

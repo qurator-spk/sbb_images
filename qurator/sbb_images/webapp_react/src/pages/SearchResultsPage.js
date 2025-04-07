@@ -8,6 +8,7 @@ import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import "../styles/SearchResultsPage.css";
 import MinimizedSearchBar from "../components/MinimizedSearchBar"; 
+import ShareButton from "../components/ShareButton";
 
 const SearchResultsPage = () => {
 
@@ -216,13 +217,23 @@ const SearchResultsPage = () => {
       )}
 
       <div className="search-page-title">
-       <h2>
-       {searchResult.type === "ppn"
-        ? "PPN Search Results"
-        : searchResult.type.charAt(0).toUpperCase() +
-          searchResult.type.slice(1) +
-          " Search Results"}
-      </h2>
+      {/* <div className="title-with-share">
+        <h2>
+          {searchResult.type === "ppn"
+          ? "PPN Search Results"
+          : searchResult.type.charAt(0).toUpperCase() +
+            searchResult.type.slice(1) +
+            " Search Results"}
+        </h2>
+        <ShareButton searchState={searchState} />
+      </div> */}
+        <h2>
+          {searchResult.type === "ppn"
+            ? "PPN Search Results"
+            : searchResult.type.charAt(0).toUpperCase() +
+              searchResult.type.slice(1) +
+              " Search Results"}
+        </h2> 
       </div>
 
       {searchResult.type === "image" && searchState.imgUrl && (

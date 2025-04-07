@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../styles/MinimizedSearchBar.css";
 import { ReactComponent as CloseIcon } from '../assets/close-icon.svg';
+import ShareButton from "./ShareButton";
 
 const MinimizedSearchBar = ({
   searchState,
@@ -173,6 +174,7 @@ const MinimizedSearchBar = ({
         <div className="min-content-container">
           <div className="search-content">{searchContent}</div>
           <div className="search-actions">
+            <ShareButton searchState={searchState} />
             <button className="back-to-top-button" onClick={onBackToTopClick}>
               ↑ Back to top
             </button>

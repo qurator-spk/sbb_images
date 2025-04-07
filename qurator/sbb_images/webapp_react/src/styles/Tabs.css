@@ -65,7 +65,11 @@ ul.nav {
     position: relative;
     z-index: 2;
     outline: none;
+    margin-top: 0;
+    padding-top: 0;
 }
+
+
 
 /* ============================================================= */
 /*             Styling the ImageTab as drag & drop               */
@@ -591,3 +595,19 @@ button {
     margin-top: 0.5rem;
     text-align: center;
   }
+
+
+  /* Adjust for Firefox */
+  @-moz-document url-prefix() {
+    .outlet {
+      margin-top: -0.45rem; 
+    }
+
+    ul.nav > li {
+        padding-top: 0rem; 
+        padding-bottom: 0.8rem;
+        line-height: 0.9rem;  
+        width: 7em;
+    }
+
+}

@@ -34,7 +34,8 @@
   .divider {
     width: 100%;
     height: 1px;
-    background-color: #D6D8DF; /*SPK-Grau 30 */
+    /* background-color: #D6D8DF; SPK-Grau 30 */
+    background-color: #EC6726;
   }
   
   .modal-body-container {
