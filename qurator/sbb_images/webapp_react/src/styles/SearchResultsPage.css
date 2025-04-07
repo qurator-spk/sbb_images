@@ -280,4 +280,12 @@
   font-size: 1rem;
   flex: 1;
 }
+
+.results-heading a {
+  color: #2B4474;
+}
+
+.results-heading a:hover{
+  color: #182645;
+}
   
