@@ -1220,9 +1220,10 @@ def get_image_ppn(user, data_conf, rowid=None):
     return jsonify(json.loads(link.iloc[0].to_json()))
 
 
+@app.route('/mods_info/<data_conf>', methods=['POST'])
 @app.route('/mods_info/<data_conf>/<rowid>', methods=['GET'])
 @cache_for(minutes=3)
-def get_mods_info(data_conf, rowid):
+def get_mods_info(data_conf, rowid=None):
 
     if not has_table('links', data_conf):
 
@@ -1232,24 +1233,47 @@ def get_mods_info(data_conf, rowid):
 
         return "NOT FOUND", 404
 
-    link = pd.read_sql('SELECT * FROM links WHERE rowid=?',
-                       con=thread_store.get_db(data_conf),
-                       params=(rowid,))
+    if request.method == "GET":
+        link = pd.read_sql('SELECT * FROM links WHERE rowid=?',
+                           con=thread_store.get_db(data_conf),
+                           params=(rowid,))
 
-    if link is None or len(link) == 0:
-        return "NOT FOUND", 404
+        if link is None or len(link) == 0:
+            return "NOT FOUND", 404
 
-    ppn = link.iloc[0].ppn
+        ppn = link.iloc[0].ppn
 
-    meta = pd.read_sql("SELECT * FROM mods_info WHERE ppn=?",con=thread_store.get_db(data_conf),
-                       params=(ppn,))
-    
-    if len(meta)==0:
-        return "NOT FOUND", 404
+        meta = pd.read_sql("SELECT * FROM mods_info WHERE ppn=?",con=thread_store.get_db(data_conf),
+                           params=(ppn,))
 
-    meta = meta.iloc[0]
+        if len(meta)==0:
+            return "NOT FOUND", 404
 
-    return jsonify({"title": meta.titleInfo_title})
+        meta = meta.iloc[0]
+
+        return jsonify({"title": meta.titleInfo_title})
+
+    elif request.method == "POST":
+        data = request.json
+
+        result = dict()
+
+        for _ppn in data['ppns']:
+
+            meta = pd.read_sql('SELECT * FROM mods_info WHERE ppn=?',
+                               con=thread_store.get_db(data_conf),
+                               params=(_ppn,))
+
+            if meta is None or len(meta) == 0:
+                continue
+
+            meta = meta.iloc[0]
+
+            result[_ppn] = {"title": meta.titleInfo_title}
+
+        return jsonify(result)
+    else:
+        return "BAD REQUEST", 400
 
 
 @app.route('/image-iconclass/<data_conf>/<rowid>')
