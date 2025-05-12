@@ -1254,22 +1254,32 @@ def get_mods_info(data_conf, rowid=None):
         return jsonify({"title": meta.titleInfo_title})
 
     elif request.method == "POST":
+
         data = request.json
 
         result = dict()
 
-        for _ppn in data['ppns']:
+        for _id in data['ids']:
+
+            link = pd.read_sql('SELECT * FROM links WHERE rowid=?',
+                               con=thread_store.get_db(data_conf),
+                               params=(_id,))
+
+            if link is None or len(link) == 0:
+                continue
+
+            ppn = link.ppn.iloc[0]
 
             meta = pd.read_sql('SELECT * FROM mods_info WHERE ppn=?',
                                con=thread_store.get_db(data_conf),
-                               params=(_ppn,))
+                               params=(ppn,))
 
             if meta is None or len(meta) == 0:
                 continue
 
             meta = meta.iloc[0]
 
-            result[_ppn] = {"title": meta.titleInfo_title}
+            result[_id] = {"title": meta.titleInfo_title, "ppn": ppn}
 
         return jsonify(result)
     else:
