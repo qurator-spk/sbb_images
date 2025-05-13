@@ -9,6 +9,7 @@ import "cropperjs/dist/cropper.css";
 import "../styles/SearchResultsPage.css";
 import MinimizedSearchBar from "../components/MinimizedSearchBar"; 
 import ShareButton from "../components/ShareButton";
+import "../styles.css"
 
 const SearchResultsPage = () => {
 

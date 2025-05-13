@@ -350,6 +350,7 @@ button {
 .info {
     position: absolute;
     top: 7rem;
+    /* top: 7.1rem; */
     background-color: #EC6726; 
     color: #FFFFFF;
     transition: all 0.2s ease-in-out;
@@ -601,11 +602,15 @@ button {
   @-moz-document url-prefix() {
     .outlet {
       margin-top: -0.45rem; 
+      margin-top: -0.4rem;
+      /* margin-top: -0.95rem; */
     }
 
     ul.nav > li {
         padding-top: 0rem; 
-        padding-bottom: 0.8rem;
+        /* padding-bottom: 1.5rem; */
+        /* padding-bottom: 0.7rem; */
+        margin-bottom: 0.35rem;
         line-height: 0.9rem;  
         width: 7em;
     }

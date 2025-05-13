@@ -43,6 +43,7 @@ const SearchResults = ({
   }
 
   const [links, setLinks] = useState({});
+  const [titles, setTitles] = useState({});
 
   // Load links when results arrive
   useEffect(() => {
@@ -77,6 +78,79 @@ const SearchResults = ({
      fetchLinks();
   }, [searchResult.ids, searchResult.type]); 
 
+   useEffect(() => {
+    const timeoutId = setTimeout(() => {
+    const fetchTitles = async () => {
+      if (searchResult.ids && searchResult.ids.length > 0) {
+        const idsToFetch = searchResult.ids.filter(id => !titles[id]);
+        if (idsToFetch.length === 0) return; // no new titles to fetch
+       
+        try {
+          const response = await fetch(
+            `api/mods_info/DIGISAM`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              // body: JSON.stringify({"ids": searchResult.ids}),
+              body: JSON.stringify({"ids": idsToFetch}),
+            }
+          );
+  
+          if (response.ok) {
+            const result = await response.json();
+           // setTitles(result);
+
+            /* const titles = {};
+            Object.keys(result).forEach(id => {
+              titles[id] = result[id].title || "";
+            });
+            setTitles(titles); */
+
+          // Merging new titles with existing ones
+            setTitles(prevTitles => ({
+              ...prevTitles,
+              ...Object.fromEntries(
+                Object.entries(result).map(([id, data]) => [id, data.title || ""])
+              )
+            }));
+          } else {
+            console.error("Failed to fetch titles in batch, status:", response.status);
+          }
+        } catch (error) {
+          console.error("Error fetching batch titles:", error);
+        }
+      }
+    };
+  
+    fetchTitles();
+    }, 300); // added a short timeout because it seems to behave better?
+    return () => clearTimeout(timeoutId); 
+  }, [searchResult.ids]); 
+
+   /* useEffect(() => {
+    const fetchTitles = async () => {
+      if (searchResult.ids && searchResult.ids.length > 0) {
+        const newTitles = {};
+        
+        await Promise.all(searchResult.ids.map(async (imgID) => {
+          try {
+            const response = await fetch(`api/mods_info/DIGISAM/${imgID}`);
+            if (response.ok) {
+              const data = await response.json();
+              newTitles[imgID] = data.title || "";
+            }
+          } catch (error) {
+            console.error(`Error fetching title for image ${imgID}:`, error);
+          }
+        }));
+        
+        setTitles(newTitles);
+      }
+    };
+
+    fetchTitles();
+  }, [searchResult.ids]); */
+ 
   //******************SCROLL*********************** */
 
    // scroll detection
@@ -125,10 +199,12 @@ const SearchResults = ({
         <div className="search-results-grid">
           {searchResult.ids &&
             searchResult.ids.map((imgID, pos) => (
-               <div className="result-card" key={"result-card-" + imgID + "-" + pos}>
+                // <div className="result-card" key={"result-card-" + imgID + "-" + pos}>
+                <div className="card" key={"result-card-" + imgID + "-" + pos}>  
                {/*<div> {imgID} </div>
                <div> {pos} </div>*/}
-                <div className="image-container">
+                {/* <div className="image-container"> */}
+                <div className="card-image-container">
                   <SearchResult
                     key={"result-" + imgID + "-" + pos}
                     img_id={imgID}
@@ -137,11 +213,18 @@ const SearchResults = ({
 
                 <a
                   href={links[imgID]}
-                  className="view-link"
+                  // className="view-link"
+                  className="card-title-link"
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-title={titles[imgID] || ""}
                 >
-                  View in Digitized Collections
+                  {/* View in Digitized Collections  */}
+                  {/* <div className="title-wrapper"> */}
+                  <div className="card-title-wrapper">
+                  {/*  {titles[imgID] || "View in Digitized Collections"} */}
+                  {titles[imgID] ? titles[imgID] : "View in Digitized Collections"}
+                  </div> 
                 </a>
 
                 <SearchSimilarImages
