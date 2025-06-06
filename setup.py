@@ -36,6 +36,8 @@ setup(
         "add-page-info-tags=qurator.sbb_images.cli_tools.add_page_info_tags:cli",
         "filter-detections=qurator.sbb_images.cli:filter_detections",
         "image-info=qurator.sbb_images.image_info:cli",
+        "update-images-and-thumbs-from-region-annotator="
+        "qurator.sbb_images.webapp.cli:update_images_and_thumbs_from_region_annotator",
 
         "saliency-rois=qurator.sbb_images.saliency:saliency_roi_detect",
 

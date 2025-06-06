@@ -226,8 +226,12 @@ def delete_url_thumbnail(anno_id, img_url, thumb_con, thumb_size):
 
     thumb_filename = "{}|{}".format(img_url, anchor)
 
-    check_thumb_id = thumb_con.execute("SELECT id FROM thumbnails WHERE filename=? AND size=? AND scale_factor=?",
-                                       (thumb_filename, thumb_size, 1.0)).fetchone()
+    if img_url == "*":
+        check_thumb_id = thumb_con.execute("SELECT id FROM thumbnails WHERE filename GLOB ? AND size=? AND scale_factor=?",
+                                           (thumb_filename, thumb_size, 1.0)).fetchone()
+    else:
+        check_thumb_id = thumb_con.execute("SELECT id FROM thumbnails WHERE filename=? AND size=? AND scale_factor=?",
+                                           (thumb_filename, thumb_size, 1.0)).fetchone()
 
     if check_thumb_id is not None:
         thumb_con.execute('BEGIN EXCLUSIVE TRANSACTION')

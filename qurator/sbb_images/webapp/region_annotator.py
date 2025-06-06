@@ -50,7 +50,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 htpasswd = None
-if len(app.config['PASSWD_FILE']) > 0 and os.path.exists(os.path.join(os.getcwd(), app.config['PASSWD_FILE'])):
+if ("PASSWD_FILE" in app.config and len(app.config['PASSWD_FILE']) > 0
+        and os.path.exists(os.path.join(os.getcwd(), app.config['PASSWD_FILE']))):
+
     app.config['FLASK_HTPASSWD_PATH'] = os.path.join(os.getcwd(), app.config['PASSWD_FILE'])
     app.config['FLASK_AUTH_REALM'] = app.config['AUTH_REALM']
     app.config['FLASK_SECRET'] = \
@@ -72,7 +74,7 @@ if "URL_USER" in app.config and "URL_PASSWD" in app.config:
 
     url_auth = HTTPBasicAuth(app.config['URL_USER'], app.config['URL_PASSWD'])
 
-if app.config['COOPERATIVE_MODIFICATION']:
+if "COOPERATIVE_MODIFICATION" in app.config and app.config['COOPERATIVE_MODIFICATION']:
     app.config['COOPERATIVE_ACCESS'] = True
 
 connection_map = dict()
