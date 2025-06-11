@@ -25,7 +25,7 @@ from xml.dom.minidom import parseString
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 
-from ..database import setup_region_annotator_database
+from ..database import setup_region_annotator_database, setup_tags_table, setup_images_table, setup_thumbnail_database
 from ..annotations import update_annotation_image_and_labels, update_url_thumbnail, \
     delete_annotation_image_and_labels, delete_url_thumbnail, parse_annotation
 
@@ -100,6 +100,8 @@ def get_thumb_db():
 
             conn.execute('pragma journal_mode=wal')
 
+            setup_thumbnail_database(conn)
+
             thumb_connection_map[thid] = conn
 
         return conn
@@ -127,6 +129,9 @@ def get_image_db():
             conn = sqlite3.connect(app.config['IMAGE_DB'])
 
             conn.execute('pragma journal_mode=wal')
+
+            setup_images_table(conn)
+            setup_tags_table(conn)
 
             image_connection_map[thid] = conn
 

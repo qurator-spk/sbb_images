@@ -104,7 +104,7 @@ def update_images_and_thumbs_from_region_annotator(region_annotator_db, image_db
 
     df_la = df_annotations.merge(df_links, left_on="url", right_on="url", how="inner")
 
-    for _, row in tqdm(df_la.iterrows()):
+    for _, row in tqdm(df_la.iterrows(), total=len(df_la)):
 
         if len(row.anno_json)==0:
             if dry_run:
@@ -120,9 +120,9 @@ def update_images_and_thumbs_from_region_annotator(region_annotator_db, image_db
             if dry_run:
                 continue
 
-            update_thumbnail = update_annotation_image_and_labels(anno_id, img_url,
-                                                                  left, top, width, height, labels, image_con)
-            if update_thumbnail:
-                update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con, url_auth)
+            thumbnail_must_be_updated =\
+                update_annotation_image_and_labels(anno_id, img_url, left, top, width, height, labels, image_con)
 
-    import ipdb;ipdb.set_trace()
+            if thumbnail_must_be_updated:
+                update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con, url_auth,
+                                     timeout=(300,300))

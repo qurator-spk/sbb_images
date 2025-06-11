@@ -165,15 +165,19 @@ def delete_annotation_image_and_labels(anno_id, image_con):
         image_con.execute('COMMIT TRANSACTION')
 
 
-def update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con, auth=None):
+def update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con, auth=None, timeout=None):
+
+    if timeout is None:
+        timeout = (30, 30)
+
     anchor = "region-annotator:{}".format(anno_id)
 
     thumb_filename = "{}|{}".format(img_url, anchor)
 
     if auth is None:
-        img_resp = requests.get(img_url, timeout=(30, 30))
+        img_resp = requests.get(img_url, timeout=timeout)
     else:
-        img_resp = requests.get(img_url, timeout=(30, 30), auth=auth)
+        img_resp = requests.get(img_url, timeout=timeout, auth=auth)
 
     if img_resp.status_code == 200:
         img = Image.open(io.BytesIO(img_resp.content))
