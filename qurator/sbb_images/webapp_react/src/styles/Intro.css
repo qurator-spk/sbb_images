@@ -1,7 +1,7 @@
 .intro-text {
     width: 80%;
     min-height: 30%;
-    margin-bottom: 3rem;
+    margin-bottom: 3rem; 
     line-height: 1.5rem;
 
     @media (max-width: 769px) {
@@ -13,10 +13,18 @@
     }
 }
 
+.intro-text p {
+  font-size: 1rem;        
+  line-height: 1.5rem;       
+  margin-bottom: 1em;       
+  color: #000000;              
+}
+
+
 .intro-text h2 {
     text-align: center;
     margin-top: 4rem;
-    margin-bottom: 4rem;
+    margin-bottom: 4rem; 
 
     @media (max-width: 469px) {
         margin-top: 1rem;
@@ -31,3 +39,18 @@
 .intro-text a:hover {
     color: #182645; /* SPK-Blau 150 */
   }
+
+.highlighted-note{
+    margin-top: 2em;
+    margin-bottom: 1em;  
+    padding: 1em 1.25em;
+    background-color: #F0F0F3; 
+    /* color: #222; */
+    color: #3C3C3C;
+    color: #000000;
+    font-weight: 600;
+    font-size: 1.1em;
+    border-left: 4px solid #67717E;
+    border-radius: 4px;
+    line-height: 1.6;
+}

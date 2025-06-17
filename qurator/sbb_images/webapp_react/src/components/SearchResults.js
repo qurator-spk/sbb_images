@@ -78,7 +78,28 @@ const SearchResults = ({
      fetchLinks();
   }, [searchResult.ids, searchResult.type]); 
 
-   useEffect(() => {
+  // Fetching titles similar to how the links were fetched
+  useEffect(() => {
+    const fetchTitles = async () => {
+      if (searchResult.ids && searchResult.ids.length > 0) {
+          const response = await fetch(
+            `api/mods_info/DIGISAM`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({"ids": searchResult.ids}),
+            }
+          );
+
+          let result = await response.json();
+          setTitles(result);
+      }
+    };
+    
+    fetchTitles();
+  }, [searchResult.ids]);
+
+ /*   useEffect(() => {
     const timeoutId = setTimeout(() => {
     const fetchTitles = async () => {
       if (searchResult.ids && searchResult.ids.length > 0) {
@@ -98,13 +119,6 @@ const SearchResults = ({
   
           if (response.ok) {
             const result = await response.json();
-           // setTitles(result);
-
-            /* const titles = {};
-            Object.keys(result).forEach(id => {
-              titles[id] = result[id].title || "";
-            });
-            setTitles(titles); */
 
           // Merging new titles with existing ones
             setTitles(prevTitles => ({
@@ -125,31 +139,8 @@ const SearchResults = ({
     fetchTitles();
     }, 300); // added a short timeout because it seems to behave better?
     return () => clearTimeout(timeoutId); 
-  }, [searchResult.ids]); 
+  }, [searchResult.ids]);  */
 
-   /* useEffect(() => {
-    const fetchTitles = async () => {
-      if (searchResult.ids && searchResult.ids.length > 0) {
-        const newTitles = {};
-        
-        await Promise.all(searchResult.ids.map(async (imgID) => {
-          try {
-            const response = await fetch(`api/mods_info/DIGISAM/${imgID}`);
-            if (response.ok) {
-              const data = await response.json();
-              newTitles[imgID] = data.title || "";
-            }
-          } catch (error) {
-            console.error(`Error fetching title for image ${imgID}:`, error);
-          }
-        }));
-        
-        setTitles(newTitles);
-      }
-    };
-
-    fetchTitles();
-  }, [searchResult.ids]); */
  
   //******************SCROLL*********************** */
 
@@ -217,13 +208,14 @@ const SearchResults = ({
                   className="card-title-link"
                   target="_blank"
                   rel="noopener noreferrer"
-                  data-title={titles[imgID] || ""}
+                 // data-title={titles[imgID] || ""}
+                 data-title={titles[imgID] ? titles[imgID].title : ""}
                 >
                   {/* View in Digitized Collections  */}
                   {/* <div className="title-wrapper"> */}
                   <div className="card-title-wrapper">
                   {/*  {titles[imgID] || "View in Digitized Collections"} */}
-                  {titles[imgID] ? titles[imgID] : "View in Digitized Collections"}
+                  {titles[imgID] ? titles[imgID].title : "View in Digitized Collections"}
                   </div> 
                 </a>
 
