@@ -39,8 +39,8 @@ module.exports = {
   },
   devServer: {
     static: './public',
-    port: 4748, // reactsearch2 runs on port 4747
-    //port: 4848,
+    port: 4747, // reactsearch2 runs on port 4747
+    //port: 4748,
     historyApiFallback: true,
     allowedHosts: "all",
     webSocketServer: false
