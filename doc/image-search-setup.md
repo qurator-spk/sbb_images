@@ -90,3 +90,66 @@ If running on a unsecure network which is typically the default you are required
 ## Connecting to Region Annotator
 
 To be written.
+
+## Create image search index
+
+```
+create-search-index --help
+Usage: create-search-index [OPTIONS] SQLITE_FILE INDEX_FILE
+
+  Creates an ANN-features based similarity search index.
+
+  SQLITE_FILE: Image database (see create-database). INDEX_FILE: Storage file
+  for search index.
+
+Options:
+  --model-name TEXT              PyTorch name of NN-model. default:
+                                 "resnet18". Set to "VST" if you want Visual
+                                 Saliency Transformer features for the search
+                                 index. Note in that case you also have to
+                                 provide vit-model and vst-model.
+  --batch-size INTEGER           Process batch-size. default: 32.
+  --dist-measure TEXT            Distance measure of the approximate nearest
+                                 neighbour index. default: angular.
+  --n-trees INTEGER              Number of search trees. Default 10.
+  --num-workers INTEGER          Number of parallel workers during index
+                                 creation.Default 8.
+  --vit-model PATH               Vision transformer pytorch model file
+                                 (required by Visual Saliency Transformer).
+  --vst-model PATH               Visual saliency transformer pytorch model
+                                 file.
+  --clip-model TEXT              CLIP model.
+  --open-clip-model TEXT         OpenCLIP model.
+  --open-clip-pretrained TEXT    OpenCLIP pretrained checkpoint.
+  --ms-clip-model TEXT           Modality Shared CLIP model configuration
+                                 file.
+  --multi-lang-clip-model TEXT   Multi Language CLIP model.
+  --layer-name TEXT              Name of feature layer. default: fc
+  --layer-output                 Use output of layer rather than its input.
+  --use-saliency-mask            Mask images by saliency before feature
+                                 computation. Note: you need to provide vit-
+                                 model and vst-model in that case.
+  --pad-to-square                Pad-to-square before application of model
+                                 image transform (typically resize + center-
+                                 crop).
+  --thumbnail-sqlite-file TEXT   Do not read the image from the file system
+                                 but rather try to read them from this sqlite
+                                 thumbnail file.
+  --thumbnail-table-name TEXT    Do not read the image from the file system
+                                 but rather try to read them from this table
+                                 in the thumbnail sqlite file.
+  --min-size INTEGER             Do not include images smaller than min-size.
+  --auto-contrast                Perform automatic contrast correction.
+  --unsharp-mask-radius INTEGER  Perform unsharp mask with this radius if > 0
+                                 (default:0 => disabled) .
+  --exclude-label TEXT           Do not add entries that are tagged with this
+                                 label in the 'tags' table (can be provided
+                                 multiple times).
+  --include-label TEXT           Add only entries that are tagged with this
+                                 label in the 'tags' table (can be provided
+                                 multiple times).
+  --help                         Show this message and exit.
+
+```
+
+
