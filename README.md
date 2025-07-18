@@ -61,6 +61,8 @@ Options:
 
 ```
 
+## Create Thumbnail Database
+
 In order to speed up things, some command line tools of this package can use a pre-compiled thumbnail 
 database instead of loading the images directly from disk. 
 Depending on the type of disk storage this pre-compilation can heavily improve processing speed.
