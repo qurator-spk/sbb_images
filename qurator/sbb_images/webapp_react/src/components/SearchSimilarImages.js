@@ -1,5 +1,4 @@
 import React from "react";
-import { useState } from "react-router-dom";
 import '../styles/SearchSimilarImages.css';
 
 const SearchSimilarImages = ({ searchState, setSearchState, imageId, updateResults }) => {
@@ -14,7 +13,11 @@ const SearchSimilarImages = ({ searchState, setSearchState, imageId, updateResul
   };
 
    return (
-    <button className="search-button" onClick={handleClick}>
+    <button 
+      className="search-button" 
+      onClick={handleClick} 
+      aria-label="Search for images similar to this one"
+    >
       Search similar images
     </button>
   ); 

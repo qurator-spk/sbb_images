@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "../styles/ShareButton.css"; 
 
 const ShareButton = ({ searchState }) => {
-  const [copyStatus, setCopyStatus] = useState("idle"); // idle, success, error
+  const [copyStatus, setCopyStatus] = useState("idle"); 
   
   // Don't show the button if there's no valid search state or link
   if (!searchState || !searchState.link || searchState.type === 'no') {
@@ -32,10 +32,10 @@ const ShareButton = ({ searchState }) => {
       setCopyStatus("success");
       setTimeout(() => setCopyStatus("idle"), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err);
-      setCopyStatus("error");
-      setTimeout(() => setCopyStatus("idle"), 2000);
-    }
+        console.error("Failed to copy:", err);
+        setCopyStatus("error");
+        setTimeout(() => setCopyStatus("idle"), 2000);
+      }
   };
 
   // Button text based on status
@@ -43,16 +43,11 @@ const ShareButton = ({ searchState }) => {
   if (copyStatus === "success") buttonText = "Link copied!";
   if (copyStatus === "error") buttonText = "Failed to copy";
 
-  /* return (
-    <button onClick={copyToClipboard}>
-      {buttonText}
-    </button>
-  ); */
-
   return (
     <button 
       className={`share-button ${copyStatus}`} 
       onClick={copyToClipboard}
+      aria-label="Share search results link"
     >
       {buttonText}
     </button>

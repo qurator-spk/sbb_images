@@ -1,127 +1,140 @@
-*{
-    line-height: 1.5rem;
-}
-
 .Search {
     width: 100%;
     height: auto;
-    margin-bottom: 3rem;
-
-     @media (max-width: 769px) {
-        padding: 2rem 0;
-        width: 90%;
-        height: 45%;
-    }
+    margin-bottom: var(--semantic-distance-mega);     
 } 
 
-/* Tab Container */
+@media (max-width: 62rem) {  /* it is the var(--semantic-breakpoint-tablet-landscape), 
+        but variables don't work in pure CSS media queries */
+    .Search {
+        padding: var(--semantic-distance-triple-large) 0;
+        /* width: 90%; */
+        height: 45%;
+    }
+}
+
+/**************************Tabs Container****************************/
+/* (it also includes the info button, which is lower in the file) */
 
 .Tabs {
     position: relative;
     display: flex;
-    padding: 4rem;
+    padding: var(--semantic-distance-giga);
     justify-content: center;
     align-items: center;
     margin: 0;
     flex-wrap: nowrap;
     height: 100%;
-    background-color: #F0F0F3; /*SPK-Grau 10*/
-    border-top: 1.5px solid #EC6726; /* Verkehrsorange = UDL-Orange */
+    background-color: var(--semantic-color-background-subtle);
+    border-top: var(--semantic-size-hairline) solid var(--semantic-color-accent-orange);    
+}
 
-    @media (max-width: 769px) {
+@media (max-width: 62rem) { /* it is the var(--semantic-breakpoint-tablet-landscape), 
+        but variables don't work in pure CSS media queries */
+    .Tabs { 
         display: flex;
-        flex-direction: column;
-        padding: 2rem 0;
-
+        flex-direction: column; 
+        gap: var(--semantic-distance-large);
+        padding: var(--semantic-distance-triple-large) 0;
     }
 }
 
 .SearchTabs {
-    width: 60%;
+    width: 60%;    
+}
 
-    @media (max-width: 769px) {
-        width: 100%;
+@media (max-width: 62rem) { /* it is the var(--semantic-breakpoint-tablet-landscape), 
+    but variables don't work in pure CSS media queries */
+    /* width: 100%; */
+.SearchTabs {
+    width: 90%;
+}
+ }
+
+/**************************Tab Navigation****************************/
+
+ul.nav {
+    left: 8%; /* positioning the tab labels */
+    /*margin-bottom: 0.7rem;*/ /* hardcoded because it is part of how the tabs 
+    are made to look a certain way */
+    margin-bottom: var(--semantic-distance-medium); /* 0.75rem */    
+}
+
+@media (max-width: 62rem) { /* it is the var(--semantic-breakpoint-tablet-landscape), 
+        but variables don't work in pure CSS media queries */
+    ul.nav {
+        /* left: 4%; */
+        margin-bottom: var(--semantic-distance-compact); 
     }
 }
 
-/* Tab Navigation */
-
-ul.nav {
-    left: 8%;
-    margin-bottom: 0.7rem;
-
-    @media (max-width: 769px) {
-        /* left: 4%; */
-        margin-bottom: 0.5rem;
-    }
-
-    @media (max-width: 469px) {
-        left: 3%;
-        /* margin-bottom: 0.3rem; */
+@media (max-width: 36rem) { /* --semantic-breakpoint-mobile-landscape, 
+        but variables don't work in pure CSS media queries */
+    ul.nav {
+        /* left: 3%; */
+        left: 2%;
     }
 }
 
 .outlet {
     position: relative;
-    z-index: 2;
+    z-index: 2; 
     outline: none;
     margin-top: 0;
     padding-top: 0;
 }
 
-
-
-/* ============================================================= */
+/*===============================================================*/
 /*             Styling the ImageTab as drag & drop               */
+/*===============================================================*/
 
 .ImageTab {
-    outline: 2px dashed #3C3C3C; /* Schwarz 90 */
-    border-radius: 0.5rem;
-    background-color: #FFFFFF; /* Weiß */
-    height: 20rem;
+    outline: var(--semantic-size-ultra-small) dashed var(--semantic-color-neutral-heavy); /* 2px Schwarz 90 */
+    border-radius: var(--semantic-size-compact); /* 0.5rem */
+    background-color: var(--semantic-color-background-base); /* #FFFFFF */
+    height: 20rem; /* specific value for this element only */
     display: flex;
     flex-direction: column;
     justify-content: space-around;
     align-items: center;
+    padding: var(--semantic-distance-double-large); /* 1.5rem */
     transition: all 0.2s ease-in-out;
-    cursor: copy;
-    padding: 1.5rem;
+    cursor: copy;  
 }
 
-.ImageTab:hover{
-    background-color: #E3E4E9; /* SPK-Grau 20*/
-    outline: 3px dashed #000000;
+@media (hover: hover) and (pointer: fine) {
+    .ImageTab:hover {
+        background-color: var(--semantic-color-background-subtle-hover); /* SPK-Grau 20 */
+        outline: var(--semantic-size-extra-small) dashed var(--semantic-color-text-primary); /* 4px */
+    }
 }
 
 .ImageTab.dragging {
-    background-color: #C9CCD5; /* SPK-Grau 40 */
+    background-color: var(--semantic-color-background-subtle-active); /* SPK-Grau 40 */
     transition: background-color 0.15s ease-in-out;
     cursor: grabbing;
 }
 
-/* .ImageTab:focus {
-    outline: none; 
-    background-color: #f0f0f5; 
-  }
- */
+.ImageTab:focus-visible {
+    outline: var(--semantic-size-extra-small) solid var(--semantic-color-interactive-base); /* 4px solid blue */
+    outline-offset: var(--semantic-size-ultra-small); /* 2px */
+    background-color: var(--semantic-color-background-base); 
+}
 
 .drag-area {
     flex: 2;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--semantic-distance-large);
     justify-content: center;
     align-items: center;
     text-align: center;
 }
 
 .DDicon {
-    width: 3rem; 
-    height: auto;
-    fill: #2B4474; /* SPK-Blau 100 */
-    /* margin-top: 1rem; */
-    
-  }
+    font-size: var(--semantic-size-mega); /* 3rem */
+    color: var(--semantic-color-interactive-base); /* SPK-Blau 100 */
+}
 
 .Upload {
     flex: 1;
@@ -133,97 +146,78 @@ ul.nav {
 }
 
 .UploadButton {
-    background-color: #3C3C3C; /*Schwarz 90*/
-    color: #FFFFFF;
+    background-color: var(--semantic-color-neutral-heavy); /* Schwarz 90 */
+    color: var(--semantic-color-text-inverse-heavy); /* #FFFFFF - text on dark bg */
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 1rem;
-    border-radius: 0.5rem;
+    gap: var(--semantic-distance-compact); /* 0.5rem */
+    padding: var(--semantic-distance-large); /* 1rem */
+    border-radius: var(--semantic-size-compact); /* 0.5rem */
     cursor: pointer;
-    font-size: 1rem;
     transition: all 0.2s ease-in-out;
 }
 
-.UploadButton:hover {
-    background-color: #000000;
+@media (hover: hover) and (pointer: fine) {
+    .UploadButton:hover {
+        background-color: var(--semantic-color-text-primary); /* Schwarz 100 */
+    }
 }
 
 .UploadButton:active {
-    outline: 5px solid #3C3C3C; /*Schwarz 90*/
-    outline-offset: -4px;
-    color: #000000;
-  }
+    background-color: var(--semantic-color-text-primary); /* Schwarz 100 */
+    /* transform: scale(0.98); */
+}
 
-.UploadButton:focus {
-    background-color: #FFFFFF;
-    outline: 5px solid #575757; /*Schwarz 80*/
-    outline-offset: -4px;
-    color: #000000; 
-  }
-
-.upload-icon {
-    width: 1rem; 
-    height: 1rem;
-  }
-
-  .upload-icon path {
-    fill: currentColor;
-  }
+.UploadButton:focus-visible {
+    outline-width: var(--component-focus-visible-outline-width);
+    outline-style: solid;
+    outline-color: var(--semantic-color-interactive-base);
+    outline-offset: var(--component-focus-visible-shadow-spread);
+}
 
 /* ============================================================= */
 
 .DescriptionTab input,
 .PPNTab input {
-    border: 1px solid #3C3C3C; /*Schwarz 90*/
-    color: #000000;
-    padding: 1rem;
-    outline: none;
-    border-radius: 0.5rem;
     width: 100%;
-    height: 100%;
-    margin-bottom: 0.2rem;
-    font-size: 1rem;
+    border: var(--semantic-size-hairline) solid var(--semantic-color-neutral-heavy);
+    color: var(--semantic-color-text-primary);
+    padding: var(--semantic-distance-large);
+    outline: none;
+    border-radius: var(--semantic-size-compact); 
+    margin-bottom: var(--semantic-distance-extra-small);
+    font-size: var(--semantic-font-size-text);
 }
 
 .DescriptionTab input::placeholder,
 .PPNTab input::placeholder {
-    color: #6F6F6F;
+    color: var(--semantic-color-text-placeholder); /* Schwarz 70 */
 } 
-
-/* .DescriptionTab input:not(:focus):hover,
-.PPNTab input:not(:focus):hover,
-.DescriptionTab:not(.active) input:hover,
-.PPNTab:not(.active) input:hover {
-  outline: 3px solid #798cc3;
-  outline-offset: -1px;
-} */
 
 .DescriptionTab input:focus,
 .PPNTab input:focus,
 .DescriptionTab input:active,
 .PPNTab input:active {
-  outline: 5px solid #575757; /*Schwarz 80*/
-  outline-offset: -4px;
-  background-color: #FFFFFF;
+  outline: var(--semantic-size-extra-small) solid var(--semantic-color-border-focus);
+  outline-offset: calc(-1 * var(--semantic-distance-extra-small));
+  background-color: var(--semantic-color-background-base);
 }
 
-/* .DescriptionTab input:hover,
-.PPNTab input:hover {
-  outline: 3px solid #798cc3;
-  outline-offset: -1px; 
-} */
-
 .error-message {
-    color: #D20A11; /* Verkehrsrot = UDL-Signalrot */
+    color: var(--semantic-color-feedback-danger-base);
     text-align: left; 
-    font-weight: 600;
+    font-weight: var(--semantic-font-weight-semi-bold);
   }
+
+/* The following elements are built to look in a specific way, so the values 
+remain hard-coded. Tokens here might lead to unwanted changes, so the only 
+design tokens used are colors */
 
 ul.nav {
     position: relative;
-    z-index: 1;
+    z-index: 1; /* important to make it apear behind the content part */
+
 
     &>li {
         position: relative;
@@ -235,10 +229,8 @@ ul.nav {
         line-height: 1rem;
         padding: 0.2em;
         margin: 0 1em;
-        color: #FFFFFF;
+        color: var(--semantic-color-text-inverse-heavy); 
         text-decoration: none;
-        /* margin: 0 0.1em; */
-        /* margin: 0 2rem; */
         cursor: pointer;
         transform: translateY(0.3rem);
         transition: all 0.2s ease-in-out; 
@@ -255,41 +247,45 @@ ul.nav {
         margin: -0.5em;
         border-bottom: none;
         border-radius: 0.4em 0.4em 0 0;
-        background: transparent;
+        background-color: transparent; 
         /* transition: background-color 0.2s ease-in-out; */
         transform: scale(1.1, 1.3) perspective(0.5em) rotateX(5deg);
     }
 }
 
 ul.nav li.imageTab::before {
-    background-color: #2B4474; /* SPK Blau 100 */
+    background-color: var(--semantic-color-interactive-base); /* SPK Blau 100 */
 }
 
 ul.nav li.descriptionTab::before {
-    background-color: #505F8A; /* SPK Blau 80 */
+    background-color: var(--semantic-color-interactive-secondary-tab); /* SPK Blau 80 */
 }
 
 ul.nav li.ppnTab::before {
-    background-color: #7981A5; /* SPK Blau 60 */
+    background-color: var(--semantic-color-interactive-tertiary-tab); /* SPK Blau 60 */
 }
 
+
+ul.nav li:nth-child(1) { position: relative; z-index: 3; }  /* First tab (Image) */
+ul.nav li:nth-child(2) { position: relative; z-index: 2; }  /* Second tab (Description) */
+ul.nav li:nth-child(3) { position: relative; z-index: 1; }  /* Third tab (PPN) */
+
+
 ul.nav li.active {
-    z-index: 2;
-    color: #000000;
+    z-index: 4; /* placing it in front of all the others */
+    color: var(--semantic-color-text-primary); 
 
     &::before {
-        background-color: #FFFFFF;
+        background-color: var(--semantic-color-background-base); /* #FFFFFF */
         margin-bottom: -0.08em;
-        border-top: #3C3C3C 1px solid; /* Schwarz 90 */
-        border-left: #3C3C3C 1px solid;
-        border-right: #3C3C3C 1px solid;
-
+        border-top: 1px solid var(--semantic-color-neutral-heavy); /* Schwarz 90 */
+        border-left: 1px solid var(--semantic-color-neutral-heavy);
+        border-right: 1px solid var(--semantic-color-neutral-heavy);
     }
 }
 
 ul.nav li:not(.active)::before {
     margin-bottom: -0.08em;
-    /* transition: transform 0.2s; */
 }
 
 ul.nav li:not(.active):hover {
@@ -297,10 +293,48 @@ ul.nav li:not(.active):hover {
 }
 
 ul.nav li:not(.active):hover::before {
-    /* background-color: #ADAE29; */
-    background-color: #8B8E22; /* Olive 100 */
+    background-color: var(--semantic-color-tab-hover); /* Olive 100 */
     transition: background-color 0.2s ease-in-out;
-  }
+}
+
+/* 09.10.2025: styles for the buttons added to the li elements for keyboard navigation */
+
+/* Making buttons invisible and text-only */
+ul.nav > li > button {
+    /* Remove ALL default button styling */
+    background: none;
+    background-color: transparent !important;
+    border: none;
+    /* padding: 0.2em; */
+    padding: 0;
+    margin: 0;
+    
+    /* Make button fill the li */
+    width: 100%;
+    display: block;
+    
+    /* Text styling - WHITE for non-active tabs */
+    color: var(--semantic-color-text-inverse-heavy); /* #FFFFFF */
+    font-family: inherit;
+    font-size: inherit;
+    text-align: center;
+    line-height: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Active tab - BLACK text */
+ul.nav li.active > button {
+    color: var(--semantic-color-text-primary); /* #000000 */
+}
+
+/* Focus state for keyboard */
+ul.nav > li > button:focus-visible {
+    outline: 2px solid var(--semantic-color-accent-orange);
+    outline-offset: 2px;
+}
+
+/******************************************************************************************/
 
 .ImageTab,
 .DescriptionTab,
@@ -308,20 +342,17 @@ ul.nav li:not(.active):hover::before {
     text-align: right;
 }
 
-/* @media (max-width: 468px) {
-
-} */
-
+/* resetting all buttons styles */
 button {
     appearance: none;
     background-color: transparent;
     border: none;
     padding: 0;
     cursor: pointer;
-}
+} 
 
-/* Tablet Media Query */
-@media (max-width: 768px) {
+/* Tablet Media Query for the tab nav */
+@media (max-width: 62rem) {
     ul.nav li {
         margin-right: -1em;
     }
@@ -332,10 +363,10 @@ button {
 }
 
 /* Phone Media Query */
-@media (max-width: 469px) {
+@media (max-width: 36rem) {
     ul.nav li {
         width: calc(33.33% - 0.6em);
-        font-size: 0.9rem;
+        font-size: var(--semantic-font-size-caption);
         padding: 0.5em;
         margin-right: -2em;
         line-height: 1.2rem;
@@ -350,9 +381,8 @@ button {
 .info {
     position: absolute;
     top: 7rem;
-    /* top: 7.1rem; */
-    background-color: #EC6726; 
-    color: #FFFFFF;
+    background-color: var(--semantic-color-accent-orange); 
+    color: var(--semantic-color-text-inverse-heavy);
     transition: all 0.2s ease-in-out;
     width: 2rem;
     height: 2rem;
@@ -360,14 +390,16 @@ button {
     right: 17%; 
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: center;   
+}
 
-    @media (max-width: 768px) {
-        position: static;
-        margin-top: 0.3rem;
-        margin-left: 0;
-        font-size: 0.9rem;
-    }
+@media (max-width: 62rem) {
+.info{
+    position: static;
+    margin-top: 0.3rem;
+    margin-left: 0;
+    font-size: 0.9rem;
+}
 }
 
 .info-bubble {
@@ -375,21 +407,16 @@ button {
     left: calc(100% + 10px);
     top: 50%;
     transform: translateY(-50%);
-    background-color: #EC6726;
+    background-color: var(--semantic-color-accent-orange);
     padding: 1rem;
-    /* border-radius: 5px; */
     border-radius: 0.25rem;
-    /* width: 200px; */
-    /* width: auto; */
     width: 12rem;
     text-align: left;
     /* Text styling */
-    color: white;                
+    color: var(--semantic-color-text-inverse-heavy);                
     font-size: 0.8rem;           
-    font-weight: 500;            
-    line-height: 1.5;            
+    font-weight: var(--semantic-font-weight-regular);            
     letter-spacing: 0.01em;      
-    font-family: "Noto Sans", sans-serif;  
 }
 
 .info-bubble::before {
@@ -400,10 +427,10 @@ button {
     transform: translateY(-50%);
     border-width: 8px;
     border-style: solid;
-    border-color: transparent #EC6726 transparent transparent;
+    border-color: transparent var(--semantic-color-accent-orange) transparent transparent;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 62rem) {
     .info-bubble {
         left: 50%;
         top: 100%;
@@ -414,7 +441,7 @@ button {
         left: 50%;
         top: -16px;
         transform: translateX(-50%);
-        border-color: transparent transparent #EC6726 transparent;
+        border-color: transparent transparent var(--semantic-color-accent-orange) transparent;
     }
 }
 
@@ -426,48 +453,50 @@ button {
   
 .results-collapsed-view {
     width: 100%;
-    padding: 1rem;
-    background-color: white;
-    border: 1px solid #3C3C3C;
-    border-radius: 0.5rem;
-    color: #000000;
+    padding: var(--semantic-distance-large);
+    background-color: var(--semantic-color-background-base);
+    border: var(--semantic-size-hairline) solid var(--semantic-color-neutral-heavy);
+    border-radius: var(--semantic-size-compact);
+    color: var(--semantic-color-text-primary);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: var(--semantic-distance-compact);
     text-align: left;
-    font-size: 1rem;
     transition: all 0.2s ease-in-out;
 }
   
-.results-collapsed-view:hover {
-    background-color: #E3E4E9; /* SPK-Grau 20*/ 
+@media (hover: hover) and (pointer: fine) {
+    .results-collapsed-view:hover {
+        background-color: var(--semantic-color-background-subtle-hover);
+    }
 }
 
 .results-expanded-view {
     position: relative; 
-    outline: 2px dashed #3C3C3C;
-    border-radius: 0.5rem;
-    background-color: #FFFFFF;
-    height: 20rem;
+    outline: var(--semantic-size-ultra-small) dashed var(--semantic-color-neutral-heavy);
+    border-radius: var(--semantic-size-compact);
+    background-color: var(--semantic-color-background-base);
+    height: 20rem; /* specific for the drag and drop */
     display: flex;
     flex-direction: column;
     justify-content: space-around;
     align-items: center;
-    /* padding: 20px; */
-    padding: 1.5rem;
+    padding: var(--semantic-distance-double-large);
     transition: all 0.2s ease-in-out;
     cursor: copy;
 }
   
-.results-expanded-view:hover{
-    background-color: #E3E4E9; /* SPK-Grau 20*/ 
-    outline: 3px dashed #000000;
+@media (hover: hover) and (pointer: fine) {
+    .results-expanded-view:hover {
+        background-color: var(--semantic-color-background-subtle-hover);
+        outline: var(--semantic-size-extra-small) dashed var(--semantic-color-text-primary);
+    }
 }
 
 .results-expanded-view.dragging {
-    background-color: #C9CCD5; /* SPK-Grau 40 */
+    background-color: var(--semantic-color-background-subtle-active);
     transition: background-color 0.15s ease-in-out;
     cursor: grabbing;
 }
@@ -476,59 +505,51 @@ button {
     position: absolute;
     top: 0.8rem;
     right: 1.5rem;
-    font-size: 2.5rem;
-    color: #2B4474; /* SPK-Blau 100 */
+    font-size: var(--semantic-font-size-heading);
+    color: var(--semantic-color-interactive-base);
     cursor: pointer;
   }
   
-.close:hover {
-    color: #182645; /* SPK-Blau 150 */
+@media (hover: hover) and (pointer: fine) {
+    .close:hover {
+        color: var(--semantic-color-interactive-strong);
+    }
 }
 
-.DescriptionTab a {
-    color: #2B4474; /* SPK-Blau 100 */
-}
-
-.DescriptionTab a:hover {
-    color: #182645; /* SPK-Blau 150 */
-}
+/**********************************************************/
 
 .suggestions-dropdown {
     position: absolute;
     top: 100%;
     left: 0;
     width: 100%;
-    height: auto;
-    height: 500px;
     height: 34rem;
-    background: #FFFFFF;
-    border: 1px solid #D6D8DF;
-    /* border: 1px solid #000000; */
+    background-color: var(--semantic-color-background-base);
+    border: var(--semantic-size-hairline) solid var(--semantic-color-stroke-subtle);
     border-top: none;
-    border-radius: 0 0 0.5rem 0.5rem;
-    /* max-height: 200px; */
+    border-radius: 0 0 var(--semantic-size-compact) var(--semantic-size-compact);
     overflow-y: auto;
-    z-index: 10;
+    /* z-index: 10; */
     box-shadow: 0 0.4rem 0.2rem rgba(0,0,0,0.25);
 }
 
-/*For Firefox*/
+/*Works well in Firefox*/
  .suggestions-dropdown {
     scrollbar-width: auto;
-    scrollbar-color: rgba(43, 68, 116, 0.6) #F0F0F3;
+    scrollbar-color: rgba(43, 68, 116, 0.6) var(--semantic-color-background-subtle);
+    /* rgba(43, 68, 116, 0.6) is SPK-Blau 100 at 60% opacity - kept as rgba for transparency */
   }  
 
 /*For all other browsers*/
 .suggestions-dropdown::-webkit-scrollbar{
-    width: 0.7rem;
-    border-radius: 0.5rem;
-    background-color: #F0F0F3;
+    width: var(--semantic-size-medium); /* 0.75rem */
+    border-radius: var(--semantic-size-compact); /* 0.5rem */
+    background-color: var(--semantic-color-background-subtle); /* #F0F0F3 */
 }
 
-
 .suggestions-dropdown::-webkit-scrollbar-thumb{
-    background: rgba(43, 68, 116, 0.6); 
-    border-radius: 0.5rem;
+    background-color: rgba(43, 68, 116, 0.6); 
+    border-radius: var(--semantic-size-compact); /* 0.5rem */
 }
 
 .suggestions-dropdown-ppn {
@@ -537,21 +558,17 @@ button {
     left: 0;
     width: 100%;
     height: auto;
-   /*  height: 500px;
-    height: 34rem; */
-    background: #FFFFFF;
-    border: 1px solid #D6D8DF;
-    /* border: 1px solid #000000; */
+    background-color: var(--semantic-color-background-base);
+    border: var(--semantic-size-hairline) solid var(--semantic-color-stroke-subtle);
     border-top: none;
-    border-radius: 0 0 0.5rem 0.5rem;
-    /* max-height: 200px; */
+    border-radius: 0 0 var(--semantic-size-compact) var(--semantic-size-compact);
     overflow-y: auto;
-    z-index: 10;
+    /* z-index: 10; */
     box-shadow: 0 0.4rem 0.2rem rgba(0,0,0,0.25);
 }
   
 .suggestion-item {
-    padding: 0.75rem 1rem;
+    padding: var(--semantic-distance-medium) var(--semantic-distance-large);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -559,22 +576,23 @@ button {
     transition: background-color 0.2s;
 }
   
-.suggestion-item:hover {
-    background-color: #F0F0F3;
-    /* border-top: 1px solid #D6D8DF;
-    border-bottom: 1px solid #D6D8DF; */
+@media (hover: hover) and (pointer: fine) {
+    .suggestion-item:hover {
+        background-color: var(--semantic-color-background-subtle); /* #F0F0F3 */
+    }
 }
   
 .try-it {
-    color: #2B4474;
-    font-size: 0.8rem;
-    font-weight: 600;
+    color: var(--semantic-color-interactive-base);
+    font-weight: var(--semantic-font-weight-semi-bold);
     opacity: 0; 
     transition: opacity 0.2s;
 }
 
-.suggestion-item:hover .try-it {
-    opacity: 1; 
+@media (hover: hover) and (pointer: fine) {
+    .suggestion-item:hover .try-it {
+        opacity: 1; 
+    }
 }
 
 .input-container {
@@ -583,36 +601,31 @@ button {
   }
 
 .suggestions-header {
-    padding: 0.95rem 1rem;
-    font-weight: 600;
-    color: #3C3C3C;
-    /* background-color: #F0F0F3; */
-    background-color: #E8E8F1;
-    border-bottom: 1px solid #D6D8DF;
+    padding: var(--semantic-distance-medium) var(--semantic-distance-large); /* 0.75rem 1rem */
+    font-weight: var(--semantic-font-weight-semi-bold); /* 600 */
+    color: var(--semantic-color-neutral-heavy); /* #3C3C3C */
+    background-color: var(--semantic-color-interactive-subtle); /* #E8E8F1 */
+    border-bottom: var(--semantic-size-hairline) solid var(--semantic-color-stroke-subtle); 
 }
 
 .paste-hint {
-    color: #67717E;
-    margin-top: 0.5rem;
+    color: var(--semantic-color-text-subtle); /* #67717E */
+    margin-top: var(--semantic-distance-compact); /* 0.5rem */
     text-align: center;
-  }
+}
 
 
-  /* Adjust for Firefox */
-  @-moz-document url-prefix() {
+  /* Adjust for Firefox to keep th tabs looking like in other browsers */
+@-moz-document url-prefix() {
     .outlet {
-      margin-top: -0.45rem; 
-      margin-top: -0.4rem;
-      /* margin-top: -0.95rem; */
+        /* margin-top: -0.45rem;  */
+        margin-top: -0.4rem;
     }
 
     ul.nav > li {
         padding-top: 0rem; 
-        /* padding-bottom: 1.5rem; */
-        /* padding-bottom: 0.7rem; */
         margin-bottom: 0.35rem;
         line-height: 0.9rem;  
         width: 7em;
     }
-
 }

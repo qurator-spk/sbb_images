@@ -5,7 +5,6 @@ import PPNTab from './PPNTab';
 import ResultsImageTab from './ResultsImageTab';
 import HelpModal from './HelpModal';
 import { helpTexts } from './helpTexts';
-import '../styles/Tabs.css';
 
 const Tabs = ({ 
   updateResults, 
@@ -13,9 +12,8 @@ const Tabs = ({
   setSearchState, 
   activeTab, 
   setActiveTab,
-  isResultsPage, // prop for the results page image tab
+  isResultsPage, 
   error,
- // isCompact = false // new prop for the min bar
 }) => { const [isModalOpen, setIsModalOpen] = useState(false); const [isHovering, setIsHovering] = useState(false);
 
   const hoverTexts = {
@@ -23,25 +21,22 @@ const Tabs = ({
     description: 'To learn more about the different types of search, click on the circle for each active tab (now active - Search by Description).',
     ppn: 'To learn more about the different types of search, click on the circle for each active tab (now active - Search by PPN).',
   };
-  
-  const getModalTitle = (tab) => {
-    if (tab === "ppn") {
-      return "How to search by PPN";
-    }
-    return `How to search by ${tab}`;
-  };
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
   };
   
   return (
-    // <div className={`Search ${isCompact ? 'compact' : ''}`}>
+    // Search - container of the entire search area, with grey background 
+    // Tabs - container of the search tabs and the orange help button, 
+    //        has an orange highlighted border
+    // SearchTabs - contains the tabs themselves, navigation + content
      <div className="Search"> 
       <div className="Tabs">
         <div className="SearchTabs">
           {/* Tab nav */}
-          <ul className="nav">
+
+          {/* <ul className="nav">
             <li
               className={`imageTab ${activeTab === 'image' ? 'active' : ''}`}
               onClick={() => handleTabClick('image')}
@@ -60,25 +55,46 @@ const Tabs = ({
             >
               Search by <br/> PPN
             </li>
+          </ul> */}
+
+      {/* 09.10.2025: added buttons to the li elements to have keyboard functionality for the tabs */}
+          <ul className="nav">
+            <li className={`imageTab ${activeTab === 'image' ? 'active' : ''}`}>
+              <button onClick={() => handleTabClick('image')}>
+                Search by <br/> image
+              </button>
+            </li>
+            <li className={`descriptionTab ${activeTab === 'description' ? 'active' : ''}`}>
+              <button onClick={() => handleTabClick('description')}>
+                Search by <br/> description
+              </button>
+            </li>
+            <li className={`ppnTab ${activeTab === 'ppn' ? 'active' : ''}`}>
+              <button onClick={() => handleTabClick('ppn')}>
+                Search by <br/> PPN
+              </button>
+            </li>
           </ul>
+      {/**************************************************************************************/}
+
           <div className="outlet">
             {/* For tab contents to show */}
             {activeTab === 'image' ? (
-               isResultsPage ? (
-               // ResultsImageTab on results page
-               <ResultsImageTab
-               updateResults={updateResults}
-               searchState={searchState}
-               setSearchState={setSearchState}
-             />
-           ) : (
-             // Regular ImageTab on landing page
-             <ImageTab
-               updateResults={updateResults}
-               searchState={searchState}
-               setSearchState={setSearchState}
-             />
-           )
+              isResultsPage ? (
+                // ResultsImageTab on results page
+                <ResultsImageTab
+                updateResults={updateResults}
+                searchState={searchState}
+                setSearchState={setSearchState}
+                />
+              ) : (
+                // Regular ImageTab on landing page
+              <ImageTab
+                updateResults={updateResults}
+                searchState={searchState}
+                setSearchState={setSearchState}
+              />
+              )
             ) : activeTab === 'description' ? (
               <DescriptionTab updateResults={updateResults} searchState={searchState} setSearchState={setSearchState} />
             ) : (
@@ -97,17 +113,19 @@ const Tabs = ({
             onClick={() => setIsModalOpen(true)}
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
+            aria-label="Open help information about search types"
           >
-            <span>?</span>
-            {isHovering && <div className="info-bubble">{hoverTexts[activeTab]}</div>}
+            <i className="fa-solid fa-question" aria-hidden="true"></i> 
+            {isHovering && <div className="info-bubble" role="tooltip">{hoverTexts[activeTab]}</div>}
           </button>
         </div>
       </div>
+      
       <HelpModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={getModalTitle(activeTab)}
-        content={helpTexts[activeTab]}
+        initialTab={activeTab}
+        helpTexts={helpTexts}
       />
     </div>
   );

@@ -1,81 +1,124 @@
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  
-  .modal-content {
-    background-color: white;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 800px; 
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    position: relative;
-  }
-  
-  .modal-title {
-    padding: 2rem 2rem 1.5rem;  
-    text-align: center; 
-    /* font-size: 2.5rem; */
-  }
-  
-  .modal-title h2 {
-    margin: 0;
-    color: #000000;
-  }
-  
-  .divider {
-    width: 100%;
-    height: 1px;
-    /* background-color: #D6D8DF; SPK-Grau 30 */
-    background-color: #EC6726;
-  }
-  
-  .modal-body-container {
-    padding: 2rem;
-  }
-  
-  .modal-body {
-    background-color: #F0F0F3; /*SPK-Grau 10 */
-    padding: 2rem;
-    border-radius: 4px;
-  }
-  
-  .close-button {
-    position: absolute; 
-    top: 1rem;
-    right: 1.5rem;
-    cursor: pointer;
-    color: #2B4474; /* SPK-Blau 100 */
-    font-size: 3rem;
-    transition: color 0.2s;
-  }
-  
-  .close-button:hover {
-    color: #182645; /* SPK-Blau 150 */
-  }
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 6; /* larger than the Header, whichs is 5 */
+}
 
-  .help-content {
-    font-size: 1rem;
-    line-height: 1.5;
+.modal-content {
+  background-color: var(--semantic-color-background-base);
+  border-radius: var(--semantic-distance-compact);
+  max-height: 90vh; /* limiting the max height the modal can have */
+  width: 95%;
+  max-width: 50rem; 
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.modal-title {
+  padding: var(--semantic-distance-triple-large) var(--semantic-distance-triple-large) var(--semantic-distance-compact);  
+  text-align: center; 
+}
+
+.modal-title h2 {
+  margin: 0;
+  color: var(--semantic-color-text-primary);
+  font-size: var(--semantic-font-size-heading);
+}
+
+.modal-body {
+  padding: var(--semantic-distance-double-large) var(--semantic-distance-mega) var(--semantic-distance-mega);
+  border-radius: var(--semantic-distance-extra-small);
+  max-height: 60vh; 
+  overflow-y: auto;  
+}
+
+@media (max-width: 36rem) {
+  .modal-body {
+    padding: var(--semantic-distance-large) var(--semantic-distance-double-large);
+  }
+}
+
+.close-button {
+  position: absolute; 
+  top: var(--semantic-distance-large);
+  right: var(--semantic-distance-double-large);
+  cursor: pointer;
+  color: var(--semantic-color-interactive-base);
+  font-size: var(--semantic-font-size-subheading); 
+  transition: color 0.2s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .close-button:hover {
+    color: var(--semantic-color-interactive-strong);
+  }
+}
+
+.help-content ol {
+  padding-left: var(--semantic-distance-double-large);
+  margin: 0;
+}
+
+.help-content li {
+  margin-bottom: var(--semantic-distance-double-large);
+}
+
+.help-content li:last-child {
+  margin-bottom: 0;
+}
+
+.help-tabs {
+  display: flex;
+  justify-content: center;
+  gap: var(--semantic-distance-compact); 
+  padding: var(--semantic-distance-large);
+  background-color: var(--semantic-color-background-subtle);
+  border-bottom: var(--semantic-size-hairline) solid var(--semantic-color-accent-orange);
+}
+
+.help-tab {
+  padding: var(--semantic-distance-large) var(--semantic-distance-double-large);
+  background-color: var(--semantic-color-background-base); 
+  border: var(--semantic-size-hairline) solid var(--semantic-color-stroke-subtle);
+  color: var(--semantic-color-text-base);
+  font-size: var(--semantic-font-size-body);
+  font-weight: var(--semantic-font-weight-semi-bold);
+  cursor: pointer;
+  border-radius: var(--semantic-distance-extra-small);
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 36rem) {
+  .help-tabs {
+    gap: var(--semantic-distance-extra-small); /* smaller gap */
+    padding: var(--semantic-distance-compact); /* smaller container padding */
   }
   
-  .help-content ol {
-    padding-left: 1.5rem;
-    margin: 0;
+  .help-tab {
+    padding: var(--semantic-distance-compact) var(--semantic-distance-medium); /* smaller button padding */
+    font-size: var(--semantic-font-size-label); /* smaller text (0.875rem) */
   }
-  
-  .help-content li {
-    margin-bottom: 1.5rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .help-tab:hover {
+    border-color: var(--semantic-color-interactive-base);
+    color: var(--semantic-color-interactive-base);
   }
-  
-  .help-content li:last-child {
-    margin-bottom: 0;
-  }
+}
+
+.help-tab.active {
+  background-color: var(--semantic-color-interactive-base);
+  color: var(--semantic-color-text-inverse-heavy);
+  border-color: var(--semantic-color-interactive-base);
+  transform: translateY(-2px); 
+  box-shadow: 0 var(--semantic-distance-small) var(--semantic-distance-large) rgba(0, 0, 0, 0.1);
+}
+ 

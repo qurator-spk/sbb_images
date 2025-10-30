@@ -1,3 +1,5 @@
+// Suggestions for PPN search
+
 export const ppnSuggestions = [
     "730687511",
     "744086949",

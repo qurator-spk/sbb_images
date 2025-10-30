@@ -1,0 +1,43 @@
+/*
+ * Project-specific design tokens
+ * Extends tokens.css
+ * Source: Corporate Design Styleguide, January 2025
+ * 
+ * These colors exist in the PDF styleguide but are not in tokens.css
+ * Some will probably be added to tokens.css, but for now they live here
+ */
+
+:root {
+   /* --semantic-color-black: #000000;   */
+   --semantic-color-text-primary: #000000; /* Schwarz 100 - replace this later */ 
+   --semantic-color-neutral-heavy: #3C3C3C; /* Schwarz 90 - dark gray for tabs: 
+               borders, outlines, button backgrounds, and suggestion text */
+   --semantic-color-text-placeholder: #6F6F6F; /* Schwarz 70, used for placeholder text*/
+   --semantic-color-border-focus: #575757; /* Schwarz 80 - for input fields */
+   --semantic-color-background-subtle-hover: #E3E4E9; /* SPK-Grau 20 - hover state 
+               for subtle background */
+   --semantic-color-background-subtle-active: #C9CCD5; /* SPK-Grau 40 - active/pressed 
+               state for backgrounds - used for drop on Image Tab */
+   /* --semantic-color-background-lavendel-30: #E2E2F2;  */
+   --semantic-color-accent-strong: #E2E2F2; /* Lavendel 30 - header hover, tooltips on cards */
+   --semantic-color-interactive-secondary-tab: #505F8A; /* SPK Blau 80, used for tabs nav */
+   --semantic-color-interactive-tertiary-tab: #7981A5; /* SPK Blau 60, used for tabs nav */
+
+   /* Olive */
+   --semantic-color-tab-hover: #8B8E22; /* Olive 100 - used for non-active tab hover states */
+   --semantic-color-background-olive-strong: #474819;  /* Hover - darker */
+   --semantic-color-background-olive-heavy: #242114;  /* Active - darkest */
+
+   /* ============================================
+     ACCENT COLORS (Verkehrsfarben)
+     Used for warnings, accents, and highlights
+     ============================================ */
+  
+   --semantic-color-accent-orange: #EC6726; /* Verkehrsorange / UDL-Orange - 
+               used for help, highlights */
+   --semantic-color-feedback-success-strong: #008B55; /* Verkehrsgrün - stronger success 
+               green than feedback-success-base */
+
+   /* Loading/Animation colors */
+  --semantic-color-loader-base: #657098; /* used for loading animations */
+}

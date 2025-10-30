@@ -18,6 +18,7 @@ const Header = () => {
             rel="noopener noreferrer"
             className="logo-link"
             data-tooltip="Startseite der SBB"
+            aria-label="Go to Berlin State Library homepage"
           >
             <Logo className="logo-svg" />
           </a>

@@ -1,219 +1,177 @@
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
-
 
 body {
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-
-.LandingPage {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: auto;
-    margin-top: 5rem;
-    margin-bottom: 4rem;
+body,
+input,
+textarea,
+button {
+  font-family: var(--semantic-font-family-default), sans-serif;
+  font-size: var(--semantic-font-size-text); /* 1rem = 16px base */
+  font-weight: var(--semantic-font-weight-regular); /* 400 */
+  line-height: 1.5; 
 }
 
+/* Headings */
+h1 {
+  font-size: var(--semantic-font-size-heading); /* 1.5rem = 24px */
+  font-weight: var(--semantic-font-weight-bold); /* 700 */
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: var(--semantic-font-size-subheading); /* 1.25rem = 20px */
+  font-weight: var(--semantic-font-weight-bold); /* 700 */
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: var(--semantic-font-size-body); /* 1.125rem = 18px */
+  font-weight: var(--semantic-font-weight-semi-bold); /* 600 */
+  line-height: 1.4;
+}
+
+/* Links */
+a {
+  color: var(--semantic-color-interactive-base); /* #2B4474 */
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    color: var(--semantic-color-interactive-strong);
+    text-decoration: underline;
+  }
+}
+
+a:visited {
+  color: var(--semantic-color-interactive-base); /* Keep same color */
+}
 
 /* Common Card Styles */
 
-/* .image-card, .result-card { */
 .card {
-    border: 1px solid #D6D8DF; /* SPK Grau 30*/
-    border-radius: 0.3em;
-    display: grid;
-    grid-template-rows: auto auto auto;
-    width: 100%;
-    max-width: 450px;
-    gap: 1em;
-    padding-bottom: 1em;
-    transition: all 0.2s ease-in-out;
-  }
-  
-  /* .image-card:hover, .result-card:hover { */
-  .card:hover{
-    border: 1px solid #000000;
-  }
-  
-  .card-image-container {
-    grid-row: 1;
-    background-color: #F0F0F3; /* SPK-Grau 10*/
-    border-radius: 0.3em 0.3em 0 0;
-    max-width: 100%;
-    max-height: 100%;
-    aspect-ratio: 1 / 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 0.5rem;
-  }
-  
-  /* .image-card:hover .image-container,  */
-  .card:hover .card-image-container {
-    background-color: #E3E4E9; /* SPK-Grau 20*/
-  }
-  
-  .card-image {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    display: block;
-    margin: 0 auto;
-  }
-  
-  /* .view-link, .image-card a { */
-  .card-title-link{
-    padding: 0.5em 0.5em;
-    color: #2B4474; /* SPK-Blau 100 */
-    margin: auto;
-    font-size: 1rem;
-    line-height: 1.5;
-    /* text-decoration: none; */
-    display: block;
-    position: relative;
-  }
-  
-  /* .view-link:hover, .image-card a:hover { */
-  .card-title-link:hover{
-    color: #182645; /* SPK-Blau 150 */
-  }
-  
-  /* title wrapper - for consistent title display with truncation */
-  .card-title-wrapper {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    line-height: 1.5rem;
-    height: 3rem;
-    padding: 0 0.7rem; 
-    text-align: left;
-  }
-  
-  [data-title] {
-    position: relative;
-  }
-  
-   /* [data-title]:hover::after {  */
-   /*  .result-card .view-link[data-title]:hover::after,
-    .image-card a[data-title]:hover::after{  */
-    .card-title-link[data-title]:hover::after{
-    content: attr(data-title);
-    position: absolute;
-    left: 50%;
-    bottom: 100%;
-    transform: translateX(-50%);
-    background-color: #FFFFFF;
-    /* background-color: #E2E2F2; */
-    color: #000000;
-    border: 1px solid #D6D8DF;
-    border-radius: 0.25rem;
-    padding: 1rem;
-    z-index: 10;
-    width: max-content;
-    max-width: 300px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    /* box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 1);  */
-    text-align: left;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    white-space: normal;
-  }
+  border: var(--semantic-size-hairline) solid var(--semantic-color-stroke-subtle);
+  border-radius: var(--semantic-distance-extra-small);
+  display: grid;
+  grid-template-rows: auto auto auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 450px;
+  gap: var(--semantic-distance-large);
+  padding-bottom: var(--semantic-distance-large);
+  transition: all 0.2s ease-in-out;
+}
 
- 
-   .card-title-link[data-title]:hover::after {
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    border: var(--semantic-size-hairline) solid var(--semantic-color-text-primary);
+  }
+}
+   
+.card-image-container {
+  grid-row: 1;
+  background-color: var(--semantic-color-background-subtle);
+  border-radius: var(--semantic-distance-extra-small) var(--semantic-distance-extra-small) 0 0;
+  padding: var(--semantic-distance-compact);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;    
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .card-image-container {
+    background-color: var(--semantic-color-background-subtle-hover);
+  }
+}
+  
+.card-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.card-title-link {
+  padding: var(--semantic-distance-compact);
+  color: var(--semantic-color-interactive-base);
+  margin: auto;
+  display: block;
+  position: relative;
+}
+  
+@media (hover: hover) and (pointer: fine) {
+  .card-title-link:hover {
+    color: var(--semantic-color-interactive-strong);
+  }
+}
+  
+/* title wrapper - for consistent title display with truncation */
+
+.card-title-wrapper {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  height: var(--semantic-distance-mega);
+  padding: 0 var(--semantic-distance-medium); 
+  text-align: left;
+}
+  
+[data-title] {
+  position: relative;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-title-link[data-title]:hover::after {
     content: attr(data-title);
     position: absolute;
     left: 50%;
     bottom: 100%;
     transform: translateX(-50%);
-    background-color: #E2E2F2;
-    color: #000000;
-    border: 1px solid #D6D8DF;
-    /* border: 1px solid #000000; */
-    border-radius: 0.25rem;
-    padding: 1rem;
-    z-index: 10;
+    background-color: var(--semantic-color-accent-strong); 
+    color: var(--semantic-color-text-primary);
+    border: var(--semantic-size-hairline) solid var(--semantic-color-stroke-subtle);
+    border-radius: var(--semantic-distance-extra-small);
+    padding: var(--semantic-distance-large); 
     width: max-content;
     max-width: 300px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 1);
+    box-shadow: 0 var(--semantic-distance-small) var(--semantic-distance-large) rgba(0, 0, 0, 1);
     text-align: left;
-    font-size: 0.9rem;
-    margin-bottom: 8px; 
+    font-size: var(--semantic-font-size-label);
+    margin-bottom: var(--semantic-distance-compact);
     white-space: normal;
   } 
-  
-  /* Add this new rule for the triangle */
+}
+ 
+@media (hover: hover) and (pointer: fine) {
   .card-title-link[data-title]:hover::before {
     content: "";
     position: absolute;
     left: 50%;
-    bottom: calc(100% - 8px); /* Position it at the bottom of the tooltip */
+    bottom: calc(100% - var(--semantic-distance-compact));
     transform: translateX(-50%);
-    border-width: 8px;
+    border-width: var(--semantic-distance-compact);
     border-style: solid;
-    border-color: #E2E2F2 transparent transparent transparent; /* Triangle pointing DOWN */
-    z-index: 10;
+    border-color: var(--semantic-color-accent-strong) transparent transparent transparent;
   }
+}
 
-
-/* .title-wrapper {
-    height: 3rem;
-    line-height: 1.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    padding: 0 0.7rem;
-  }
-  
-  .title-link {
-    text-decoration: none;
-    color: #2B4474;
-    display: block;
-  }
-  
-  .title-link:hover {
-    color: #182645;
-  }
-  
-  [data-title] {
-    position: relative;
-  }
-  
-  [data-title]:hover::after {
-    content: attr(data-title);
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 100%;
-    background-color: #FFFFFF;
-    color: #000000;
-    border: 1px solid #D6D8DF;
-    border-radius: 0.25rem;
-    padding: 0.5rem;
-    z-index: 10;
-    width: max-content;
-    max-width: 300px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    text-align: left;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    white-space: normal;
-  } */

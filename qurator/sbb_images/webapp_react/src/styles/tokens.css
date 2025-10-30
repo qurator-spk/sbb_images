@@ -1,0 +1,213 @@
+
+:root {
+/* --- */
+/* SEMANTIC TOKENS */
+/* --- */
+
+    /* COLORS */
+    --semantic-color-background-base: #ffffff; /* Standard Hintergrundfarbe */
+    --semantic-color-background-subtle: #f0f0f3; /* Hintergrund um Elemente hervozuheben */
+    --semantic-color-background-lavender-base: #63678e; /* Standard Hintergrundfarbe */
+    --semantic-color-background-lavender-subtle: #c5c6ff; /* Hintergrund um Elemente hervozuheben */
+    --semantic-color-background-lemon-base: #ffe209; /* Standard Hintergrundfarbe */
+    --semantic-color-background-lemon-subtle: #fff19a; /* Hintergrund um Elemente hervozuheben */
+    --semantic-color-background-neutral-base: #ffffff; /* Standard Hintergrundfarbe */
+    --semantic-color-background-neutral-subtle: #f0f0f3; /* Hintergrund um Elemente hervozuheben */
+    --semantic-color-background-olive-base: #696c22; /* Standard Hintergrundfarbe */
+    --semantic-color-background-olive-subtle: #cfce35; /* Hintergrund um Elemente hervozuheben */
+    --semantic-color-feedback-danger-base: #d20a11; /* Gefahr - Default */
+    --semantic-color-feedback-sucess-base: #2e8540; /* Erfolg - Default */
+    --semantic-color-feedback-warning-base: #efcd00; /* Warnung - Default */
+    --semantic-color-interactive-base: #2b4474; /* Interaktionsfarbe - Default */
+    --semantic-color-interactive-disabled: #9ca3b0; /* Interaktionsfarbe - disabled State */ 
+    --semantic-color-interactive-heavy: #091128; /* Interaktionsfarbe - active */
+    --semantic-color-interactive-strong: #182645; /* Interaktionsfarbe - Hover */
+    --semantic-color-interactive-subtle: #e8e8f1; /* Interaktionsfarbe - subtiler Hintergrund */
+    --semantic-color-stroke-base: #bcc0ca; /* Divider - Default*/
+    --semantic-color-stroke-strong: #67717e; /* Divider um erste Reihe abzugrenzen */
+    --semantic-color-stroke-subtle: #d6d8df; /* subtiler Divider */
+    --semantic-color-text-base: #575f6a; /* heller Hintergrund: Hauptinhalt und Überschriften */
+    --semantic-color-text-heavy: #31363c; /* heller Hintergrund: Überschriften */
+    --semantic-color-text-strong: #39434d; /* heller Hintergrund: Überschriften und fokussierte Inhalte */
+    --semantic-color-text-subtle: #67717e; /* heller Hintergrund: optionale Inhalte */
+    --semantic-color-text-inverse-base: #e3e4e9; /* dunkler Hintergrund: Hauptinhalt und Überschriften */
+    --semantic-color-text-inverse-heavy: #ffffff; /* Überschriften */
+    --semantic-color-text-inverse-strong: #f0f0f3; /* dunkler Hintergrund: Überschriften und fokus. Inhalte */
+    --semantic-color-text-inverse-subtle: #d6d8df; /* dunkler Hintergrund: optionale Inhalte */
+
+    /* BREAKPOINTS */
+    --semantic-breakpoint-mobile-portrait: 0rem; /* für mobile Kleingeräte (hoch) < 576px */
+    --semantic-breakpoint-mobile-landscape: 36rem; /* für mobile Kleingeräte (quer), zwischen 576 und 767px */
+    --semantic-breakpoint-tablet-portrait: 48rem; /* für Tablets (hoch) zwischen 768 und 991px */
+    --semantic-breakpoint-tablet-landscape: 62rem; /* für Bildschirme zwischen 992 und 1199px */
+    --semantic-breakpoint-desktop: 75rem; /* für Bildschirme zwischen 1200 und 1399px */
+    --semantic-breakpoint-desktop-large: 87.5rem; /* für Bildschirme ab 1400px, erst ab Bootstrap 5 */
+
+    /* DISTANCES */
+    --semantic-distance-zero: 0rem; /* No Spacing (keine Abstände, für eng aneinander liegende UI-Elemente) */
+    --semantic-distance-ultra-small: 0.125rem; /* Hairline Margin (sehr feine Abstände, fast unsichtbare Trennung, z.B. für minimalistische Designs) */
+    --semantic-distance-extra-small: 0.25rem; /* Micro Padding (kleinste Füllung innerhalb eines Elements, für minimalen Puffer) */
+    --semantic-distance-small: 0.375rem; /* Tight Grouping (sehr enger Abstand zwischen Elementen, die visuell eng zusammengehören) */
+    --semantic-distance-compact: 0.5rem; /* Micro Interaction (kleine, häufig verwendete Abstände, z.B. zwischen Text und einem Symbol) */
+    --semantic-distance-medium: 0.75rem; /* Minor Padding (leichte Füllung oder Abstand innerhalb von Komponenten, für etwas mehr Platz) */
+    --semantic-distance-large: 1rem; /* Compact Layout (etwas mehr Platz für kompakte Abschnitte, z.B. für Dashboard-Kacheln) */
+    --semantic-distance-extra-large: 1.25rem; /* Element Boundaries (Abstand zwischen verwandten Elementen, wie zwischen Text und einem Formularfeld) */
+    --semantic-distance-double-large: 1.5rem; /* Group Padding (moderate Abstände innerhalb von UI-Gruppen, z.B. innerhalb eines Modals) */
+    --semantic-distance-triple-large: 2rem; /* Component Padding (Abstände innerhalb oder zwischen größeren Komponenten oder Content-Blöcken) */
+    --semantic-distance-jumbo: 2.5rem; /* Major Padding (große Füllung in Elementen, wie in Card-Layouts oder größeren Interaktionsbereichen) */
+    --semantic-distance-mega: 3rem; /* Section Margins (Abstände zwischen Hauptsektionen, z.B. zwischen Header und Content-Bereich) */
+    --semantic-distance-giga: 4rem; /* Section Margins (Abstände zwischen Hauptsektionen, z.B. zwischen Header und Content-Bereich) */
+    --semantic-distance-terra: 6rem; /* Layout Divider (sehr große Abstände für Layout-Wechsel oder klar getrennte Content-Blöcke) */
+    --semantic-distance-cosmic: 8rem; /* Viewport Padding (große Abstände, z.B. für Seitenränder oder großformatige Überschriften) */
+    --semantic-distance-colossal: 16rem; /* Hero Section Spacing (riesige Abstände für übergreifende Layouts oder spezielle Bereiche wie Hero-Banner) */
+
+    /* FONT SIZES */
+    --semantic-font-size-caption: 0.75rem; /* 12px - selten Verwendung in informationsreichen Interfaces für z.B. Fußnoten, Hinweise oder weniger prominente Labels */
+    --semantic-font-size-label: 0.875rem; /* 14px - für kleinere Textelemente, wie Labels, Hilfetexte oder sekundäre Informationen, die nicht zu dominant wirken sollen */
+    --semantic-font-size-text: 1rem; /* 16px - Standardgröße, wird für die meisten Textabschnitte verwendet und bietet gute Lesbarkeit auf verschiedenen Geräten. */
+    --semantic-font-size-body: 1.125rem; /* 18px - leicht hervorgehobenen Text, z.B. in Abschnittsüberschriften/Subtitles, die etwas mehr Gewicht als Fließtext haben sollen */
+    --semantic-font-size-subheading: 1.25rem; /* 20px - Geeignet für kleinere Überschriften oder Call-to-Action-Texte, die mehr Aufmerksamkeit als normaler Text erfordern */
+    --semantic-font-size-heading: 1.5rem; /* 24px - Verwende für mittlere Überschriften oder wichtige Textabschnitte, die sich klar vom Fließtext abheben sollen */
+    --semantic-font-size-title: 1.75rem; /* 28px - Nutze für Hauptüberschriften oder größere UI-Komponenten, die gut sichtbar, aber nicht dominant sein sollen */
+    --semantic-font-size-lead: 2rem; /* 32px - für markante Überschriften in wichtigen Bereichen wie Startseiten, Hero-Bannern oder zentralen UI-Elementen */
+    --semantic-font-size-spotlight: 3rem; /* 48px - für sehr große Überschriften oder markante Textelemente, die maximale Aufmerksamkeit benötigen */
+    --semantic-font-size-display: 4rem; /* 64px - für herausragende Überschriften in Hero-Bannern oder prominenten Titelseiten */
+
+    /* FONT WEIGHTS */
+    --semantic-font-weight-bold: 700; /* Hauptüberschriften oder besonders wichtige Inhalte, die sich stark vom restlichen Text abheben sollen*/
+    --semantic-font-weight-regular: 400; /* Fließtext oder längere Textabschnitte, die gut lesbar und nicht zu schwer wirken sollen. */
+    --semantic-font-weight-semi-bold: 600; /* Button-Labels oder UI-Elemente, die hervorgehoben, aber nicht dominant sein sollen */
+
+    /* LINE HEIGHTS */
+    --semantic-line-height-tight: 0.0781rem; /* Verwende für Überschriften oder kurze Textelemente, bei denen der Text kompakt und dicht wirken soll, um den Platz effizient zu nutzen. */
+    --semantic-line-height-normal: 0.0938rem; /* für Fließtext oder längere Absätze, um eine gute Lesbarkeit und klare Zeilenabstände zu gewährleisten, ohne zu viel Platz zu verbrauchen. */
+    --semantic-line-height-loose: 0.1094rem; /* für großformatige Texte, wie in Hero-Bannern oder Infografiken, bei denen eine offene, luftige Gestaltung gewünscht ist. */
+
+    /* SIZES */
+    --semantic-size-zero: 0rem; /* Kein Platzbedarf, oft für verborgene oder sehr kompakte Elemente wie versteckte Layout-Elemente. */
+    --semantic-size-hairline: 0.0625rem; /* Minimale Größe für feine visuelle Elemente, z.B. sehr schmale Linien oder Trennungen. */
+    --semantic-size-ultra-small: 0.125rem; /* Minimale Größe für feine visuelle Elemente, z.B. sehr schmale Linien oder Trennungen. */
+    --semantic-size-extra-small: 0.25rem; /* Kleine Elemente, die in enger Umgebung verwendet werden, wie etwa winzige Icons oder Abstandshalter */
+    --semantic-size-small: 0.375rem; /* Für kleinere UI-Elemente wie kleine Icons, Symbole oder sehr enge Layouts geeignet. */
+    --semantic-size-compact: 0.5rem; /* für kleinere Interaktionsflächen wie kleine Buttons oder Icons */
+    --semantic-size-medium: 0.75rem; /* Geeignet für kleinere Komponenten wie kleine Buttons, Avatare oder Thumbnails. */
+    --semantic-size-large: 1rem; /* Häufig verwendete Standardgröße für mittlere Buttons oder kleine Karten, analog zu Bootstrap's Standardkomponenten. */
+    --semantic-size-extra-large: 1.25rem; /* Ideal für Komponenten, die etwas größer als Standard sein sollen, wie etwa größere Icons oder etwas breitere Buttons */
+    --semantic-size-double-large: 1.5rem; /* Nutze diese Größe für größere Icons, Avatare oder kleine Karten-Layouts, die eine prominente Rolle im Layout spielen. */
+    --semantic-size-triple-large: 2rem; /* Passend für Hauptkomponenten wie große Buttons oder mittlere Bildbereiche (z.B. Avatare, Thumbnails). */
+    --semantic-size-jumbo: 2.5rem; /* Für größere UI-Komponenten wie Cards oder größere Schaltflächen, die im Layout auffallen sollen. */
+    --semantic-size-mega: 3rem; /* Geeignet für besonders auffällige Elemente wie hervorgehobene Call-to-Action-Buttons oder prominentere Avatar-Größen. */ 
+    --semantic-size-giga: 4rem; /* Verwendung für größere Bilder, wie z.B. in Cards oder Grid-Layouts, oder große Buttons, die sich klar abheben sollen. */
+    --semantic-size-terra: 6rem; /* Für besonders markante visuelle Elemente wie große Avatare, Bannerbilder oder bedeutende Grid-Komponenten. */
+    --semantic-size-cosmic: 8rem; /* Eignet sich für Sektionen oder größere Container, die große visuelle Elemente wie Hero-Banner enthalten. */
+    --semantic-size-colossal: 16rem; /* Verwendung für besonders große Bereiche wie Hero-Header oder ganzseitige Layout-Elemente. */
+    --semantic-size-titan: 32rem; /* großfläche Abstände auf Landing Pages */
+
+    /* FONT FAMILIES */
+    --semantic-font-family-default: Noto Sans; /* Noto Sans - Default Font */
+    --semantic-font-family-icon: Font Awesome 6 Sharp; /* Font Awesome - Icon Font*/
+
+    /* ICONS */
+    --semantic-icons-add-button: fa-solid fa-plus; /* Add, Hinzufügen, Liste erstellen */
+    --semantic-icons-add-location: fa-solid fa-location-dot; /* Standort hinzufügen (ISIL) */
+    --semantic-icons-arrow-link: fa-solid fa-arrow-right; /* Icon für Links (Navigationselemente) */
+    --semantic-icons-blog: fa-solid fa-rss; /* Blogbeiträge, RSS abonnieren */
+    --semantic-icons-bookmark-off: fa-regular fa-bookmark; /* Lesezeichen - Off */
+    --semantic-icons-bookmark-on: fa-solid fa-bookmark; /* Lesezeichen - On */
+    --semantic-icons-borrowed-items: fa-solid fa-book-open; /* Ausgeliehene Medien */
+    --semantic-icons-calendar-widget: fa-solid fa-calendar-days; /* Kalendar Widget (Xasia) */
+    --semantic-icons-caret-down: fa-solid fa-caret-down; /* Öffnen eines Menüs */
+    --semantic-icons-change-password: fa-solid fa-lock; /* Passwort ändern */
+    --semantic-icons-checkbox-off: fa-regular fa-square; /* Checkbox - Off */
+    --semantic-icons-checkbox-on: fa-regular fa-square-check; /* ausgewählte Option */
+    --semantic-icons-close-button: fa-solid fa-xmark; /* Schließen Kreuz */
+    --semantic-icons-copy-button: fa-solid fa-copy; /* Kopieren */
+    --semantic-icons-dark-mode: fa-regular fa-moon-stars; /* Dark Mode */
+    --semantic-icons-delete: fa-regular fa-trash; /* Löschen (Filter) */
+    --semantic-icons-download-button: fa-solid fa-download; /* Download Button */
+    --semantic-icons-e-mail-adress: fa-solid fa-envelope; /* E-Mail Adresse */
+    --semantic-icons-edit-entry: fa-solid fa-pen-to-square; /* Editieren, Änderungen vornehmen */
+    --semantic-icons-edit-isil: fa-solid fa-file-pen; /* Edit, Änderung an bestehender ISIL vornehmen */
+    --semantic-icons-ext-link: fa-solid fa-arrow-up-right-from-square; /* externe Verlinkung */
+    --semantic-icons-extend-id: fa-solid fa-id-card; /* Ausweis verlängern */
+    --semantic-icons-facebook: fa-brands fa-facebook; /* Facebook Konto */
+    --semantic-icons-favorite-off: fa-regular fa-star; /* Favorisieren - Off */
+    --semantic-icons-favorite-on: fa-solid fa-star; /* Favorisieren - On */
+    --semantic-icons-fax-number: fa-solid fa-fax; /* Faxnummer */
+    --semantic-icons-fees: fa-solid fa-euro-sign; /* Gebühren */
+    --semantic-icons-help: fa-solid fa-circle-question; /* Hilfe-Dokumente oä für einen Service */
+    --semantic-icons-information: fa-solid fa-circle-info; /* */
+    --semantic-icons-instagram: fa-brands fa-instagram; /* Instagram Konto */ 
+    --semantic-icons-lang-settings: fa-solid fa-globe; /* Spracheinstellungen */
+    --semantic-icons-library-acc: fa-solid fa-circle-user; /* Bibliothekskonto */
+    --semantic-icons-light-mode: fa-regular fa-sun-bright; /* Light Mode */
+    --semantic-icons-login-button: fa-solid fa-arrow-right-to-bracket; /* Login */
+    --semantic-icons-logout-button: fa-solid fa-arrow-left-to-bracket; /* Logout */
+    --semantic-icons-mastodon: fa-brands fa-mastodon; /* Mastodon Konto */
+    --semantic-icons-media-book: fa-solid fa-book-open-cover; /* Medientyp Buch */
+    --semantic-icons-media-database: fa-solid fa-database; /* Medientyp Datenbank */
+    --semantic-icons-media-disk: fa-light fa-compact-disc; /* Medientyp Datenträger */
+    --semantic-icons-media-e-book: fa-light fa-tablet; /* Medientyp E-Book */
+    --semantic-icons-media-e-journal: fa-light fa-files; /* Medientyp E-Journal */
+    --semantic-icons-media-essay: fa-light fa-file-lines; /* Medientyp Aufsatz gedruckt */
+    --semantic-icons-media-game: fa-light fa-dice; /* Medientyp Spiel */
+    --semantic-icons-media-image: fa-light fa-image; /* Medientyp Bild */
+    --semantic-icons-media-manuscript: fa-light fa-pen-nib; /* Medientyp Handschrift */
+    --semantic-icons-media-map: fa-light fa-map; /* Medientyp Karte */
+    --semantic-icons-media-microform: fa-light fa-film-canister; /* Medientyp Mikroform */
+    --semantic-icons-media-mixed: fa-light fa-box-archive; /* Medientyp Gemischte Materialien */
+    --semantic-icons-media-movie: fa-light fa-camera-movie; /* Medientyp Film */
+    --semantic-icons-media-musicals: fa-light fa-list-music; /* Medientyp Musikalien */
+    --semantic-icons-media-newspaper: fa-light fa-newspaper; /* Medientyp Zeitung */
+    --semantic-icons-media-online-essay: fa-light fa-laptop-file; /* Medientyp Aufsatz online */
+    --semantic-icons-media-projection: fa-light fa-video; /* Medientyp Projektion */
+    --semantic-icons-media-publications-series: fa-light fa-books; /* Medientyp Schriftenreihe */
+    --semantic-icons-media-publications-volume: fa-duotone fa-solid fa-books; /* Medientyp Band einer Schriftenreihe */
+    --semantic-icons-media-sound: fa-light fa-volume; /* Medientyp Tonaufnahme */
+    --semantic-icons-media-unknown: fa-light fa-crystal-ball; /* Medientyp Unbekannt */
+    --semantic-icons-museums: fa-solid fa-building-columns; /* Museen*/
+    --semantic-icons-next-page: fa-solid fa-angle-right; /* nächste Seite */
+    --semantic-icons-orders:  fa-solid fa-book-bookmark; /* Bestellungen */
+    --semantic-icons-partner-institutions: fa-solid fa-building-columns; /* */
+    --semantic-icons-permalink: fa-solid fa-link; /* Permalink */
+    --semantic-icons-personal-info: fa-solid fa-user; /* Persönliche Daten */
+    --semantic-icons-phone-number: fa-solid fa-phone; /* Telefonnummern */
+    --semantic-icons-plain-lang: fa-solid fa-book-open-reader; /* einfache Sprache */
+    --semantic-icons-prev-page: fa-solid fa-angle-left; /* vorherige Seite */
+    --semantic-icons-print: fa-solid fa-print; /* Drucken */
+    --semantic-icons-quote: fa-solid fa-quote-right; /* Zitieren */
+    --semantic-icons-report-bug: fa-light fa-bug; /* Bug melden */
+    --semantic-icons-search: fa-solid fa-magnifying-glass; /* Icon für Suchleisten */
+    --semantic-icons-settings: fa-solid fa-gear; /* Einstellungen Xasia */
+    --semantic-icons-show-less: fa-solid fa-angle-up; /* Show Less / Weniger Anzeigen */
+    --semantic-icons-show-more: fa-solid fa-angle-down; /* Show More / Mehr anzeigen */
+    --semantic-icons-show-password: fa-light fa-eye; /* Passwort anzeigen */
+    --semantic-icons-sign-lang: fa-solid fa-hands; /* Gebärdensprache */
+    --semantic-icons-twitter: fa-brands fa-x-twitter; /* X/Twitter Konto */
+    --semantic-icons-youtube: fa-brands fa-youtube; /* Youtube Konto */
+    --semantic-icons-type-archive: fa-solid fa-box-archive; /* Typ: Archiv (ISIL) */
+    --semantic-icons-type-dissolved: fa-solid fa-location-xmark; /* Typ: Aufgelöste Einrichtung (ISIL) */
+    --semantic-icons-type-e-ressources: fa-solid fa-display; /* Typ: E-Ressourcen (ISIL) */
+    --semantic-icons-type-library: fa-solid fa-books; /* Typ: Bibliotheken (ISIL) */
+    --semantic-icons-type-misc: fa-solid fa-house-building; /* Typ: Sonstige Einrichtungen (ISIL) */
+    --semantic-icons-warning: fa-solid fa-triangle-exclamation; /* Warnmeldung Konto */
+
+/* --- */
+/* COMPONENT TOKENS */
+/* --- */
+
+    /* LOGOS */
+    --component-logo-brand-height: 3rem; /* Die Höhe des Stabi-Logos für den Header */
+    --component-logo-product-height: 1.5rem; /* Die Höhe der Produkt-Logos für den Header */
+    --component-logo-subbrand-height: 2.5rem; /* Die Höhe der Markenlogos den Header */
+
+    /* LISTS */
+    --component-list-space-gap: 0.5rem; /* Der Abstand zwischen Listenelementen */
+
+    /* FOCUS STATES */
+    --component-focus-visible-outline-width: 0.25rem;
+    --component-focus-visible-shadow-blur: 0rem;
+    --component-focus-visible-shadow-x: 0rem;
+    --component-focus-visible-shadow-y: 0rem;
+    --component-focus-visible-shadow-spread: 0.375rem;
+}
