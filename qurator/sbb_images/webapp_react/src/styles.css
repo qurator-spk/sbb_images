@@ -42,6 +42,7 @@ h3 {
 }
 
 /* Links */
+
 a {
   color: var(--semantic-color-interactive-base); /* #2B4474 */
   text-decoration: none;
