@@ -11,6 +11,13 @@
     margin-bottom: var(--semantic-distance-giga);   
 }
 
+@media (max-width: 36rem) {
+  .search-page-title {
+    margin-top: var(--semantic-distance-large);    
+    margin-bottom: var(--semantic-distance-triple-large); 
+  }
+}
+
 .query {
   width: 100%;
 }

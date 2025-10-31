@@ -102,7 +102,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
 
       </div>
       <p>Enter PPN.</p>
-      {error && <div className="error-message"><strong>{error}</strong></div>}
+      {error && <div className="error-message" role="alert"><strong>{error}</strong></div>}
     </div>
   );
 };

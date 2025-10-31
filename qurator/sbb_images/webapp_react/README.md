@@ -1,8 +1,8 @@
 # Stabi Image Search (Beta)
 
 React-based image similarity search for Berlin State Library's Digitized Collections. There are three ways to search:
-- **Image uploads** - Find visually similar images
-- **Text descriptions** - Search by content in multiple languages
+- **Image uploads** - Start with an image to find visually similar images
+- **Text descriptions** - Search by describing an image content in multiple languages
 - **Document IDs (PPNs)** - Browse all images within a specific document
 
 ## Quick Start
@@ -111,22 +111,21 @@ The tabs use a specific visual effect requiring hardcoded structure:
 - Z-index layering for overlap
 - Active tab has white background, others colored
 - Tab hover changes to olive color
-- Structure is fragile - modify carefully
+- Structure is fragile - modify carefully.
 See `Tabs.css` for implementation details.
 
 ### Key Data Files
 - `imageData.js` - Example images for landing page
 - `descriptionSuggestions.js` - Search suggestions in various languages (50 examples)
-- `ppnSuggestions.js` - Example document IDs
+- `ppnSuggestions.js` - Some PPNs suggestions to see how this works
 
 ## Accessibility
 - ARIA labels on interactive elements 
 - Keyboard navigation support
-- Focus-visible outlines using design tokens
+- Focus-visible outlines 
 
 ### Known Accessibility Gaps
 - Missing aria-live regions for dynamic content updates
 - Cropper tool lacks keyboard instructions
-- Some interactive elements need better labeling
-- Result grid could use list semantics
+
 

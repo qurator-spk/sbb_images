@@ -104,14 +104,13 @@ const ResultsImageTab = ({
           onDragLeave={handleDragLeave}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          tabIndex="0" 
-          onFocus={() => console.log("Drag area focused")} 
-          onClick={() => document.activeElement.blur()} 
+          role="region"
+          aria-label="Image upload area"
         >
           <button 
             className="close" 
             onClick={() => setIsExpanded(false)}
-            aria-label="Close image drop area"
+            aria-label="Close image upload area"
           >
             <i className="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
@@ -154,7 +153,7 @@ const ResultsImageTab = ({
           </div>
 
           {uploadError && (
-            <div className="error-message">
+            <div className="error-message" role="alert">
               {uploadError}
             </div>
           )}

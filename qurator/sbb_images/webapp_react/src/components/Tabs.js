@@ -34,43 +34,20 @@ const Tabs = ({
      <div className="Search"> 
       <div className="Tabs">
         <div className="SearchTabs">
-          {/* Tab nav */}
-
-          {/* <ul className="nav">
-            <li
-              className={`imageTab ${activeTab === 'image' ? 'active' : ''}`}
-              onClick={() => handleTabClick('image')}
-            >
-              Search by <br/> image
-            </li>
-            <li
-              className={`descriptionTab ${activeTab === 'description' ? 'active' : ''}`}
-              onClick={() => handleTabClick('description')}
-            >
-              Search by <br/> description
-            </li>
-            <li
-              className={`ppnTab ${activeTab === 'ppn' ? 'active' : ''}`}
-              onClick={() => handleTabClick('ppn')}
-            >
-              Search by <br/> PPN
-            </li>
-          </ul> */}
-
       {/* 09.10.2025: added buttons to the li elements to have keyboard functionality for the tabs */}
           <ul className="nav">
             <li className={`imageTab ${activeTab === 'image' ? 'active' : ''}`}>
-              <button onClick={() => handleTabClick('image')}>
+              <button onClick={() => handleTabClick('image')} aria-label="Search by image tab">
                 Search by <br/> image
               </button>
             </li>
             <li className={`descriptionTab ${activeTab === 'description' ? 'active' : ''}`}>
-              <button onClick={() => handleTabClick('description')}>
+              <button onClick={() => handleTabClick('description')} aria-label="Search by description tab">
                 Search by <br/> description
               </button>
             </li>
             <li className={`ppnTab ${activeTab === 'ppn' ? 'active' : ''}`}>
-              <button onClick={() => handleTabClick('ppn')}>
+              <button onClick={() => handleTabClick('ppn')} aria-label="Search by PPN tab">
                 Search by <br/> PPN
               </button>
             </li>
@@ -113,7 +90,8 @@ const Tabs = ({
             onClick={() => setIsModalOpen(true)}
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
-            aria-label="Open help information about search types"
+            // aria-label="Open help information about search types"
+            aria-label={`Help: How to search by ${activeTab}`}
           >
             <i className="fa-solid fa-question" aria-hidden="true"></i> 
             {isHovering && <div className="info-bubble" role="tooltip">{hoverTexts[activeTab]}</div>}

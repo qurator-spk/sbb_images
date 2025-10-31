@@ -89,9 +89,8 @@ const ImageTab = ({
       onDragLeave={handleDragLeave}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
-      tabIndex="0" 
-      onFocus={() => console.log("Drag area focused")} 
-      onClick={() => document.activeElement.blur()} 
+      role="region"
+      aria-label="Image upload area"
     >
       <div className="drag-area">
         {/* Font Awesome icon - free version, since I used the free FA */}
@@ -133,7 +132,7 @@ const ImageTab = ({
       </div>
 
       {uploadError && (
-        <div className="error-message">
+        <div className="error-message" role="alert">
           {uploadError}
         </div>
       )}
