@@ -26,9 +26,8 @@ export const helpTexts = {
         </li>
         <li>
           The <strong>"Share this search"</strong> button allows you to share the 
-          link to the exact search results.
-          <strong>It does not work when you start the search using an uploaded image</strong> 
-          because that image is not saved anywhere (but anyone who uploads the same 
+          link to the exact search results. <strong> It does not work when you start the search using an 
+          uploaded image </strong> because that image is not saved anywhere (but anyone who uploads the same 
           image will get the same results).
         </li>
         <li>
