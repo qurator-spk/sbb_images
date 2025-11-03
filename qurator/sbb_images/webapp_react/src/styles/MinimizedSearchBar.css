@@ -10,9 +10,9 @@
     box-shadow: 0 0.2rem 0.4rem rgba(0, 0, 0, 0.2);
   }
 
-@media (max-height: 48rem) {
+@media (max-width: 36rem) {
   .minimized-search-bar {
-      top: 5rem;
+    top: 5rem; /* up 1rem because header is narrower (5rem) */
   }
 }
 
@@ -99,7 +99,7 @@ canvas.search-thumbnail {
 
 .thumbnail-preview {
   position: fixed;
-  top: 10rem; /* 6rem + 4rem - just below the bar */
+  top: calc(6rem + 5rem); /* 6rem + 5rem - just below the bar */
   left: calc((100% - 80%) / 2);
   max-width: 20vw;
   background: rgba(255, 255, 255, 0.90);
@@ -113,7 +113,17 @@ canvas.search-thumbnail {
 
 @media (max-width: 62rem) {
   .thumbnail-preview {
-    padding: var(--semantic-distance-medium);
+    padding: var(--semantic-distance-double-large); 
+    top: 10.125rem; /* 6rem header + 4.125rem bar height */
+    max-width: 40vw; 
+  }
+}
+
+@media (max-width: 36rem) {
+  .thumbnail-preview {
+    padding: var(--semantic-distance-large);
+    top: calc(9rem + 0.25rem); /* 5rem header + 4rem bar */
+    max-width: 40vw; 
   }
 }
 
@@ -127,7 +137,7 @@ canvas.search-thumbnail {
   position: relative; 
   overflow: hidden;
   width: 100%;
-  height: 100%;
+  height: 100%; 
   margin: 0 auto;
 }
 
@@ -161,7 +171,7 @@ canvas.search-thumbnail {
   font-size: var(--semantic-font-size-heading);
 }
 
-@media (max-width: 62rem) {
+@media (max-width: 36rem) {
   .close-preview {
     width: 1.5rem; /* 24px on mobile - smaller */
     height: 1.5rem;

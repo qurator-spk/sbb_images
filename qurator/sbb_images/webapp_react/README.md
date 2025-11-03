@@ -125,7 +125,7 @@ See `Tabs.css` for implementation details.
 - Focus-visible outlines 
 
 ### Known Accessibility Gaps
-- Missing aria-live regions for dynamic content updates
+- Missing aria-live regions for dynamic content updates (results loading)
 - Cropper tool lacks keyboard instructions
 
 

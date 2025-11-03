@@ -12,7 +12,6 @@ const ResultsImageTab = ({
   const fileInputRef = useRef(null);
 
   const [uploadError, setUploadError] = useState(null);
-  
 
   const handleDragEnter = (e) => {
     e.preventDefault();
