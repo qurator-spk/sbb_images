@@ -54,7 +54,7 @@ const AboutPage = () => {
                 and several other languages, which you can 
                 find <a href="https://github.com/FreddeFrallan/Multilingual-CLIP/blob/main/translation/data/fine_tune_languages.csv" target="_blank"
             rel="noopener noreferrer">listed here</a>. 
-                <strong>This is a search through the content of the images, not metadata.</strong>
+                <strong> This is a search through the content of the images, not metadata</strong>.
                 The results will be, as for the image search, shown from the one that 
                 most closely matches your description to the least matching.
               </div>
