@@ -732,8 +732,8 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
         result['model'] = mn
         result['num_trained_layers'] = num_trained
         result['freeze_percentage'] = freeze_p
-        result['start_lr'] = lr
-        result['decrease_epochs'] = dec_ep
+        #result['start_lr'] = lr
+        #result['decrease_epochs'] = dec_ep
 
         results.append(result)
 
