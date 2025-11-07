@@ -11,7 +11,7 @@ import itertools
 from tqdm import tqdm
 from ast import literal_eval
 
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedGroupKFold
 from pprint import pprint
 
 from .parallel import run as prun
@@ -631,8 +631,8 @@ def load_model_selection(model_selection_file):
 @click.option('--n-splits', type=int, default=10, help="Number of splits used in cross-validation. Default 10.")
 @click.option('--max-epoch', type=int, default=10, help="Number of training-epochs.")
 @click.option('--batch-size', type=int, default=16, help="Training batch-size.")
-@click.option('--start-lr', type=float, default=0.001, help="Start learning rate in lr-schedule.")
-@click.option('--decrease-epochs', type=int, default=10, help="Step size of lr-schedule.")
+@click.option('--start-lr', type=float, multiple=True, default=[0.001], help="Start learning rate in lr-schedule.")
+@click.option('--decrease-epochs', type=int, multiple=True, default=[10], help="Step size of lr-schedule.")
 @click.option('--decrease-factor', type=float, default=0.1, help="Decrease factor of lr-schedule.")
 @click.option('--model-name', type=str, multiple=True, default=['resnet18'],
               help="One or multiple pre-trained pytorch image classification models to try, "
@@ -686,7 +686,13 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
                                          label_groups=label_groups)
         data.append(images)
 
+    #import ipdb;ipdb.set_trace()
+
     images = pd.concat(data).reset_index(drop=True)
+
+    print("Training stats data:")
+    print(images.label.value_counts())
+    print("--")
 
     images['file'] = images['file'].astype(str)
 
@@ -694,26 +700,40 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
     y = images['class'].astype(int)
 
-    sk_fold = StratifiedKFold(n_splits=n_splits)
+    sk_fold = StratifiedGroupKFold(n_splits=n_splits)
 
-    folds = [{'train': tr, 'test': te} for tr, te in sk_fold.split(images, y)]
+    #import ipdb;ipdb.set_trace()
+
+    folds = [{'train': tr, 'test': te} for tr, te in sk_fold.split(images, y, groups=images.file)]
 
     results = list() if not os.path.exists(result_file) else [pd.read_pickle(result_file)]
 
-    for mn, num_trained, freeze_p in itertools.product(model_name, num_trained_layers, freeze_percentage):
+    best_test_acc = 0.0
+
+    test_seq = tqdm(itertools.product(model_name, num_trained_layers, freeze_percentage, start_lr, decrease_epochs),
+                    total=len(model_name) * len(num_trained_layers) * len(freeze_percentage) *
+                          len(start_lr) * len(decrease_epochs))
+
+    for mn, num_trained, freeze_p, lr, dec_ep in test_seq:
+
+        test_seq.set_description("Best test acc: {:.2f}".format(best_test_acc))
 
         model_ft, device, fit_transform, predict_transform, logits_func = \
             load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p)
 
-        result = cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor,
+        result = cross_validate_model(images, y, folds, batch_size, class_to_label, dec_ep, decrease_factor,
                                       device, fit_transform, predict_transform, max_epoch, model_ft,  n_splits,
-                                      start_lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file)
+                                      lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
-        pprint(result.head(50))
+        #pprint(result.head(50))
+
+        best_test_acc = best_test_acc if result.test_acc.max() <= best_test_acc else result.test_acc.max()
 
         result['model'] = mn
         result['num_trained_layers'] = num_trained
         result['freeze_percentage'] = freeze_p
+        result['start_lr'] = lr
+        result['decrease_epochs'] = dec_ep
 
         results.append(result)
 
@@ -743,6 +763,10 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None, 
         label_groups = literal_eval(label_groups)
 
         label_map = {  cl: group for group, mapped_classes in label_groups.items() for cl in mapped_classes}
+
+        for l in labels:
+            if l not in label_map:
+                label_map[l] = l
 
     if label_table_name == "annotations":
 
@@ -774,16 +798,30 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None, 
 
         with sqlite3.connect(sqlite_file) as con:
             for label in labels:
-                images.append(pd.read_sql('select file, tag from images join tags on images.rowid=tags.image_id '
-                                          'where tags.tag=? and images.anchor not glob "region-annotator*"',
+                images.append(pd.read_sql('select tags.tag, tags.user, tags.image_id, '
+                                          'images.file, images.x, images.y, images.width, images.height, images.anchor '
+                                          'from tags inner join images on images.rowid=tags.image_id '
+                                          'where tags.tag=? and '
+                                          '(images.anchor not glob "region-annotator*" '
+                                          'or images.anchor is null)',
                                           con=con, params=(label,)))
+
         images = pd.concat(images).\
-            drop_duplicates(subset='file', keep=False).\
+            drop_duplicates(subset=['file', 'x', 'y', 'width', 'height'], keep=False).\
             rename(columns={'tag': 'label'}).\
             reset_index(drop=True)
 
+        images['area'] = images.x * images.y
+
+        images = images.sort_values(by="area").drop_duplicates(subset=['file'], keep="first")
+
+        # images = images.loc[(images.x==-1)]
+
         if label_map is not None:
             images['label'] = images['label'].map(label_map)
+
+        #import ipdb;
+        #ipdb.set_trace()
     else:
         raise RuntimeError("Do not know how to interpret table '{}'".format(label_table_name))
 
@@ -818,7 +856,11 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    model_ft = getattr(models, mn)(weights=True)
+    weights = { 'googlenet': models.GoogLeNet_Weights.DEFAULT }
+
+    weights = weights.get(mn, True)
+
+    model_ft = getattr(models, mn)(weights=weights)
 
     model_size = 0
     for i, p in enumerate(model_ft.parameters()):
@@ -850,7 +892,7 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
 
 def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
                          fit_transform, predict_transform, max_epoch, model_ft, n_splits, start_lr,
-                         logits_func, epoch_steps, thumbnail_sqlite_file=None):
+                         logits_func, epoch_steps, thumbnail_sqlite_file=None, max_improve_fails=1):
 
     for fold in folds:
         optimizer = AdamW(model_ft.parameters(), lr=start_lr)
@@ -863,21 +905,32 @@ def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_
                                             predict_transform=predict_transform, batch_size=batch_size,
                                             logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
     results = list()
-    for epoch in range(epoch_steps, max_epoch + 1, epoch_steps):
+
+    epoch_seq = tqdm(range(epoch_steps, max_epoch + 1, epoch_steps), leave=False)
+
+    best_acc = 0.0
+    improve_fails = 0
+    for epoch in epoch_seq:
+
+        epoch_seq.set_description("Epochs (best_acc: {:.2f}, start_lr: {}, dec_ep: {}, dec_fac: {})".
+                                  format(best_acc, start_lr, decrease_epochs, decrease_factor))
 
         predictions = list()
-        for fold in folds:
+        gt = list()
+        for fold in tqdm(folds, leave=False, desc="fold"):
             estimator = fold['estimator']
 
             estimator.fit(images.iloc[fold['train']], y.iloc[fold['train']], epochs=epoch_steps)
 
             predictions.append(estimator.predict_proba(images.iloc[fold['test']]))
+            gt.append(y.iloc[fold['test']])
 
         predictions = pd.concat(predictions)
+        gt = pd.concat(gt)
 
         predictions['pred'] = predictions.idxmax(axis=1)
 
-        epoch_result = pd.concat([predictions, y], axis=1)
+        epoch_result = pd.concat([predictions, gt], axis=1)
 
         result = dict()
         result['epoch'] = epoch
@@ -891,7 +944,18 @@ def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_
 
         results.append(result)
 
-        pprint(result)
+        tmp_acc = pd.DataFrame.from_records(results).test_acc.max()
+
+        if round(tmp_acc,2) > round(best_acc,2):
+            best_acc = tmp_acc
+            improve_fails = 0
+        else:
+            improve_fails += 1
+
+        if improve_fails > max_improve_fails:
+            break
+
+        # pprint(result)
 
     results = pd.DataFrame.from_records(results)
     results['batch_size'] = batch_size

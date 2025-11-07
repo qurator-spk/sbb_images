@@ -69,7 +69,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
                     yield _inputs, _labels
 
                     tqdm_seq.set_description("train (Epoch {} Train Loss: {:.4f} Acc: {:.4f})".
-                                             format(e, running_loss / count, running_corrects / count))
+                                            format(e, running_loss / count, running_corrects / count))
 
                     batch_pos += 1
                     if batch_pos > batches_per_epoch:
@@ -78,7 +78,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
                 self.scheduler.step()
                 # print("Epoch Acc: {}, Epoch Loss: {}".format(self.epoch_acc, self.epoch_loss))
 
-        tqdm_seq = tqdm(train_seq(), total=int(epochs*batches_per_epoch), desc="train")
+        tqdm_seq = tqdm(train_seq(), total=int(epochs*batches_per_epoch), desc="train", leave=False)
 
         for inputs, labels in tqdm_seq:
 
@@ -108,7 +108,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
         self.epoch_loss = running_loss / count
         self.epoch_acc = running_corrects / count
 
-        print("Epoch Acc: {:.4f}, Epoch Loss: {:.4f}".format(self.epoch_acc, self.epoch_loss))
+        # print("Epoch Acc: {:.4f}, Epoch Loss: {:.4f}".format(self.epoch_acc, self.epoch_loss))
 
         return self
 
@@ -125,7 +125,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
         prediction = list()
 
-        for inputs, _, _ in tqdm(data_loader, total=len(data_loader), desc="predict"):
+        for inputs, _, _ in tqdm(data_loader, total=len(data_loader), desc="predict", leave=False):
             inputs = inputs.to(self.device)
 
             with torch.set_grad_enabled(False):
@@ -149,7 +149,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
 
         proba = list()
 
-        for inputs, _, _ in tqdm(data_loader, total=len(data_loader), desc='predict_proba'):
+        for inputs, _, _ in tqdm(data_loader, total=len(data_loader), desc='predict_proba', leave=False):
             inputs = inputs.to(self.device)
 
             with torch.set_grad_enabled(False):
