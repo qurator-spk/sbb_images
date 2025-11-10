@@ -107,8 +107,7 @@ API calls are made in the following locations:
 **Unusual CSS: Tabs Navigation**
 The tabs use a specific visual effect requiring hardcoded structure:
 - Meant to reference library index cards 
-- 3D perspective transforms create depth effect
-- Z-index layering for overlap
+- 3D perspective transforms and z-index layering create depth effect
 - Active tab has white background, others colored
 - Tab hover changes to olive color
 - Structure is fragile - modify carefully.
