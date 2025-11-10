@@ -583,8 +583,14 @@ def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
                                 predict_transform=predict_transform, batch_size=batch_size,
                                 logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
-    for _ in range(0, epochs):
+    epoch_seq = tqdm(range(0, epochs), desc="Epochs")
+
+    for _ in epoch_seq:
+
         estimator.fit(images, y)
+
+        epoch_seq.set_description("Epochs (epoch_acc: {:.2f}, epoch_loss: {:.2f})".
+                                  format(estimator.epoch_acc, estimator.epoch_loss))
 
     torch.save(model.state_dict(), model_file)
 
@@ -690,6 +696,7 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
     images = pd.concat(data).reset_index(drop=True)
 
+    print("--")
     print("Training stats data:")
     print(images.label.value_counts())
     print("--")
