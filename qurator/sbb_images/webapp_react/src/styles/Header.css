@@ -1,12 +1,10 @@
 header {
-  width: 100%;
-  background-color: black;
-  color: white;
-  padding: 1rem 0;
-  width: 100%;
   position: fixed;
-  margin: 0;
   top: 0;
+  width: 100%;
+  background-color: var(--semantic-color-text-primary);
+  color: var(--semantic-color-background-base);
+  padding: var(--semantic-distance-double-large) 0;
   display: flex;
   justify-content: center;
   z-index: 5;
@@ -24,65 +22,57 @@ header {
   align-items: center;
 }
 
-.logo-link {
-  display: flex;
-  align-items: center;
-}
-
 .logo-svg {
-  /* width: 200px; */
-  width: 15vw; 
-  min-width: 160px; /* won't get smaller than this */
-  max-width: 240px; /* won't get larger than this */
-  height: auto;
-  color: #ffffff;
+  height: var(--component-logo-brand-height); /* 3rem = 48px */
+  width: auto; 
+  color: var(--semantic-color-text-inverse-heavy);
   transition: color 0.2s;
   display: block;
 }
 
 .logo-link:hover .logo-svg {
-  color: #E2E2F2; /* Lavandel 30 */
+  color: var(--semantic-color-accent-strong); 
 }
 
 .header-nav {
   display: flex;
-  gap: 1.5rem;
+  gap: var(--semantic-distance-double-large);
   align-items: center;
 }
 
 .header-nav-item {
-  color: #FFFFFF;
+  color: var(--semantic-color-text-inverse-heavy);
   text-decoration: none;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .header-nav-item:hover:not(.header-nav-item-current) {
-  color: #E2E2F2; /* Lavandel 30 */
-  /* color: #C5C4E3; Lavandel 50 */
+  color: var(--semantic-color-accent-strong); /* Lavandel 30 */
+  text-decoration: none;
 }
 
 .header-nav-item:visited,
-.header-nav-item:active,
-.header-nav-item:link {
-  color: #FFFFFF;
+.header-nav-item:active {
+  color: var(--semantic-color-text-inverse-heavy);
 }
 
 .header-nav-item-current {
-  color: #FFFFFF;
   text-decoration: underline;
   cursor: default;
 }
 
-/* Responsive logo sizes */
-/* @media (min-width: 768px) {
+.header-nav-item:focus-visible,
+.logo-link:focus-visible {
+    outline-width: var(--component-focus-visible-outline-width);
+    outline-style: solid;
+    outline-color: var(--semantic-color-accent-strong);
+    outline-offset: var(--component-focus-visible-shadow-spread);
+}
+
+@media (max-width: 36rem) {
   .logo-svg {
-    width: 160px;
+    height: var(--semantic-size-triple-large); /* 2rem = 32px instead of 48px */
   }
 }
 
-@media (min-width: 1024px) {
-  .logo-svg {
-    width: 180px;
-  }
-} */

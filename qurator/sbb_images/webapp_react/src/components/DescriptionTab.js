@@ -20,16 +20,13 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
   useEffect(() => {
     if (showSuggestions) {
       const shuffled = shuffleArray(descriptionSuggestions);
-      // setShuffledSuggestions(shuffled.slice(0, 50));
       setShuffledSuggestions(shuffled.slice(0, SUGGESTIONS_TO_SHOW));
     }
   }, [showSuggestions]);
   
 
   const handleSuggestionClick = (suggestion) => {
-    //console.log("Suggestion clicked:", suggestion);
     setDescription(suggestion);
-    //console.log("Description set to:", suggestion);
     
     setShowSuggestions(false);
     
@@ -60,12 +57,6 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
 
   return (
     <div className="DescriptionTab">
-      {/* <input
-        type="text"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="E.g. Big ship entering port."
-      /> */}
       <div className="input-container">
         <input
           type="text"
@@ -81,13 +72,13 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
           onClick={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder="E.g. Ein Zug fährt über eine Eisenbahnbrücke."
+          aria-label="Enter image description to search"
         />
 
         {showSuggestions && (
           <div className="suggestions-dropdown">
             <div className="suggestions-header">Enter description or try one of the example searches below:</div>
             {shuffledSuggestions.map((suggestion, index) => (
-            // {descriptionSuggestions.map((suggestion, index) => (
               <div 
                 key={index}
                 className="suggestion-item"
@@ -106,7 +97,7 @@ const DescriptionTab = ({ updateResults, searchState, setSearchState }) => {
 
       <p>
         Enter image description (in German, English or one of the other languages <a href="https://github.com/FreddeFrallan/Multilingual-CLIP/blob/main/translation/data/fine_tune_languages.csv" target="_blank"
-              rel="noopener noreferrer" className="link">listed here</a>). <br/>
+              rel="noopener noreferrer" className="link"><strong>listed here</strong></a>). <br/>
         <span>This is a search through the image content, not metadata.</span>
       </p>
     </div>

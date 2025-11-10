@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect} from "react";
-import UploadIcon from "./UploadIcon";
-import {ReactComponent as DragAndDrop} from "../assets/Picture.svg";
 import InterruptedLine from "./InterruptedLine";
 
 const ImageTab = ({ 
@@ -38,9 +36,6 @@ const ImageTab = ({
         setTimeout(() => setUploadError(null), 3000); // clear error after 3 seconds
       }
     }
-
-
-   // handleImageUpload(files[0]);
   };
 
   const handleImageUpload = (file) => {
@@ -94,20 +89,24 @@ const ImageTab = ({
       onDragLeave={handleDragLeave}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
-      tabIndex="0" 
-      onFocus={() => console.log("Drag area focused")} 
-      onClick={() => document.activeElement.blur()} 
+      role="region"
+      aria-label="Image upload area"
     >
       <div className="drag-area">
-        <DragAndDrop className="DDicon"/>
+        {/* Font Awesome icon - free version, since I used the free FA */}
+        <i className="DDicon fa-regular fa-image"></i> 
         <p>Drag & drop an image of your choice to start the search</p>  
       </div>
 
       <InterruptedLine />
 
       <div className="Upload">
-        <button className="UploadButton" onClick={handleUploadButtonClick}>
-        <UploadIcon className="upload-icon" /> Upload an image 
+        <button 
+          className="UploadButton" 
+          onClick={handleUploadButtonClick}
+          aria-label="Upload an image to search"
+        >
+        <i className="upload-icon fa-solid fa-upload" aria-hidden="true"></i> Upload an image
         </button>
         <input
           ref={fileInputRef}
@@ -115,8 +114,6 @@ const ImageTab = ({
           type="file"
           accept="image/*"
           style={{ display: "none" }}
-          // onChange={(e) => handleImageUpload(e.target.files[0])}
-
           onChange={(e) => {
             const file = e.target.files[0];
             if (file && file.type.startsWith('image/')) {
@@ -135,7 +132,7 @@ const ImageTab = ({
       </div>
 
       {uploadError && (
-        <div className="error-message">
+        <div className="error-message" role="alert">
           {uploadError}
         </div>
       )}

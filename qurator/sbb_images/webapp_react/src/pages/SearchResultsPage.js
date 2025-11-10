@@ -8,8 +8,6 @@ import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import "../styles/SearchResultsPage.css";
 import MinimizedSearchBar from "../components/MinimizedSearchBar"; 
-import ShareButton from "../components/ShareButton";
-import "../styles.css"
 
 const SearchResultsPage = () => {
 
@@ -42,7 +40,7 @@ const SearchResultsPage = () => {
 
   const [showMinimizedBar, setShowMinimizedBar] = useState(true);
 
-  useEffect(() => {
+ useEffect(() => {
     const handleScroll = () => {
       const tabsElement = document.querySelector('.Tabs');
     
@@ -57,7 +55,9 @@ const SearchResultsPage = () => {
     handleScroll();
   
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, []); 
+
+/*************************************************************************** */
 
   const handleBackToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -119,7 +119,6 @@ const SearchResultsPage = () => {
 
     if (isLoadingBatch.current) return;
     if (endReached.current) return;
-    //if ((searchResult.type === "ppn") && (searchResult.ids.length > 0)) return;
 
     isLoadingBatch.current = true;
     setIsLoadingNextBatch(true);
@@ -148,7 +147,7 @@ const SearchResultsPage = () => {
       isLoadingBatch.current = false;
       setIsLoadingNextBatch(false);
     }
- };  //loadNextBatch
+ };  
 
   const updateResults = (next_state) => {
 
@@ -199,10 +198,7 @@ const SearchResultsPage = () => {
     cropTimeoutRef.current = setTimeout(() => {
       setCropCoordinates({ x, y, width, height });
     }, 1500); 
-
-  //  setCropCoordinates({ x, y, width, height });
-
-  }; // handleCrop
+  }; 
 
   return (
     <div className="search-results-page">
@@ -218,23 +214,13 @@ const SearchResultsPage = () => {
       )}
 
       <div className="search-page-title">
-      {/* <div className="title-with-share">
-        <h2>
-          {searchResult.type === "ppn"
-          ? "PPN Search Results"
-          : searchResult.type.charAt(0).toUpperCase() +
-            searchResult.type.slice(1) +
-            " Search Results"}
-        </h2>
-        <ShareButton searchState={searchState} />
-      </div> */}
-        <h2>
+        <h1>
           {searchResult.type === "ppn"
             ? "PPN Search Results"
             : searchResult.type.charAt(0).toUpperCase() +
               searchResult.type.slice(1) +
               " Search Results"}
-        </h2> 
+        </h1> 
       </div>
 
       {searchResult.type === "image" && searchState.imgUrl && (
@@ -260,6 +246,9 @@ const SearchResultsPage = () => {
             scalable={false}
             cropend={handleCrop} 
           />
+          <p className="cropper-hint">
+            Drag the blue frame to start a new search with that part of the image as search query.
+          </p>
         </div>
       </div>
       )}
@@ -272,7 +261,7 @@ const SearchResultsPage = () => {
         setSearchState={setSearchState}
         isResultsPage={true}
         error={error}
-      /> 
+      />   
 
       <SearchResults
         updateResults={updateResults}

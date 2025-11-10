@@ -1,54 +1,62 @@
-@import url("https://cdn.jsdelivr.net/gh/StabiBerlin/design-tokens@v1.1.0/tokens.css");
-
 .share-button {
-  /* background-color: var(--semantic-color-background-base, #FFFFFF); */
-  background-color: var(--semantic-color-background-olive-base, #696c22);
-  /* color: var(--semantic-color-interactive-base, #2B4474); */
-  color: var(--semantic-color-background-base, #FFFFFF);
-  /* border: 2px solid var(--semantic-color-interactive-base, #2B4474); */
-  padding: var(--semantic-distance-medium, 0.75rem) var(--semantic-distance-large, 1rem);
-  border-radius: 0.25rem;
+  background-color: var(--semantic-color-background-olive-base);
+  color: var(--semantic-color-background-base);
+  padding: var(--semantic-distance-medium) var(--semantic-distance-large);
+  border: none;
+  border-radius: var(--semantic-distance-extra-small);
   cursor: pointer;
-  font-size: var(--semantic-font-size-text, 1rem);
   transition: all 0.2s ease-in-out;
-  min-width: 140px;
   text-align: center;
+  /* min-width: 9rem; */
+}
+
+@media (max-width: 48rem) {
+  .share-button {
+    padding: var(--semantic-distance-compact) var(--semantic-distance-large);
+    font-size: var(--semantic-font-size-label); /* 0.875rem */
+  }
 }
 
 .share-button:hover {
-  /* background-color: var(--semantic-color-background-subtle, #F0F0F3); */
-  background-color: #474819;
-  /* color: var(--semantic-color-interactive-strong, #182645); */
-  color: var(--semantic-color-background-base, #FFFFFF);
-  /* border-color: var(--semantic-color-interactive-strong, #182645); */
+  background-color: var(--semantic-color-background-olive-strong); 
 }
 
 .share-button:active {
-  /* background-color: var(--semantic-color-stroke-subtle, #D6D8DF); */
-  background-color: #242114;
-  /* color: var(--semantic-color-interactive-heavy, #091128); */
-  color: var(--semantic-color-background-base, #FFFFFF);
-  /* border-color: var(--semantic-color-interactive-heavy, #091128); */
+  background-color: var(--semantic-color-background-olive-heavy);
+  /* transform: scale(0.98); */
+}
+
+.share-button:focus-visible {
+  outline-width: var(--component-focus-visible-outline-width);
+  outline-style: solid;
+  outline-color: var(--semantic-color-background-olive-base);
+  outline-offset: var(--component-focus-visible-shadow-spread);
 }
 
 .share-button.success {
-  background-color: var(--semantic-color-background-base, #FFFFFF);
-  outline: 2px solid var(--semantic-color-feedback-sucess-base, #2E8540);
-  color: var(--semantic-color-feedback-sucess-base, #2E8540);
-  border-color: var(--semantic-color-feedback-sucess-base, #2E8540);
+  background-color: var(--semantic-color-background-base); 
+  outline: var(--semantic-size-ultra-small) solid var(--semantic-color-background-olive-strong); 
+  color: var(--semantic-color-background-olive-strong); 
 }
 
 .share-button.error {
-  background-color: var(--semantic-color-background-base, #FFFFFF);
-  outline: 2px solid var(--semantic-color-feedback-danger-base, #D20A11);
-  color: var(--semantic-color-feedback-danger-base, #D20A11);
-  border-color: var(--semantic-color-feedback-danger-base, #D20A11);
+  background-color: var(--semantic-color-background-base);
+  outline: var(--semantic-size-ultra-small) solid var(--semantic-color-feedback-danger-base);
+  color: var(--semantic-color-feedback-danger-base);
+  border-color: var(--semantic-color-feedback-danger-base);
 }
 
 /* in the minimized search bar, more compact */
 .search-actions .share-button {
   min-width: auto;
-  padding: var(--semantic-distance-compact, 0.5rem) var(--semantic-distance-large, 1rem);
+  padding: var(--semantic-distance-compact) var(--semantic-distance-large);
   margin: 0;
+}
+
+@media (max-width: 48rem) {
+  .search-actions .share-button {
+    padding: var(--semantic-distance-ultra-small) var(--semantic-distance-compact);
+    font-size: var(--semantic-font-size-caption); /* 0.75rem */
+  }
 }
 

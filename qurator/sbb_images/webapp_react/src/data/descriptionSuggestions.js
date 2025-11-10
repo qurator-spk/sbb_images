@@ -1,3 +1,5 @@
+// Suggestions for description search, in several languages
+
 export const descriptionSuggestions = [
   "Ein Einhorn.",
   "Abbildung chemischer Prozesse.",

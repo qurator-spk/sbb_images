@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../styles/MinimizedSearchBar.css";
-import { ReactComponent as CloseIcon } from '../assets/close-icon.svg';
 import ShareButton from "./ShareButton";
 
 const MinimizedSearchBar = ({
@@ -51,7 +50,6 @@ const MinimizedSearchBar = ({
           offsetY = 0;
         }
 
-        // context.drawImage(img, 0, 0, canvas.width, canvas.height);
         context.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
         if (cropCoordinates && cropCoordinates.x !== -1) {
@@ -106,8 +104,6 @@ const MinimizedSearchBar = ({
   };
 
   const handleDragMove = (e) => {
-    //console.log("Dragging", isDragging);
-    // if (!isDragging) return;
     if (!isDraggingRef.current) return;
     
     const deltaX = e.clientX - dragStartPosition.current.x;
@@ -154,6 +150,15 @@ const MinimizedSearchBar = ({
             setShowImagePreview(true);
           }}
           title="Click to view image"
+          tabIndex="0"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setShowImagePreview(true);
+            }
+          }}
+          role="button"
+          aria-label="View search query image preview"
         />
       </>
     );
@@ -175,8 +180,13 @@ const MinimizedSearchBar = ({
           <div className="search-content">{searchContent}</div>
           <div className="search-actions">
             <ShareButton searchState={searchState} />
-            <button className="back-to-top-button" onClick={onBackToTopClick}>
-              ↑ Back to top
+            <button 
+              className="back-to-top-button" 
+              onClick={onBackToTopClick}
+              aria-label="Back to top"
+            >
+              <i className="fa-solid fa-arrow-up" aria-hidden="true"></i>
+              <span className="button-text"> Back to top</span>
             </button>
           </div>
         </div>
@@ -192,19 +202,18 @@ const MinimizedSearchBar = ({
         onMouseDown={handleDragStart}
         onDragStart={(e) => e.preventDefault()}
       >
-        {/* <div className="thumbnail-preview"> */}
           <button
             className="close-preview"
             onClick={() => setShowImagePreview(false)}
+            aria-label="Close preview"
           >
-            <CloseIcon className="close-icon" />
-            {/* × */}
+            <i className="fa-solid fa-xmark"></i>
           </button>
           <div className="preview-image-container">
             <img
               src={searchState.imgUrl}
               className="preview-image"
-              alt="Search query"
+              alt="Search query image"
               draggable="false"
             />
             {cropCoordinates && cropCoordinates.x !== -1 && (

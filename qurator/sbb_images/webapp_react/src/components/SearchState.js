@@ -1,5 +1,3 @@
-
-
 const loadNextBatchSearchSimilar = async (pos, imageId, cropCoordinates) => {
 
       const hasCrop = cropCoordinates.x !== -1;
@@ -58,10 +56,6 @@ const loadNextBatchPPN = async (pos, ppn) => {
       const result = await response.json();
       result.type = 'ppn';
       result.ppn = ppn;
-
-      //if (!result.ids || result.ids.length === 0) {
-      //  throw new Error();
-      //}
 
       return result;
     }
@@ -122,7 +116,7 @@ export const makeSearchState = (state=null) => {
     let setPPN = null;
 
     let loadNextBatch = async (pos) => {
-        console.log("loadNextBatch dummy!!!: ", pos);
+       // console.log("loadNextBatch dummy!!!: ", pos);
 
         return { type: 'no', ids: []};
     };

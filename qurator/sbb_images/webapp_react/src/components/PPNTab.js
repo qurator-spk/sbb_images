@@ -17,17 +17,10 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
     return shuffled;
   };
 
- /*  useEffect(() => {
-    if (showSuggestions) {
-      setShuffledSuggestions(shuffleArray(ppnSuggestions));
-    }
-  }, [showSuggestions]); */
-
   // shuffle and take only 5
   useEffect(() => {
     if (showSuggestions) {
       const shuffled = shuffleArray(ppnSuggestions);
-      // setShuffledSuggestions(shuffled.slice(0, 5));
       setShuffledSuggestions(shuffled.slice(0, SUGGESTIONS_TO_SHOW));
     }
     }, [showSuggestions]);
@@ -72,7 +65,6 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
           id="search"
           name="search"
           value={ppn}
-          // onChange={(e) => setPPN(e.target.value)}
           onChange={(e) => {
             setPPN(e.target.value);
             if (e.target.value === '') {
@@ -85,6 +77,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder="E.g. 744086949"
           autoComplete="off"
+          aria-label="Enter PPN number to search"
       />
 
       {showSuggestions && (
@@ -109,7 +102,7 @@ const PPNTab = ({ updateResults, searchState, setSearchState, error}) => {
 
       </div>
       <p>Enter PPN.</p>
-      {error && <div className="error-message"><strong>{error}</strong></div>}
+      {error && <div className="error-message" role="alert"><strong>{error}</strong></div>}
     </div>
   );
 };

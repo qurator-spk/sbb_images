@@ -1,21 +1,28 @@
-body {
-  font-family: "Noto Sans", sans-serif;
-}
-  
 .search-button { 
-  background-color: #182645; /* SPK-Blau 150*/
-  width: 80%;
-  text-align: center;
-  color: #FFFFFF; 
-  padding: 1em 2em; 
-  border: none; 
-  border-radius: 0.5em; 
-  cursor: pointer; 
-  margin: 0 auto;
-  font-size: 1rem;
-  transition: all 0.2s ease-in-out;
+    width: 80%;
+    background-color: var(--semantic-color-interactive-strong); /* #182645 */
+    color: var(--semantic-color-background-base); /* #FFFFFF */
+    text-align: center; 
+    padding: var(--semantic-distance-large) var(--semantic-distance-triple-large); /* 1rem 2rem */
+    border: none; 
+    border-radius: var(--semantic-distance-compact); /* 0.5rem */
+    cursor: pointer; 
+    margin: 0 auto;
+    transition: all 0.2s ease-in-out;
 }
-  
+    
 .search-button:hover { 
-  background-color: #091128; /* SPK-Blau 175*/
+    background-color: var(--semantic-color-interactive-heavy); /* #091128 */
+}
+
+.search-button:active {
+    background-color: var(--semantic-color-interactive-heavy); 
+    /* transform: scale(0.98);  */
+}
+
+.search-button:focus-visible {
+    outline-width: var(--component-focus-visible-outline-width); /* 0.25rem */
+    outline-style: solid;
+    outline-color: var(--semantic-color-interactive-base); /* #2B4474 */
+    outline-offset: var(--component-focus-visible-shadow-spread); /* 0.375rem */
 }

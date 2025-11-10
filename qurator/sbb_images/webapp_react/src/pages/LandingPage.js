@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Tabs from "../components/Tabs"; 
 import Intro from "../components/Intro"; 
 import RandomImages from "../components/RandomImages"; 
+import "../styles/LandingPage.css";
 import { makeSearchState } from "../components/SearchState";
 
 const LandingPage = () => {
@@ -38,7 +39,7 @@ const LandingPage = () => {
         setActiveTab={setActiveTab}
         searchState={searchState}
         setSearchState={setSearchState}
-      />
+      />    
       <RandomImages
         searchState={searchState}
         setSearchState={setSearchState}

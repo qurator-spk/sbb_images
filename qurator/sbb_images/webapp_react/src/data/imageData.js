@@ -1,3 +1,5 @@
+// The selection of images for the landing page (used in RandomImages.js)
+
 const allImages = [
   {
     src: "api/image/DIGISAM/257062",

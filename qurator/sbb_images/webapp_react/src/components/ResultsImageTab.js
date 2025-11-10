@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import UploadIcon from "./UploadIcon";
-import {ReactComponent as DragAndDrop} from "../assets/Picture.svg";
 import InterruptedLine from "./InterruptedLine";
 import '../styles/Tabs.css';
-
 
 const ResultsImageTab = ({
   updateResults,
@@ -15,7 +12,6 @@ const ResultsImageTab = ({
   const fileInputRef = useRef(null);
 
   const [uploadError, setUploadError] = useState(null);
-  
 
   const handleDragEnter = (e) => {
     e.preventDefault();
@@ -42,12 +38,10 @@ const ResultsImageTab = ({
         setTimeout(() => setUploadError(null), 3000); // clear error after 3 seconds
       }
     }
-
-   // handleImageUpload(files[0]);
   };
 
   const handleImageUpload = (file) => {
-    console.log("Image upload initiated");
+   // console.log("Image upload initiated");
 
     let reader = new FileReader();
 
@@ -60,7 +54,7 @@ const ResultsImageTab = ({
 
             updateResults(next_state);
 
-            setIsExpanded(false); // close after upload
+            setIsExpanded(false); 
     };
     reader.readAsDataURL(file);
   };
@@ -99,7 +93,7 @@ const ResultsImageTab = ({
           className="results-collapsed-view"
           onClick={() => setIsExpanded(true)}
         >
-          <UploadIcon className="upload-icon" /> Upload a new image 
+          <i className="upload-icon fa-solid fa-upload"></i> Upload a new image
         </button>
       ) : (
         // expanded view
@@ -109,32 +103,37 @@ const ResultsImageTab = ({
           onDragLeave={handleDragLeave}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          tabIndex="0" 
-          onFocus={() => console.log("Drag area focused")} 
-          onClick={() => document.activeElement.blur()} 
+          role="region"
+          aria-label="Image upload area"
         >
-          <button className="close" onClick={() => setIsExpanded(false)}>
-            ×
+          <button 
+            className="close" 
+            onClick={() => setIsExpanded(false)}
+            aria-label="Close image upload area"
+          >
+            <i className="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
 
           <div className="drag-area">
-            <DragAndDrop className="DDicon"/>
+            <i className="DDicon fa-regular fa-image"></i>
             <p>Drag & Drop an image to start the search</p>
           </div>
 
           <InterruptedLine />
 
           <div className="Upload">
-            <button className="UploadButton" onClick={handleUploadButtonClick}>
-              <UploadIcon className="upload-icon" /> Upload an image 
+            <button 
+              className="UploadButton" 
+              onClick={handleUploadButtonClick}
+              aria-label="Upload an image to search"
+            >
+              <i className="upload-icon fa-solid fa-upload" aria-hidden="true"></i> Upload an image
             </button>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               style={{ display: "none" }}
-              // onChange={(e) => handleImageUpload(e.target.files[0])}
-
               onChange={(e) => {
                 const file = e.target.files[0];
                 if (file && file.type.startsWith('image/')) {
@@ -153,7 +152,7 @@ const ResultsImageTab = ({
           </div>
 
           {uploadError && (
-            <div className="error-message">
+            <div className="error-message" role="alert">
               {uploadError}
             </div>
           )}

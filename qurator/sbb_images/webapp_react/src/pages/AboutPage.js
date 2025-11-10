@@ -1,45 +1,15 @@
 import React from "react";
 import Header from "../components/Header";
-import SearchSimilarImages from "../components/SearchSimilarImages";
 import "../styles/AboutPage.css";
-import { useNavigate } from "react-router-dom";
-import { makeSearchState } from "../components/SearchState";
 
 const AboutPage = () => {
-  // Making the card functional
-  const navigate = useNavigate();
-  const [searchState, setSearchState] = React.useState(makeSearchState());
-
-  const updateResults = (next_state) => {
-    try {
-      navigate("/search-results", {
-        state: {
-          activeTab: "image",
-          searchState: next_state.serialized,
-        }
-      });
-    } catch(error) {
-      console.log("Failed to navigate:", error.message);
-      setSearchState(next_state);
-    }
-  };
-
-  const exampleCard = {
-    src: "api/image/DIGISAM/257062",
-    title: "Kupfer-Sammlung besonders zu F. P. Wilmsens Handbuch der ...",
-    link: "https://digital.staatsbibliothek-berlin.de/werkansicht?PPN=PPN766734536&PHYSID=PHYS_0049",
-  };
-
   return (
     <div className="about-page">
       <Header />
       <div className="about-content">
-        {/* <div className="page-title"> */}
-          <h2>About This Project</h2>
-        {/* </div> */}
+        <h1>About This Project</h1>
         
-  {/* <div className="text-container">  */}
-        <div className="main-text">
+        <div className="intro-section">
           <p>
             This AI-based image similarity search tool enables you to search for
             images within the{" "}
@@ -48,133 +18,140 @@ const AboutPage = () => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Berlin State Library (SBB)'s Digitized Collections
+              Berlin State Library (Stabi)'s Digitized Collections
             </a>
             . <strong>All documents in the collections date back to 1945 or earlier,
             therefore all the search results will also stop at 1945.</strong>
           </p>
+        </div>
 
-          <div className="list-with-example">
-            <div className="list-content">
-              <p>There are three different ways to start a search:</p>
-              <ul>
-                <li>
-                  {" "}
-                  <strong>
-                    Using an image - drag and drop, upload or paste an image of your choice, 
-                    or click on one of the examples
-                  </strong>{" "}
-                  on our homepage. Results will be shown from the most to
-                  the least similar ones.<br/>
-                  {/* Starting a search by uploading an image and by clicking the "Search Similar Images" 
-                  in one of the cards will lead to different results, even if the 
-                  query image is the same. */}
-                </li>
-                <li>
-                  {" "}
-                  <strong>
-                    Describe the image you have in mind, using the Description
-                    Tab
-                  </strong>
-                  . This works in German, English, and several other languages, which you can 
-                  find <a href="https://github.com/FreddeFrallan/Multilingual-CLIP/blob/main/translation/data/fine_tune_languages.csv" target="_blank"
-              rel="noopener noreferrer" className="link">listed here</a>. The results will be, as before, shown from the one that
-                  most closely matches your description to the least matching.
-                </li>
-                <li>
-                  {" "}
-                  <strong>
-                    Look for a specific document using its PPN number
-                  </strong>{" "}
-                  (if you are not familiar with PPNs{" "}
-                  <a href="https://github.com/elektrobohemian/StabiHacks/blob/master/ppn-howto.md" target="_blank"
-                  rel="noopener noreferrer">you can read more about them here</a>). This will
-                  find and display all the images found inside the document, shown in the same order as 
-                  they appear - starting from images found on the first page and 
-                  continuing to the last page. 
-                  {/* You can then start a new search by clicking on the "Search Similar
-                  Images" button that appears under every image (see the example on the right). */}
-                </li>
-              </ul>
-            </div>
+        <div className="methods-section">
+          <p>There are three different types of search:</p>
 
-            <div className="example-section">
-              <div className="image-card">
-                <div className="image-container">
-                  <img
-                    src={exampleCard.src}
-                    alt={exampleCard.title}
-                    className="card-image"
-                  />
-                </div>
-                <a
-                  href={exampleCard.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <div className="title-wrapper">{exampleCard.title}</div>
-                </a>
-                <SearchSimilarImages
-                  /* imageId={exampleCard.src.split("/").pop()}
-                  isFromResults={false} */
-                  searchState={searchState}
-                  setSearchState={setSearchState}
-                  imageId={exampleCard.src.split("/").pop()}
-                  updateResults={updateResults}
-                />
+          <div className="methods-grid">
+            <div className="method-card">
+              <div className="method-header">
+                <i className="method-icon fa-regular fa-image"></i>
+                <h3>Image Search</h3>
               </div>
-              <p className="example-caption">
-                Click on the "Search Similar Images" button and you will get <br/>images similar to the one in the card above.
-              </p>
+              <div className="method-content">
+                By using an image of your choice or one from the selection on the landing page, 
+                you can start an image similarity search. This type of search finds images 
+                similar to the one you used and shows them from the most to the least similar.
+                The image used as a query appears on the results page 
+                with <strong>a blue frame - the cropper frame, see the example below</strong>, which you can drag to look for specific 
+                parts of the image.  
+              </div>
+            </div>
+            
+            <div className="method-card">
+              <div className="method-header">
+                <i className="method-icon fa-solid fa-pen-to-square"></i>
+                <h3> Description Search</h3>
+              </div>
+              <div className="method-content">
+                You can describe the content of an image you have in mind using German, English, 
+                and several other languages, which you can 
+                find <a href="https://github.com/FreddeFrallan/Multilingual-CLIP/blob/main/translation/data/fine_tune_languages.csv" target="_blank"
+            rel="noopener noreferrer">listed here</a>. 
+                <strong> This is a search through the content of the images, not metadata</strong>.
+                The results will be, as for the image search, shown from the one that 
+                most closely matches your description to the least matching.
+              </div>
+            </div>
+            
+            <div className="method-card">
+              <div className="method-header">
+                <i className="method-icon fa-solid fa-hashtag"></i>
+                <h3>PPN Search</h3>
+              </div>
+              <div className="method-content">
+                PPNs are unique document identifiers used at the Berlin State Library (
+                <a href="https://github.com/elektrobohemian/StabiHacks/blob/master/ppn-howto.md" target="_blank"
+                rel="noopener noreferrer">you can read more about them here</a>). If you know 
+                the PPN of a specific document, you can use it to find and display all the images it contains. 
+                They will be shown in the same order as they appear in the document, starting from images 
+                found on the first page and continuing to the last page. 
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="notice">
-            <h3>IMPORTANT NOTE!</h3>
-            <p>
-              Due to the nature of this tool,{" "}
-              <strong>
-                no image or description search will return an error or have zero results
-              </strong>
-              . However, sometimes the results may not be very accurate - while
-              the displayed images may not look very much like the one used as a
-              query or match the description you provided, they will be{" "}
-              <em>the most similar ones found in the database</em>. Therefore,
-              we ask you to exercise caution and in case the results seem off,
-              start a different search or try a more detailed description. It
-              may be that the database doesn't contain any images similar to the
-              one you are looking for, or it may be that your description could
-              use more detail (it is better to use longer descriptions rather than single
-              words - think about those school exercises asking you to describe
-              an image and be as specific as you can in a search bar).
-            </p>
+        <div className="cropper-example-section">
+          <h3>Using the Cropper Frame</h3>
+          
+          <div className="cropper-images">
+            <div className="cropper-image-container">
+              <img src="/images/cropper.png" alt="Cropper frame on full image" />
+            </div>
+            
+            <div className="cropper-image-container">
+              <img src="/images/cropper2.png" alt="Cropper frame selecting specific area" />
+            </div>
           </div>
+          
+          <p className="cropper-explanation">
+            When using an image to start your search, this image will appear on the results page with a blue frame 
+            around it. You can drag that frame to select a specific area of the image. This will start a new search 
+            which will find images similar to only that cropped portion.
+          </p>
+        </div>
 
+        <div className="important-note">
+          <h3>Important</h3>
+          <p>
+            Due to the nature of this tool,{" "}
+            <strong>
+              no image or description search will return an error or have zero results
+            </strong>
+            . However, sometimes the results may not be very accurate - while
+            the displayed images may not look very much like the one used as a
+            query or match the description you provided, they will be{" "}
+            <em>the most similar ones found in the database</em>. Therefore,
+            we ask you to exercise caution and in case the results seem off,
+            start a different search or try a more detailed description. It
+            may be that the database doesn't contain any images similar to the
+            one you are looking for, or it may be that your description could
+            use more detail (it is better to use longer descriptions rather than single
+            words) {/* - think about those school exercises asking you to describe
+            an image and be as specific as you can in a search bar) */}.
+          </p>
+        </div>
+
+        <div className="technology-section">
           <p>
             The software used for this image similarity search is still a work
-            in progress and is actively being developed by SBB in the{" "}
+            in progress and is actively being developed by Stabi Berlin in the{" "}
             <strong>Mensch.Maschine.Kultur project</strong>. If you would like
             to know more about our group and our other projects, the Berlin
             State Library, or see the codes (and maybe use them yourself), check
             the links below.
           </p>
+        </div>
 
-          <div className="links">
+        <div className="links-section">
             <a href="https://mmk.sbb.berlin/" target="_blank"
-              rel="noopener noreferrer" className="link">
-              The Project - Mensch.Maschine.Kultur
+              rel="noopener noreferrer" className="link-card">
+              <i className="fa-solid fa-flask link-icon"></i>
+              <div className="link-content">
+                <strong>The Project - Mensch.Maschine.Kultur</strong>
+              </div>
             </a>
             <a href="https://github.com/qurator-spk/sbb_images" target="_blank"
-              rel="noopener noreferrer" className="link">
-              Github
+              rel="noopener noreferrer" className="link-card">
+              <i className="fa-brands fa-github link-icon"></i>
+              <div className="link-content">
+                <strong>Github</strong>
+              </div>
             </a>
             <a href="https://staatsbibliothek-berlin.de/" target="_blank"
-              rel="noopener noreferrer" className="link">
-              Staatsbibliothek zu Berlin
+              rel="noopener noreferrer" className="link-card">
+              <i className="fa-solid fa-building-columns link-icon"></i>
+              <div className="link-content">
+                <strong>Staatsbibliothek zu Berlin</strong>
+              </div>
             </a>
-          </div>
         </div>
-{/* </div> */}
       </div>
     </div>
   );
