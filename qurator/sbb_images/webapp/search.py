@@ -34,7 +34,6 @@ from ..parallel_fnmatch import fnmatch
 import iconclass
 import re
 
-
 app = flask.Flask(__name__)
 
 try:

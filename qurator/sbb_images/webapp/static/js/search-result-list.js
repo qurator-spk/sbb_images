@@ -155,6 +155,7 @@ function setup_search_result_list(configuration, search, next_batch) {
         part = part.replace(/\"/g,"dhyph");
         part = part.replace(/\'/g,"hyph");
         part = part.replace(/`/g,"thyph");
+        part = part.replace(/\s/g,"_");
         return part;
     }
 
