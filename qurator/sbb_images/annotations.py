@@ -107,7 +107,7 @@ def update_annotation_image_and_labels(anno_id, img_url, left, top, width, heigh
 
         image_id = image_con.execute('SELECT max(rowid) FROM images').fetchone()[0] + 1
 
-        image_con.execute('INSERT INTO images(rowid, file, num_annotations, x, y, width, height, anchor) '
+        image_con.execute(' INSERT INTO images(rowid, file, num_annotations, x, y, width, height, anchor) '
                           'VALUES(?,?,?,?,?,?,?,?)', (image_id, img_url, 0, left, top, width, height, anchor))
 
         if sbb_link is not None:

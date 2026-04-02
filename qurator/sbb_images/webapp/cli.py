@@ -27,7 +27,19 @@ def rnd_passwd(len):
 @click.option('--password_len', type=int, default=8)
 def create_accounts(passwd_file, user_input_file, user_output_file, password_len):
 
+    if not os.path.exists(passwd_file):
+        open(passwd_file,'a').close()
+
     df_users = pd.read_csv(user_input_file)
+
+    df_users["ID"] = df_users.first_name+df_users.last_name
+
+    if os.path.exists(user_output_file):
+        df_existing_users=pd.read_csv(user_output_file)
+
+        df_existing_users["ID"] = df_existing_users.first_name + df_existing_users.last_name
+
+        df_users = df_users.loc[~df_users.ID.isin(df_existing_users.ID)]
 
     df_users = df_users[['last_name', 'first_name']]
 
