@@ -66,18 +66,23 @@ def create_accounts(passwd_file, user_input_file, user_output_file, password_len
 
     df_output = pd.DataFrame(df_output, columns=['first_name', 'last_name', 'username', 'password'])
 
-    df_output.to_csv(user_output_file)
+    if os.path.exists(user_output_file):
+        df_output.to_csv(user_output_file, mode='a', header=False)
+    else:
+        df_output.to_csv(user_output_file)
+
 
 @click.command()
 @click.argument('region-annotator-db', type=click.Path(True))
 @click.argument('image-db', type=click.Path(exists=True))
 @click.argument('thumb-db', type=click.Path(exists=True))
-@click.argument('config_file', type=click.Path(exists=True))
+@click.argument('config-file', type=click.Path(exists=True))
+@click.option('--url-user', type=str, default=None)
+@click.option('--url-passwd', type=str, default=None)
 @click.option('--dry-run', type=bool, is_flag=True)
-@click.option('--url-user', type=string, default=None)
-@click.option('--url-passwd', type=string, default=None)
-def update_images_and_thumbs_from_region_annotator(region_annotator_db, image_db, thumb_db, config_file,
-                                                   url_user, url_passwd, dry_run):
+@click.option('--force-thumbnail-update', type=bool, is_flag=True)
+def update_images_and_thumbs_from_region_annotator(region_annotator_db, image_db, thumb_db,  config_file,
+                                                   url_user, url_passwd, dry_run, force_thumbnail_update):
 
     os.environ["CONFIG"] = config_file
 
@@ -135,6 +140,6 @@ def update_images_and_thumbs_from_region_annotator(region_annotator_db, image_db
             thumbnail_must_be_updated =\
                 update_annotation_image_and_labels(anno_id, img_url, left, top, width, height, labels, image_con)
 
-            if thumbnail_must_be_updated:
+            if thumbnail_must_be_updated or force_thumbnail_update:
                 update_url_thumbnail(anno_id, img_url, left, top, width, height, thumb_size, thumb_con, url_auth,
                                      timeout=(300,300))
