@@ -634,10 +634,11 @@ def load_model_selection(model_selection_file):
 @click.option('--thumbnail-sqlite-file', type=str, default=None, multiple=True,
               help="Do not read the images from the file system but rather try to read them from one of these sqlite "
                    "thumbnail file(s).")
+@click.option('--device', type=str, multiple=True, default=None)
 @click.option('--n-splits', type=int, default=10, help="Number of splits used in cross-validation. Default 10.")
 @click.option('--max-epoch', type=int, default=10, help="Number of training-epochs.")
 @click.option('--batch-size', type=int, default=16, help="Training batch-size.")
-@click.option('--start-lr', type=float, multiple=True, default=[0.001], help="Start learning rate in lr-schedule.")
+@click.option('--start-lr', type=float, multiple=True, default=[0.001], help="Start learning rate in lr-schedule. Default 10^-3")
 @click.option('--decrease-epochs', type=int, multiple=True, default=[10], help="Step size of lr-schedule.")
 @click.option('--decrease-factor', type=float, default=0.1, help="Decrease factor of lr-schedule.")
 @click.option('--model-name', type=str, multiple=True, default=['resnet18'],
@@ -666,7 +667,7 @@ def load_model_selection(model_selection_file):
                    "\"include\": [\"Abbildung\", \"Photo\", \"Karte\", \"Initiale\", \"Druckermarke\", \"Noten\", "
                    "\"Vignette\", \"Exlibris\"]}'")
 @click.option('--epoch-steps', type=int, default=1, help="Step size of epoch increase.")
-def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, max_epoch, batch_size,
+def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_splits, max_epoch, batch_size,
                     start_lr, decrease_epochs, decrease_factor, model_name,
                     num_trained_layers, freeze_percentage, label_table_name, label, label_groups, epoch_steps):
     """
@@ -723,28 +724,28 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, n_splits, m
 
     for mn, num_trained, freeze_p, lr, dec_ep in test_seq:
 
-        test_seq.set_description("Best test acc: {:.2f}".format(best_test_acc))
+        try:
+            test_seq.set_description("Best test acc: {:.2f}".format(best_test_acc))
 
-        model_ft, device, fit_transform, predict_transform, logits_func = \
-            load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p)
+            model_ft, device, fit_transform, predict_transform, logits_func = \
+                load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p,
+                                      device=device)
 
-        result = cross_validate_model(images, y, folds, batch_size, class_to_label, dec_ep, decrease_factor,
-                                      device, fit_transform, predict_transform, max_epoch, model_ft,  n_splits,
-                                      lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file)
+            result = cross_validate_model(images, y, folds, batch_size, class_to_label, dec_ep, decrease_factor,
+                                          device, fit_transform, predict_transform, max_epoch, model_ft,  n_splits,
+                                          lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
-        #pprint(result.head(50))
+            best_test_acc = best_test_acc if result.test_acc.max() <= best_test_acc else result.test_acc.max()
 
-        best_test_acc = best_test_acc if result.test_acc.max() <= best_test_acc else result.test_acc.max()
+            result['model'] = mn
+            result['num_trained_layers'] = num_trained
+            result['freeze_percentage'] = freeze_p
 
-        result['model'] = mn
-        result['num_trained_layers'] = num_trained
-        result['freeze_percentage'] = freeze_p
-        #result['start_lr'] = lr
-        #result['decrease_epochs'] = dec_ep
+            results.append(result)
 
-        results.append(result)
-
-        pd.concat(results).to_pickle(result_file)
+            pd.concat(results).to_pickle(result_file)
+        except:
+            print(f"Skipping configuration {str((mn, num_trained, freeze_p, lr, dec_ep))} due to error.")
 
     results = pd.concat(results)
 
@@ -834,19 +835,106 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None, 
 
     return make_class_from_labels(images)
 
+def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1.0, device=None):
 
-def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1.0):
+    # --- Per-model configuration ---
+    input_sizes = {
+        'inception_v3': 299,
+        'googlenet': 224,
+        'efficientnet_b0': 224,
+        'efficientnet_b1': 224,
+        'efficientnet_b2': 224,
+        'efficientnet_b3': 224,
+        'efficientnet_b4': 224,
+        'efficientnet_b5': 224,
+        'efficientnet_b6': 224,
+        'efficientnet_b7': 224,
 
-    input_size = {'inception_v3': 299}
-    logits_funcs = {'inception_v3': lambda output: output.logits}
-    classifcation_layer_names = {}
+        # --- ConvNeXt variants ---
+        'convnext_tiny': 224,
+        'convnext_small': 224,
+        'convnext_base': 224,
+        'convnext_large': 224,
+        'convnext_xlarge': 224,
 
-    img_size = input_size.get(mn, 224)
+        'resnet18': 224,
+        'resnet34': 224,
+        'resnet50': 224,
+        'resnet101': 224,
+        'resnet152': 224,
+        'resnext50_32x4d': 224,
+        'resnext101_32x8d': 224,
+    }
+
+    # Classification layer name
+    classification_layer_names = {
+        'googlenet': 'fc',
+        'inception_v3': 'fc',
+        'efficientnet_b0': 'classifier',
+        'efficientnet_b1': 'classifier',
+        'efficientnet_b2': 'classifier',
+        'efficientnet_b3': 'classifier',
+        'efficientnet_b4': 'classifier',
+        'efficientnet_b5': 'classifier',
+        'efficientnet_b6': 'classifier',
+        'efficientnet_b7': 'classifier',
+
+        # --- ConvNeXt variants ---
+        'convnext_tiny': 'classifier',
+        'convnext_small': 'classifier',
+        'convnext_base': 'classifier',
+        'convnext_large': 'classifier',
+        'convnext_xlarge': 'classifier',
+
+        'resnet18': 'fc',
+        'resnet34': 'fc',
+        'resnet50': 'fc',
+        'resnet101': 'fc',
+        'resnet152': 'fc',
+        'resnext50_32x4d': 'fc',
+        'resnext101_32x8d': 'fc',
+    }
+
+    # Weights
+    weights_map = {
+        'googlenet': models.GoogLeNet_Weights.DEFAULT,
+        'inception_v3': models.Inception_V3_Weights.DEFAULT,
+        'efficientnet_b0': models.EfficientNet_B0_Weights.DEFAULT,
+        'efficientnet_b1': models.EfficientNet_B1_Weights.DEFAULT,
+        'efficientnet_b2': models.EfficientNet_B2_Weights.DEFAULT,
+        'efficientnet_b3': models.EfficientNet_B3_Weights.DEFAULT,
+        'efficientnet_b4': models.EfficientNet_B4_Weights.DEFAULT,
+        'efficientnet_b5': models.EfficientNet_B5_Weights.DEFAULT,
+        'efficientnet_b6': models.EfficientNet_B6_Weights.DEFAULT,
+        'efficientnet_b7': models.EfficientNet_B7_Weights.DEFAULT,
+
+        'convnext_tiny': models.ConvNeXt_Tiny_Weights.DEFAULT,
+        'convnext_small': models.ConvNeXt_Small_Weights.DEFAULT,
+        'convnext_base': models.ConvNeXt_Base_Weights.DEFAULT,
+        'convnext_large': models.ConvNeXt_Large_Weights.DEFAULT,
+
+        # --- ResNet variants ---
+        'resnet18': models.ResNet18_Weights.DEFAULT,
+        'resnet34': models.ResNet34_Weights.DEFAULT,
+        'resnet50': models.ResNet50_Weights.DEFAULT,
+        'resnet101': models.ResNet101_Weights.DEFAULT,
+        'resnet152': models.ResNet152_Weights.DEFAULT,
+        'resnext50_32x4d': models.ResNeXt50_32X4D_Weights.DEFAULT,
+        'resnext101_32x8d': models.ResNeXt101_32X8D_Weights.DEFAULT,
+    }
+
+    # Logits accessor (Inception v3 returns a namedtuple; others return raw tensor)
+    logits_funcs = {
+        'inception_v3': lambda output: output.logits,
+    }
+
+    # --- Resolve config ---
+    img_size = input_sizes.get(mn, 224)
     logits_func = logits_funcs.get(mn, lambda outputs: outputs)
-    classification_layer_name = classifcation_layer_names.get(mn, 'fc')
+    classification_layer_name = classification_layer_names.get(mn, 'fc')
+    weights = weights_map.get(mn, True)
 
-    # Data augmentation and normalization for training
-    # Just normalization for validation
+    # --- Transforms (same ImageNet normalization for all) ---
     fit_transform = transforms.Compose([
         transforms.RandomResizedCrop(img_size),
         transforms.RandomHorizontalFlip(),
@@ -861,40 +949,96 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    weights = { 'googlenet': models.GoogLeNet_Weights.DEFAULT }
-
-    weights = weights.get(mn, True)
+    # --- Load model ---
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu" if device is None else device)
 
     model_ft = getattr(models, mn)(weights=weights)
 
-    model_size = 0
+    # --- Freeze / unfreeze by index ---
+    model_size = sum(1 for _ in model_ft.parameters())
     for i, p in enumerate(model_ft.parameters()):
-        p.requires_grad = False
-        model_size = i
+        p.requires_grad = (i >= freeze_percentage * model_size)
 
-    for i, p in enumerate(model_ft.parameters()):
+    # --- Replace classification head ---
+    classifier = getattr(model_ft, classification_layer_name)
 
-        if freeze_percentage*model_size < i:
-            p.requires_grad = True
-
-    in_features = getattr(model_ft, classification_layer_name).in_features
-
-    # trained_layers =\
-    #    [nn.ReLU() for _ in range(0, num_train_layers-1)] + [nn.Linear(in_features, num_classes)]
+    if isinstance(classifier, nn.Sequential):
+        # EfficientNet: classifier = Sequential(Dropout, Linear)
+        in_features = classifier[-1].in_features  # last Linear layer
+    else:
+        # GoogLeNet / ResNet: classifier is a bare nn.Linear
+        in_features = classifier.in_features
 
     trained_layers = \
-        [nn.Linear(in_features, in_features) for _ in range(0, num_train_layers - 1)] + \
-            [nn.Linear(in_features, num_classes)]
+        [nn.ReLU(in_features) for _ in range(num_train_layers - 1)] + \
+        [nn.Linear(in_features, num_classes)]
 
     setattr(model_ft, classification_layer_name, nn.Sequential(*trained_layers))
-
-    # import ipdb;ipdb.set_trace()
 
     model_ft = model_ft.to(device)
 
     return model_ft, device, fit_transform, predict_transform, logits_func
+
+# def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1.0):
+#
+#     input_size = {'inception_v3': 299}
+#     logits_funcs = {'inception_v3': lambda output: output.logits}
+#     classifcation_layer_names = {}
+#
+#     img_size = input_size.get(mn, 224)
+#     logits_func = logits_funcs.get(mn, lambda outputs: outputs)
+#     classification_layer_name = classifcation_layer_names.get(mn, 'fc')
+#
+#     # Data augmentation and normalization for training
+#     # Just normalization for validation
+#     fit_transform = transforms.Compose([
+#         transforms.RandomResizedCrop(img_size),
+#         transforms.RandomHorizontalFlip(),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+#     ])
+#
+#     predict_transform = transforms.Compose([
+#         transforms.Resize(256),
+#         transforms.CenterCrop(img_size),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+#     ])
+#
+#     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#
+#     weights = { 'googlenet': models.GoogLeNet_Weights.DEFAULT }
+#
+#     weights = weights.get(mn, True)
+#
+#     model_ft = getattr(models, mn)(weights=weights)
+#
+#     model_size = 0
+#     for i, p in enumerate(model_ft.parameters()):
+#         p.requires_grad = False
+#         model_size = i
+#
+#     for i, p in enumerate(model_ft.parameters()):
+#
+#         if freeze_percentage*model_size < i:
+#             p.requires_grad = True
+#
+#     in_features = getattr(model_ft, classification_layer_name).in_features
+#
+#     # trained_layers =\
+#     #    [nn.ReLU() for _ in range(0, num_train_layers-1)] + [nn.Linear(in_features, num_classes)]
+#
+#     trained_layers = \
+#         [nn.Linear(in_features, in_features) for _ in range(0, num_train_layers - 1)] + \
+#             [nn.Linear(in_features, num_classes)]
+#
+#     setattr(model_ft, classification_layer_name, nn.Sequential(*trained_layers))
+#
+#     # import ipdb;ipdb.set_trace()
+#
+#     model_ft = model_ft.to(device)
+#
+#     return model_ft, device, fit_transform, predict_transform, logits_func
 
 
 def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,

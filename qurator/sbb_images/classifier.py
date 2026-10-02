@@ -56,7 +56,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
             nonlocal running_corrects
             nonlocal count
 
-            data_seq = iter(data_loader)
+            # data_seq = iter(data_loader)
 
             for e in range(1, epochs+1):
 
@@ -65,7 +65,7 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
                 running_corrects = 0
 
                 batch_pos = 0
-                for _inputs, _labels, _ in data_seq:
+                for _inputs, _labels, _ in data_loader:
                     yield _inputs, _labels
 
                     tqdm_seq.set_description("train (Epoch {} Train Loss: {:.4f} Acc: {:.4f})".
