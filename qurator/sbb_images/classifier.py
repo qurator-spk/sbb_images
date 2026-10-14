@@ -8,6 +8,8 @@ from .data_access import AnnotatedDataset
 from tqdm import tqdm
 import torch.nn.functional as F
 
+from torch.utils.checkpoint import checkpoint
+
 
 class ImageClassifier(BaseEstimator, ClassifierMixin):
 
@@ -28,87 +30,197 @@ class ImageClassifier(BaseEstimator, ClassifierMixin):
         self.logits_func = logits_func
         self.thumbnail_sqlite_file = thumbnail_sqlite_file
 
-    def fit(self, X, y, epochs=1):
+    # def fit(self, X, y, epochs=1):
+    #
+    #     dataset = AnnotatedDataset(samples=X, targets=y, transform=self.fit_transform,
+    #                                thumbnail_sqlite_file=self.thumbnail_sqlite_file, table_name="thumbnails")
+    #     running_loss = 0.0
+    #     running_corrects = 0
+    #     count = 0
+    #     num_samples = len(X)
+    #     # batches_per_epoch = int(np.ceil(num_samples*epochs/self.batch_size))/epochs
+    #     batches_per_epoch = int(np.ceil(num_samples/self.batch_size))
+    #
+    #     # print(batches_per_epoch)
+    #
+    #     self.model.load_state_dict(self.model_weights)
+    #     self.model.train()
+    #
+    #     data_loader = DataLoader(dataset=dataset,
+    #                              sampler=RandomSampler(dataset, num_samples=batches_per_epoch*self.batch_size*epochs),
+    #                              batch_size=self.batch_size, num_workers=16, drop_last=False, pin_memory=True)
+    #
+    #     tqdm_seq = None
+    #
+    #     def train_seq():
+    #         nonlocal data_loader
+    #         nonlocal running_loss
+    #         nonlocal running_corrects
+    #         nonlocal count
+    #
+    #         # data_seq = iter(data_loader)
+    #
+    #         for e in range(1, epochs+1):
+    #
+    #             count = 0
+    #             running_loss = 0.0
+    #             running_corrects = 0
+    #
+    #             batch_pos = 0
+    #             for _inputs, _labels, _ in data_loader:
+    #                 yield _inputs, _labels
+    #
+    #                 tqdm_seq.set_description("train (Epoch {} Train Loss: {:.4f} Acc: {:.4f})".
+    #                                         format(e, running_loss / count, running_corrects / count))
+    #
+    #                 batch_pos += 1
+    #                 if batch_pos > batches_per_epoch:
+    #                     break
+    #
+    #             self.scheduler.step()
+    #             # print("Epoch Acc: {}, Epoch Loss: {}".format(self.epoch_acc, self.epoch_loss))
+    #
+    #     tqdm_seq = tqdm(train_seq(), total=int(epochs*batches_per_epoch), desc="train", leave=False)
+    #
+    #     for inputs, labels in tqdm_seq:
+    #
+    #         inputs = inputs.to(self.device)
+    #         labels = labels.to(self.device)
+    #
+    #         # zero the parameter gradients
+    #         self.optimizer.zero_grad()
+    #
+    #         # forward
+    #         with torch.set_grad_enabled(True):
+    #             logits = self.logits_func(self.model(inputs))
+    #             _, preds = torch.max(logits, 1)
+    #
+    #             loss = self.criterion(logits, labels)
+    #
+    #             loss.backward()
+    #             self.optimizer.step()
+    #
+    #         # statistics
+    #         running_loss += loss.item() * inputs.size(0)
+    #         running_corrects += torch.sum(preds == labels.data).double()
+    #         count += inputs.size(0)
+    #
+    #     self.model_weights = copy.deepcopy(self.model.state_dict())
+    #
+    #     self.epoch_loss = running_loss / count
+    #     self.epoch_acc = running_corrects / count
+    #
+    #     # print("Epoch Acc: {:.4f}, Epoch Loss: {:.4f}".format(self.epoch_acc, self.epoch_loss))
+    #
+    #     return self
+
+    def fit(self, X, y, epochs=1, gradient_accumulation_steps=1, use_gradient_checkpointing=False):
+        """
+        Args:
+            gradient_accumulation_steps: Micro-batches to accumulate before
+                optimizer.step(). 1 = no accumulation.
+                Effective batch = self.batch_size * gradient_accumulation_steps.
+            use_gradient_checkpointing: If True, wrap the forward pass with
+                activation checkpointing (trades ~30 % extra compute for
+                lower peak memory). If False, standard forward pass.
+        """
 
         dataset = AnnotatedDataset(samples=X, targets=y, transform=self.fit_transform,
                                    thumbnail_sqlite_file=self.thumbnail_sqlite_file, table_name="thumbnails")
-        running_loss = 0.0
-        running_corrects = 0
-        count = 0
         num_samples = len(X)
-        # batches_per_epoch = int(np.ceil(num_samples*epochs/self.batch_size))/epochs
-        batches_per_epoch = int(np.ceil(num_samples/self.batch_size))
+        batches_per_epoch = int(np.ceil(num_samples / self.batch_size))
+        accum_steps = gradient_accumulation_steps
 
-        # print(batches_per_epoch)
+        # if batches_per_epoch % accum_steps != 0:
+        #     import warnings
+        #     warnings.warn(
+        #         f"batches_per_epoch ({batches_per_epoch}) is not divisible by "
+        #         f"gradient_accumulation_steps ({accum_steps}); the last accumulation "
+        #         f"cycle will use fewer micro-batches."
+        #     )
 
         self.model.load_state_dict(self.model_weights)
         self.model.train()
 
+        #     data_loader = DataLoader(dataset=dataset,
+        #                              sampler=RandomSampler(dataset, num_samples=batches_per_epoch*self.batch_size*epochs),
+        #                              batch_size=self.batch_size, num_workers=16, drop_last=False, pin_memory=True)
+
         data_loader = DataLoader(dataset=dataset,
-                                 sampler=RandomSampler(dataset, num_samples=batches_per_epoch*self.batch_size*epochs),
+                                 sampler=RandomSampler(dataset, num_samples=batches_per_epoch * self.batch_size * epochs),
                                  batch_size=self.batch_size, num_workers=16, drop_last=False, pin_memory=True)
 
-        tqdm_seq = None
+        # --- forward pass (checkpointed or not) ---
+        def _forward(x):
+            return self.logits_func(self.model(x))
+
+        def _checkpointed_forward(x):
+            return checkpoint(_forward, x, use_reentrant=False)
+
+        forward_fn = _checkpointed_forward if use_gradient_checkpointing else _forward
+
+        # ------------------------------------------
 
         def train_seq():
             nonlocal data_loader
-            nonlocal running_loss
-            nonlocal running_corrects
-            nonlocal count
 
-            # data_seq = iter(data_loader)
-
-            for e in range(1, epochs+1):
-
-                count = 0
-                running_loss = 0.0
-                running_corrects = 0
-
+            for e in range(1, epochs + 1):
                 batch_pos = 0
                 for _inputs, _labels, _ in data_loader:
                     yield _inputs, _labels
-
-                    tqdm_seq.set_description("train (Epoch {} Train Loss: {:.4f} Acc: {:.4f})".
-                                            format(e, running_loss / count, running_corrects / count))
-
                     batch_pos += 1
                     if batch_pos > batches_per_epoch:
                         break
-
                 self.scheduler.step()
-                # print("Epoch Acc: {}, Epoch Loss: {}".format(self.epoch_acc, self.epoch_loss))
 
-        tqdm_seq = tqdm(train_seq(), total=int(epochs*batches_per_epoch), desc="train", leave=False)
+        tqdm_seq = tqdm(train_seq(), total=int(epochs * batches_per_epoch), desc="train", leave=False)
+
+        running_loss = 0.0
+        running_corrects = 0.0
+        count = 0
+        micro_batch_idx = 0
+        accum_count = 0
+        updates = 0
 
         for inputs, labels in tqdm_seq:
 
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
 
-            # zero the parameter gradients
-            self.optimizer.zero_grad()
+            micro_batch_idx += 1
+            accum_count += 1
 
-            # forward
-            with torch.set_grad_enabled(True):
-                logits = self.logits_func(self.model(inputs))
-                _, preds = torch.max(logits, 1)
+            # forward (uses checkpoint or not depending on the flag)
+            logits = forward_fn(inputs)
+            _, preds = torch.max(logits, 1)
 
-                loss = self.criterion(logits, labels)
-
-                loss.backward()
-                self.optimizer.step()
+            loss = self.criterion(logits, labels)
+            (loss / accum_steps).backward()
 
             # statistics
             running_loss += loss.item() * inputs.size(0)
             running_corrects += torch.sum(preds == labels.data).double()
             count += inputs.size(0)
 
+            # optimizer step at end of each accumulation cycle (or last batch)
+            is_last_of_cycle = (accum_count % accum_steps == 0)
+            is_last_batch = (micro_batch_idx >= epochs * batches_per_epoch)
+            if is_last_of_cycle or is_last_batch:
+                self.optimizer.step()
+                self.optimizer.zero_grad(set_to_none=True)
+                accum_count = 0
+                updates += 1
+
+            tqdm_seq.set_description(
+                "train (#Updates: {} Epoch Loss: {:.4f} Acc: {:.4f})".format(updates,
+                    running_loss / max(count, 1),
+                    running_corrects / max(count, 1),
+                )
+            )
+
         self.model_weights = copy.deepcopy(self.model.state_dict())
-
-        self.epoch_loss = running_loss / count
-        self.epoch_acc = running_corrects / count
-
-        # print("Epoch Acc: {:.4f}, Epoch Loss: {:.4f}".format(self.epoch_acc, self.epoch_loss))
+        self.epoch_loss = running_loss / max(count, 1)
+        self.epoch_acc = running_corrects / max(count, 1)
 
         return self
 

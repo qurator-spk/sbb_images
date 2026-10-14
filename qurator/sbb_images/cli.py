@@ -638,9 +638,14 @@ def load_model_selection(model_selection_file):
 @click.option('--n-splits', type=int, default=10, help="Number of splits used in cross-validation. Default 10.")
 @click.option('--max-epoch', type=int, default=10, help="Number of training-epochs.")
 @click.option('--batch-size', type=int, default=16, help="Training batch-size.")
+@click.option('--gradient-accumulation-steps', type=int, default=1,
+              help="Number of gradient accumulation steps during training.")
+@click.option('--use-gradient-checkpointing', type=bool, is_flag=True, default=False,
+              help="Do gradient checkpointing.")
 @click.option('--start-lr', type=float, multiple=True, default=[0.001], help="Start learning rate in lr-schedule. Default 10^-3")
 @click.option('--decrease-epochs', type=int, multiple=True, default=[10], help="Step size of lr-schedule.")
 @click.option('--decrease-factor', type=float, default=0.1, help="Decrease factor of lr-schedule.")
+@click.option('--max-improve-fails', type=int, default=1, help="")
 @click.option('--model-name', type=str, multiple=True, default=['resnet18'],
               help="One or multiple pre-trained pytorch image classification models to try, "
                    "see https://pytorch.org/docs/stable/torchvision/models.html for possible choices. "
@@ -667,8 +672,9 @@ def load_model_selection(model_selection_file):
                    "\"include\": [\"Abbildung\", \"Photo\", \"Karte\", \"Initiale\", \"Druckermarke\", \"Noten\", "
                    "\"Vignette\", \"Exlibris\"]}'")
 @click.option('--epoch-steps', type=int, default=1, help="Step size of epoch increase.")
-def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_splits, max_epoch, batch_size,
-                    start_lr, decrease_epochs, decrease_factor, model_name,
+def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_splits, max_epoch,
+                    batch_size, gradient_accumulation_steps, use_gradient_checkpointing,
+                    start_lr, decrease_epochs, decrease_factor, max_improve_fails, model_name,
                     num_trained_layers, freeze_percentage, label_table_name, label, label_groups, epoch_steps):
     """
 
@@ -685,6 +691,8 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_s
 
     """
 
+    batch_size = int(np.ceil(batch_size/gradient_accumulation_steps))
+
     data = []
 
     for sq_file in sqlite_file:
@@ -700,7 +708,7 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_s
     print("--")
     print("Training stats data:")
     print(images.label.value_counts())
-    print("--")
+    print(f"-- total: {len(images)}")
 
     images['file'] = images['file'].astype(str)
 
@@ -709,8 +717,6 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_s
     y = images['class'].astype(int)
 
     sk_fold = StratifiedGroupKFold(n_splits=n_splits)
-
-    #import ipdb;ipdb.set_trace()
 
     folds = [{'train': tr, 'test': te} for tr, te in sk_fold.split(images, y, groups=images.file)]
 
@@ -724,16 +730,19 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_s
 
     for mn, num_trained, freeze_p, lr, dec_ep in test_seq:
 
-        try:
+        #try:
             test_seq.set_description("Best test acc: {:.2f}".format(best_test_acc))
 
             model_ft, device, fit_transform, predict_transform, logits_func = \
                 load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p,
                                       device=device)
 
-            result = cross_validate_model(images, y, folds, batch_size, class_to_label, dec_ep, decrease_factor,
+            result = cross_validate_model(images, y, folds,
+                                          batch_size, gradient_accumulation_steps, use_gradient_checkpointing,
+                                          class_to_label, dec_ep, decrease_factor,
                                           device, fit_transform, predict_transform, max_epoch, model_ft,  n_splits,
-                                          lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file)
+                                          lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file,
+                                          max_improve_fails=max_improve_fails)
 
             best_test_acc = best_test_acc if result.test_acc.max() <= best_test_acc else result.test_acc.max()
 
@@ -744,8 +753,8 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_s
             results.append(result)
 
             pd.concat(results).to_pickle(result_file)
-        except:
-            print(f"Skipping configuration {str((mn, num_trained, freeze_p, lr, dec_ep))} due to error.")
+        #except:
+        #    print(f"Skipping configuration {str((mn, num_trained, freeze_p, lr, dec_ep))} due to error.")
 
     results = pd.concat(results)
 
@@ -827,9 +836,6 @@ def load_ground_truth(sqlite_file, label_table_name='annotations', labels=None, 
 
         if label_map is not None:
             images['label'] = images['label'].map(label_map)
-
-        #import ipdb;
-        #ipdb.set_trace()
     else:
         raise RuntimeError("Do not know how to interpret table '{}'".format(label_table_name))
 
@@ -842,13 +848,13 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
         'inception_v3': 299,
         'googlenet': 224,
         'efficientnet_b0': 224,
-        'efficientnet_b1': 224,
-        'efficientnet_b2': 224,
-        'efficientnet_b3': 224,
-        'efficientnet_b4': 224,
-        'efficientnet_b5': 224,
-        'efficientnet_b6': 224,
-        'efficientnet_b7': 224,
+        'efficientnet_b1': 240,
+        'efficientnet_b2': 288,
+        'efficientnet_b3': 300,
+        'efficientnet_b4': 380,
+        'efficientnet_b5': 456,
+        'efficientnet_b6': 528,
+        'efficientnet_b7': 600,
 
         # --- ConvNeXt variants ---
         'convnext_tiny': 224,
@@ -870,6 +876,7 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
     classification_layer_names = {
         'googlenet': 'fc',
         'inception_v3': 'fc',
+
         'efficientnet_b0': 'classifier',
         'efficientnet_b1': 'classifier',
         'efficientnet_b2': 'classifier',
@@ -943,7 +950,7 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
     ])
 
     predict_transform = transforms.Compose([
-        transforms.Resize(256),
+        transforms.Resize(img_size),
         transforms.CenterCrop(img_size),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -979,69 +986,10 @@ def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1
 
     return model_ft, device, fit_transform, predict_transform, logits_func
 
-# def load_pretrained_model(mn, num_classes, num_train_layers, freeze_percentage=1.0):
-#
-#     input_size = {'inception_v3': 299}
-#     logits_funcs = {'inception_v3': lambda output: output.logits}
-#     classifcation_layer_names = {}
-#
-#     img_size = input_size.get(mn, 224)
-#     logits_func = logits_funcs.get(mn, lambda outputs: outputs)
-#     classification_layer_name = classifcation_layer_names.get(mn, 'fc')
-#
-#     # Data augmentation and normalization for training
-#     # Just normalization for validation
-#     fit_transform = transforms.Compose([
-#         transforms.RandomResizedCrop(img_size),
-#         transforms.RandomHorizontalFlip(),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-#     ])
-#
-#     predict_transform = transforms.Compose([
-#         transforms.Resize(256),
-#         transforms.CenterCrop(img_size),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-#     ])
-#
-#     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-#
-#     weights = { 'googlenet': models.GoogLeNet_Weights.DEFAULT }
-#
-#     weights = weights.get(mn, True)
-#
-#     model_ft = getattr(models, mn)(weights=weights)
-#
-#     model_size = 0
-#     for i, p in enumerate(model_ft.parameters()):
-#         p.requires_grad = False
-#         model_size = i
-#
-#     for i, p in enumerate(model_ft.parameters()):
-#
-#         if freeze_percentage*model_size < i:
-#             p.requires_grad = True
-#
-#     in_features = getattr(model_ft, classification_layer_name).in_features
-#
-#     # trained_layers =\
-#     #    [nn.ReLU() for _ in range(0, num_train_layers-1)] + [nn.Linear(in_features, num_classes)]
-#
-#     trained_layers = \
-#         [nn.Linear(in_features, in_features) for _ in range(0, num_train_layers - 1)] + \
-#             [nn.Linear(in_features, num_classes)]
-#
-#     setattr(model_ft, classification_layer_name, nn.Sequential(*trained_layers))
-#
-#     # import ipdb;ipdb.set_trace()
-#
-#     model_ft = model_ft.to(device)
-#
-#     return model_ft, device, fit_transform, predict_transform, logits_func
 
-
-def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_epochs, decrease_factor, device,
+def cross_validate_model(images, y, folds,
+                         batch_size, gradient_accumulation_steps, use_gradient_checkpointing,
+                         class_to_label, decrease_epochs, decrease_factor, device,
                          fit_transform, predict_transform, max_epoch, model_ft, n_splits, start_lr,
                          logits_func, epoch_steps, thumbnail_sqlite_file=None, max_improve_fails=1):
 
@@ -1071,7 +1019,9 @@ def cross_validate_model(images, y, folds, batch_size, class_to_label, decrease_
         for fold in tqdm(folds, leave=False, desc="fold"):
             estimator = fold['estimator']
 
-            estimator.fit(images.iloc[fold['train']], y.iloc[fold['train']], epochs=epoch_steps)
+            estimator.fit(images.iloc[fold['train']], y.iloc[fold['train']], epochs=epoch_steps,
+                          gradient_accumulation_steps=gradient_accumulation_steps,
+                          use_gradient_checkpointing=use_gradient_checkpointing)
 
             predictions.append(estimator.predict_proba(images.iloc[fold['test']]))
             gt.append(y.iloc[fold['test']])
