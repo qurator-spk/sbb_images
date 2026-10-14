@@ -469,7 +469,7 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
                                                           label_groups=label_groups)
     y = None
 
-    if training_database is not None:
+    if len(training_database) > 0:
 
         tr_data = []
         for tr_db in training_database:
