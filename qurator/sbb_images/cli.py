@@ -672,10 +672,12 @@ def load_model_selection(model_selection_file):
                    "\"include\": [\"Abbildung\", \"Photo\", \"Karte\", \"Initiale\", \"Druckermarke\", \"Noten\", "
                    "\"Vignette\", \"Exlibris\"]}'")
 @click.option('--epoch-steps', type=int, default=1, help="Step size of epoch increase.")
+@click.option('--model-save-dir', type=click.Path(), default=None, help="")
 def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_splits, max_epoch,
                     batch_size, gradient_accumulation_steps, use_gradient_checkpointing,
                     start_lr, decrease_epochs, decrease_factor, max_improve_fails, model_name,
-                    num_trained_layers, freeze_percentage, label_table_name, label, label_groups, epoch_steps):
+                    num_trained_layers, freeze_percentage, label_table_name, label, label_groups, epoch_steps,
+                    model_save_dir):
     """
 
     Performs a cross-validation in order to select an optimal model and training parameters for a given
@@ -701,8 +703,6 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_s
                                          label_groups=label_groups)
         data.append(images)
 
-    #import ipdb;ipdb.set_trace()
-
     images = pd.concat(data).reset_index(drop=True)
 
     print("--")
@@ -720,7 +720,11 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_s
 
     folds = [{'train': tr, 'test': te} for tr, te in sk_fold.split(images, y, groups=images.file)]
 
-    results = list() if not os.path.exists(result_file) else [pd.read_pickle(result_file)]
+    grid_search_results = list() if not os.path.exists(result_file) else [pd.read_pickle(result_file)]
+
+    cv_results = list()
+
+    abs_result_file = result_file if model_save_dir is None else f"{model_save_dir}/{result_file}"
 
     best_test_acc = 0.0
 
@@ -728,38 +732,69 @@ def model_selection(sqlite_file, result_file, thumbnail_sqlite_file, device, n_s
                     total=len(model_name) * len(num_trained_layers) * len(freeze_percentage) *
                           len(start_lr) * len(decrease_epochs))
 
-    for mn, num_trained, freeze_p, lr, dec_ep in test_seq:
+    def save_results(epoch_result, _folds):
+        nonlocal best_test_acc
+        nonlocal grid_search_results
+        nonlocal abs_result_file
 
-        #try:
+        cv_results.append(epoch_result)
+
+        cnf = len(pd.concat(grid_search_results + [pd.concat(cv_results)]).reset_index(drop=True))
+
+        epoch_result["cnf"] = cnf
+        epoch_result['model'] = mn
+        epoch_result['num_trained_layers'] = num_trained
+        epoch_result['freeze_percentage'] = freeze_p
+        epoch_result["file_prefix"] = ""
+
+        if epoch_result.test_acc.max() > best_test_acc:
+
+            best_test_acc = epoch_result.test_acc.max()
+
             test_seq.set_description("Best test acc: {:.2f}".format(best_test_acc))
 
-            model_ft, device, fit_transform, predict_transform, logits_func = \
-                load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p,
-                                      device=device)
+            if model_save_dir is not None:
 
-            result = cross_validate_model(images, y, folds,
-                                          batch_size, gradient_accumulation_steps, use_gradient_checkpointing,
-                                          class_to_label, dec_ep, decrease_factor,
-                                          device, fit_transform, predict_transform, max_epoch, model_ft,  n_splits,
-                                          lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file,
-                                          max_improve_fails=max_improve_fails)
+                if not os.path.exists(model_save_dir):
+                    os.mkdir(model_save_dir)
 
-            best_test_acc = best_test_acc if result.test_acc.max() <= best_test_acc else result.test_acc.max()
+                identifier = f"model_{mn}-test_acc_{best_test_acc:.3f}-grid_num_{cnf}"
 
-            result['model'] = mn
-            result['num_trained_layers'] = num_trained
-            result['freeze_percentage'] = freeze_p
+                epoch_result["file_prefix"] = identifier
 
-            results.append(result)
+                for fi, fold in enumerate(_folds):
 
-            pd.concat(results).to_pickle(result_file)
+                    filename = f"{model_save_dir}/{identifier}-fold_{fi}.bin"
+
+                    torch.save(fold["estimator"].model_weights, filename)
+
+        pd.concat(grid_search_results + [pd.concat(cv_results)]).reset_index(drop=True).to_pickle(abs_result_file)
+
+
+    for mn, num_trained, freeze_p, lr, dec_ep in test_seq:
+
+        cv_results = list()
+
+        #try:
+        test_seq.set_description("Best test acc: {:.2f}".format(best_test_acc))
+
+        model_ft, device, fit_transform, predict_transform, logits_func = \
+            load_pretrained_model(mn, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p,
+                                  device=device)
+
+        cross_validate_model(images, y, folds,
+                             batch_size, gradient_accumulation_steps, use_gradient_checkpointing,
+                             class_to_label, dec_ep, decrease_factor,
+                             device, fit_transform, predict_transform, max_epoch, model_ft,  n_splits,
+                             lr, logits_func, epoch_steps, thumbnail_sqlite_file=thumbnail_sqlite_file,
+                             max_improve_fails=max_improve_fails,
+                             save_func=save_results)
+
+        grid_search_results.append(pd.concat(cv_results))
+        pd.concat(grid_search_results).reset_index(drop=True).to_pickle(abs_result_file)
+
         #except:
         #    print(f"Skipping configuration {str((mn, num_trained, freeze_p, lr, dec_ep))} due to error.")
-
-    results = pd.concat(results)
-
-    results.to_pickle(result_file)
-
 
 def make_class_from_labels(images):
     images['class'] = images.label.astype('category').cat.codes
@@ -991,29 +1026,41 @@ def cross_validate_model(images, y, folds,
                          batch_size, gradient_accumulation_steps, use_gradient_checkpointing,
                          class_to_label, decrease_epochs, decrease_factor, device,
                          fit_transform, predict_transform, max_epoch, model_ft, n_splits, start_lr,
-                         logits_func, epoch_steps, thumbnail_sqlite_file=None, max_improve_fails=1):
+                         logits_func, epoch_steps, thumbnail_sqlite_file=None, max_improve_fails=1,
+                         save_func = None):
+
+    def save_results(epoch_res, _folds):
+        epoch_res = pd.DataFrame.from_records([epoch_res])
+        epoch_res['batch_size'] = batch_size
+        epoch_res['gradient_accumulation_steps'] = gradient_accumulation_steps
+        epoch_res['n_splits'] = n_splits
+        epoch_res['start_lr'] = start_lr
+        epoch_res['decrease_epochs'] = decrease_epochs
+        epoch_res['decrease_factor'] = decrease_factor
+
+        save_func(epoch_res, _folds)
 
     for fold in folds:
         optimizer = AdamW(model_ft.parameters(), lr=start_lr)
 
-        sched = lr_scheduler.StepLR(optimizer, step_size=decrease_epochs, gamma=decrease_factor)
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=decrease_epochs, gamma=decrease_factor)
 
         fold['estimator'] = ImageClassifier(model=model_ft, model_weights=copy.deepcopy(model_ft.state_dict()),
                                             device=device, criterion=nn.CrossEntropyLoss(), optimizer=optimizer,
-                                            scheduler=sched, fit_transform=fit_transform,
+                                            scheduler=scheduler, fit_transform=fit_transform,
                                             predict_transform=predict_transform, batch_size=batch_size,
                                             logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
-    results = list()
+    cv_results = list()
 
     epoch_seq = tqdm(range(epoch_steps, max_epoch + 1, epoch_steps), leave=False)
 
     best_acc = 0.0
     improve_fails = 0
+
     for epoch in epoch_seq:
 
         epoch_seq.set_description("Epochs (best_acc: {:.2f}, start_lr: {}, dec_ep: {}, dec_fac: {})".
                                   format(best_acc, start_lr, decrease_epochs, decrease_factor))
-
         predictions = list()
         gt = list()
         for fold in tqdm(folds, leave=False, desc="fold"):
@@ -1031,21 +1078,23 @@ def cross_validate_model(images, y, folds,
 
         predictions['pred'] = predictions.idxmax(axis=1)
 
-        epoch_result = pd.concat([predictions, gt], axis=1)
+        prediction_result = pd.concat([predictions, gt], axis=1)
 
-        result = dict()
-        result['epoch'] = epoch
-        result['test_acc'] = (epoch_result['pred'] == epoch_result['class']).sum() / len(epoch_result)
+        epoch_result = dict()
+        epoch_result['epoch'] = epoch
+        epoch_result['test_acc'] = (prediction_result['pred'] == prediction_result['class']).sum() / len(prediction_result)
 
-        result['train_loss'] = np.mean([fold['estimator'].epoch_loss for fold in folds])
-        result['train_acc'] = np.mean([float(fold['estimator'].epoch_acc) for fold in folds])
+        epoch_result['train_loss'] = np.mean([fold['estimator'].epoch_loss for fold in folds])
+        epoch_result['train_acc'] = np.mean([float(fold['estimator'].epoch_acc) for fold in folds])
 
-        for cl, cl_res in epoch_result.groupby('class'):
-            result[class_to_label[cl]] = (cl_res['pred'] == cl_res['class']).sum() / len(cl_res)
+        for cl, cl_res in prediction_result.groupby('class'):
+            epoch_result[class_to_label[cl]] = (cl_res['pred'] == cl_res['class']).sum() / len(cl_res)
 
-        results.append(result)
+        cv_results.append(epoch_result)
 
-        tmp_acc = pd.DataFrame.from_records(results).test_acc.max()
+        tmp_acc = pd.DataFrame.from_records(cv_results).test_acc.max()
+
+        save_results(epoch_result, folds)
 
         if round(tmp_acc,2) > round(best_acc,2):
             best_acc = tmp_acc
@@ -1055,17 +1104,6 @@ def cross_validate_model(images, y, folds,
 
         if improve_fails > max_improve_fails:
             break
-
-        # pprint(result)
-
-    results = pd.DataFrame.from_records(results)
-    results['batch_size'] = batch_size
-    results['n_splits'] = n_splits
-    results['start_lr'] = start_lr
-    results['decrease_epochs'] = decrease_epochs
-    results['decrease_factor'] = decrease_factor
-
-    return results
 
 
 @click.command()
