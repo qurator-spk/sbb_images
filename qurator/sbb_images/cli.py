@@ -369,10 +369,10 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
                    "file.")
 @click.option('--train-only', type=bool, is_flag=True, default=False,
               help="Apply classifier only to training subset.")
-@click.option('--write-to-table', type=str, default="tags",
+@click.option('--write-to-table', type=str, default=None,
               help="Either \"tags\" or \"predictions\". Use \"tags\" if you want to add new classifier tags to an "
                    "image search interface and use \"predictions\" if you want to use the classifier output in the "
-                   "annotator interface.")
+                   "annotator interface. By default the tool does not write to the database at all.")
 @click.option('--label-table-name', type=str, default="annotations",
               help="Either 'annotations' or 'tags'. Use 'annotations' if labels have been made with the annotator, use "
                    "'tags' if labels stem from tags in the image search interface, default is 'annotations'.")
@@ -390,18 +390,25 @@ def filter_detections(detection_in_file, detection_out_file, processes, conf_thr
 @click.option('--tag-prefix', type=str, default=None,
               help="Prefix for the classification tags that will be added to the tags table. "
                    "default is \"Classifier:\".")
-@click.option('--username', type=str, default=None, help="Tag prefix. default is  \"classifier\".")
+@click.option('--username', type=str, default=None,
+              help="The username of the tags in the sqlite database. Can be used to distinguish different "
+                   "classifications. In particular usefull in order to bulk delete unwanted tags later on."
+                   "See also remove-user-tags. Default: \"classifier\".")
 @click.option('--remove-user-tags', type=bool, is_flag=True, default=False,
               help="Specify this option in order to remove all tags from the user \"username\" from the tags table "
-                   "before additing the new tags. BEWARE: All tags for that user will be deleted and cannot be restored"
+                   "before adding new tags. BEWARE: All tags for that user will be deleted and cannot be restored"
                    " without a backup of the sqlite file.")
 @click.option('--training-database', multiple=True, type=click.Path(exists=True), default=None,
-              help="The database where the training images come form is different from the database that the classifier"
-                   "is applied to. In that case use this parameter (multiple times) in order to specifiy all the "
+              help="The database where the training images come from is different from the database that the classifier"
+                   "is applied to. In that case use this parameter (multiple times) in order to specify all the "
                    "training databases.")
+@click.option('--stop-at', type=int, default=None,
+              help="Do not classify all the images but only the first N. (for debugging purposes)")
+@click.option('--batch-size', type=int, default=None,
+              help="Classification batch-size. Overrules value from model-selection if provided.")
 def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, result_file,
           train_only, write_to_table, label_table_name, label, label_groups, tag_prefix, username, remove_user_tags,
-          training_database):
+          training_database, stop_at, batch_size):
     """
 
     Classifies all images of an image database and writes the predictions into either a predictions table or the tags
@@ -412,11 +419,15 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
     MODEL_SELECTION_FILE: Result file of the model-selection (see model-selection).
 
-    MODEL_FILE: A finally trained pytorch model (see train-classifier).
+    MODEL_FILE: A finally trained pytorch model (see train-classifier) OR the same MODEL_SELECTION_FILE =>
+    In that case ensemble classification using the models from the cross-validation will be performed.
 
     RESULT_FILE: Additionally write predictions to this pickled pandas Dataframe.
 
     """
+
+    if write_to_table is None:
+        print("!!!WARNING: write-to-table is disabled. No tags/annotations will be written to database!")
 
     if tag_prefix is None:
         tag_prefix = "Classifier:"
@@ -424,16 +435,23 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
     if username is None:
         username = "classifier"
 
-    def table_write(pred):
+    with sqlite3.connect(sqlite_file) as _con:
+        if remove_user_tags:
+            _con.execute('DELETE FROM tags WHERE user=?', (username,))
 
-        if write_to_table == 'predictions':
+    def table_write(pred, _tag_prefix):
+
+        if write_to_table is None:
+            return
+
+        elif write_to_table == 'predictions':
 
             pred = pred.reset_index(drop=True)
 
-            with sqlite3.connect(sqlite_file) as _con:
-                pred.to_sql('predictions', con=_con, if_exists='replace')
+            with sqlite3.connect(sqlite_file) as _con_:
+                pred.to_sql('predictions', con=_con_, if_exists='replace')
 
-                con.execute('create index ix_predictions_labels on predictions(label)')
+                _con_.execute('create index ix_predictions_labels on predictions(label)')
 
         elif write_to_table == 'tags':
 
@@ -441,18 +459,24 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
             pred = pred.reset_index().rename(columns={'rowid': 'image_id', 'label': 'tag'})
 
-            pred['tag'] = tag_prefix + pred['tag']
+            pred['tag'] = _tag_prefix + pred['tag']
             pred['user'] = username
             pred['timestamp'] = timestamp
             pred['read_only'] = 1
 
             pred = pred[['image_id', 'tag', 'user', 'timestamp', 'read_only']]
 
-            with sqlite3.connect(sqlite_file) as _con:
-                if remove_user_tags:
-                    _con.execute('DELETE FROM tags WHERE user=?', (username,))
+            with sqlite3.connect(sqlite_file) as __con:
+                pred.to_sql('tags', con=__con, if_exists='append', index=False)
+        else:
+            raise RuntimeError("Unknown table format")
 
-                pred.to_sql('tags', con=_con, if_exists='append', index=False)
+    def table_write_ensemble(pred, _tag_prefix):
+        if write_to_table is None:
+            return
+
+        elif write_to_table == 'tags':
+            pass
         else:
             raise RuntimeError("Unknown table format")
 
@@ -461,12 +485,24 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
         predictions = pd.read_pickle(result_file)
 
-        table_write(predictions)
+        if "majority" in predictions.columns:
+            table_write_ensemble(predictions, tag_prefix)
+        else:
+            table_write(predictions, tag_prefix)
 
         return
 
     images, class_to_label, label_to_class = load_ground_truth(sqlite_file, label_table_name=label_table_name, labels=label,
                                                           label_groups=label_groups)
+
+    if len(class_to_label) == 0:
+        print(f"No labels found!!! "
+              f"Did you forget the correct label-table-name? "
+              f"label-table-name: {label_table_name} "
+              f"labels: {label} "
+              f"label-groups: {label_groups}")
+        return
+
     y = None
 
     if len(training_database) > 0:
@@ -482,7 +518,7 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
         images_train, class_to_label, label_to_class = make_class_from_labels(images_train)
 
-    if train_only is None:
+    if train_only:
         images['file'] = images['file'].astype(str)
         y = images['class'].astype(int)
     else:
@@ -491,32 +527,77 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
         images['file'] = images['file'].astype(str)
 
-    batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_p, start_lr = \
-        load_model_selection(model_selection_file)
+    if stop_at is not None:
+        images = images.iloc[0:stop_at]
+
+        if y is not None:
+            y = y.iloc[0:stop_at]
+
+    (_batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_p, start_lr,
+     file_prefix, n_splits) = load_model_selection(model_selection_file)
+
+    batch_size = batch_size if batch_size is not None else _batch_size
 
     model, device, fit_transform, predict_transform, logits_func = \
-        load_pretrained_model(model_name, len(label_to_class), num_train_layers=num_trained, freeze_percentage=freeze_p)
+        load_pretrained_model(model_name, len(label_to_class), num_train_layers=num_trained,
+                              freeze_percentage=freeze_p)
+    if model_selection_file != model_file:  # single model classification
 
-    model.load_state_dict(torch.load(model_file, weights_only=True))
+        model.load_state_dict(torch.load(model_file, weights_only=True))
 
-    estimator = ImageClassifier(model=model, model_weights=copy.deepcopy(model.state_dict()),
-                                device=device, criterion=nn.CrossEntropyLoss(), optimizer=None,
-                                scheduler=None, fit_transform=fit_transform,
-                                predict_transform=predict_transform, batch_size=batch_size,
-                                logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
-    predictions = estimator.predict_proba(images)
+        estimator = ImageClassifier(model=model, model_weights=copy.deepcopy(model.state_dict()),
+                                    device=device, criterion=nn.CrossEntropyLoss(), optimizer=None,
+                                    scheduler=None, fit_transform=fit_transform,
+                                    predict_transform=predict_transform, batch_size=batch_size,
+                                    logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
 
-    if y is not None:
-        predictions['class_ground_truth'] = y
-        predictions['label_ground_truth'] = [class_to_label[cl] for cl in y]
+        predictions = estimator.predict_proba(images)
 
-    predictions['class'] = predictions.idxmax(axis=1)
-    predictions['label'] = [class_to_label[cl] for cl in predictions['class']]
+        if train_only:
+            predictions['class_ground_truth'] = y
+            predictions['label_ground_truth'] = [class_to_label[cl] for cl in y]
 
-    predictions.to_pickle(result_file)
+        predictions['class'] = predictions.idxmax(axis=1)
+        predictions['label'] = [class_to_label[cl] for cl in predictions['class']]
 
-    table_write(predictions)
+        predictions.to_pickle(result_file)
+
+        table_write(predictions, tag_prefix)
+    else:  # ensemble classification using all models of folds from cross-validation
+        predictions=[]
+        for fold in range(0, n_splits):
+
+            weight_file = f"{os.path.dirname(model_selection_file)}/{file_prefix}-fold_{fold}.bin"
+
+            model.load_state_dict(torch.load(weight_file, weights_only=True))
+
+            estimator = ImageClassifier(model=model, model_weights=copy.deepcopy(model.state_dict()),
+                                        device=device, criterion=nn.CrossEntropyLoss(), optimizer=None,
+                                        scheduler=None, fit_transform=fit_transform,
+                                        predict_transform=predict_transform, batch_size=batch_size,
+                                        logits_func=logits_func, thumbnail_sqlite_file=thumbnail_sqlite_file)
+
+            tmp = estimator.predict_proba(images)
+
+            predictions.append(pd.DataFrame([class_to_label[cl] for cl in tmp.idxmax(axis=1)]))
+
+        if len(predictions) > 0:
+            predictions = pd.concat(predictions, axis=1)
+
+            if train_only:
+                predictions['class_ground_truth'] = y
+                predictions['label_ground_truth'] = [class_to_label[cl] for cl in y]
+
+            pcount = predictions.apply(lambda row: row.value_counts(), axis=1)
+            pcount[pcount.isnull()] = 0.0
+            pcount = pcount.astype(int)
+
+            num_labels = (pcount > 0).sum(axis=1)
+            pcount["majority"] = pcount.idxmax(axis=1)
+            pcount["num_labels"] = num_labels
+
+            pcount.to_pickle(result_file)
 
 
 @click.command()
@@ -566,8 +647,8 @@ def train(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
     images, class_to_label, label_to_class = make_class_from_labels(images)
 
-    batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_p, start_lr = \
-        load_model_selection(model_selection_file)
+    (batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_p, start_lr,
+     file_prefix, n_splits) = (model_selection_file)
 
     model, device, fit_transform, predict_transform, logits_func = \
         load_pretrained_model(model_name, len(label_to_class),
@@ -625,7 +706,12 @@ def load_model_selection(model_selection_file):
     start_lr = float(best_config.start_lr)
     print('Start learning rate: {}'.format(start_lr))
 
-    return batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_percentage, start_lr
+    file_prefix = str(best_config.file_prefix) if "file_prefix" in best_config else ""
+
+    n_splits = int(best_config.n_splits)
+
+    return (batch_size, decrease_epochs, decrease_factor, epochs, model_name, num_trained, freeze_percentage, start_lr,
+            file_prefix, n_splits)
 
 
 @click.command()
