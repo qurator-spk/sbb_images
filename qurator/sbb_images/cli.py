@@ -426,6 +426,15 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
     """
 
+    print(f"\n\nModel selection file: >>{model_selection_file}<<")
+
+    if model_selection_file == model_file:
+        result_file = f"{os.path.dirname(model_selection_file)}/{result_file}"
+        print(f"Loading saved classifiers from model selection. \n"
+              f"Setting result-file to >>{result_file}<<")
+    else:
+        print(f"Writing to result-file: >>{result_file}<<")
+
     if write_to_table is None:
         print("!!!WARNING: write-to-table is disabled. No tags/annotations will be written to database!")
 
@@ -472,16 +481,47 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
             raise RuntimeError("Unknown table format")
 
     def table_write_ensemble(pred, _tag_prefix):
+
+        print(f"Writing ensemble classification for labels: >>{label}<<")
         if write_to_table is None:
             return
 
         elif write_to_table == 'tags':
-            pass
+            timestamp = str(datetime.now())
+
+            label_seq = tqdm(label)
+
+            for lb in label_seq:
+                label_seq.set_description(lb)
+
+                tmp = _tag_prefix + lb + ":" + pred[lb][pred[lb] > 0].astype(str)
+
+                tmp = tmp.reset_index().rename(columns={'rowid': 'image_id', lb: 'tag'})
+
+                tmp['user'] = username
+                tmp['timestamp'] = timestamp
+                tmp['read_only'] = 1
+
+                with sqlite3.connect(sqlite_file) as __con:
+                    tmp.to_sql('tags', con=__con, if_exists='append', index=False)
+
+            num_l = _tag_prefix + "num-labels:" + pred['num_labels'].astype(str)
+            num_l = num_l.reset_index().rename(columns={'rowid': 'image_id', 'num_labels': 'tag'})
+
+            num_l['user'] = username
+            num_l['timestamp'] = timestamp
+            num_l['read_only'] = 1
+
+            print("Writing num labels ...")
+            with sqlite3.connect(sqlite_file) as __con:
+                num_l.to_sql('tags', con=__con, if_exists='append', index=False)
+
+            # import ipdb;ipdb.set_trace()
         else:
             raise RuntimeError("Unknown table format")
 
     if os.path.exists(result_file) and write_to_table is not None:
-        print("Result {} file already exists. Just writing it to the database {}.".format(result_file, sqlite_file))
+        print(f"Result file {result_file} already exists. Just writing it to the database >>{sqlite_file}<<.")
 
         predictions = pd.read_pickle(result_file)
 
@@ -580,7 +620,9 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
 
             tmp = estimator.predict_proba(images)
 
-            predictions.append(pd.DataFrame([class_to_label[cl] for cl in tmp.idxmax(axis=1)]))
+            tmp2 = tmp.apply(lambda row: class_to_label[row.idxmax()], axis=1)
+
+            predictions.append(tmp2)
 
         if len(predictions) > 0:
             predictions = pd.concat(predictions, axis=1)
@@ -598,7 +640,6 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
             pcount["num_labels"] = num_labels
 
             pcount.to_pickle(result_file)
-
 
 @click.command()
 @click.argument('sqlite-file', type=click.Path(exists=True), nargs=-1)
