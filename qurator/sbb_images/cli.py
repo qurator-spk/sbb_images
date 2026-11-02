@@ -516,6 +516,17 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
             with sqlite3.connect(sqlite_file) as __con:
                 num_l.to_sql('tags', con=__con, if_exists='append', index=False)
 
+            majority = _tag_prefix + "majority:" + pred['majority'].astype(str)
+            majority = majority.reset_index().rename(columns={'rowid': 'image_id', 'majority': 'tag'})
+
+            majority['user'] = username
+            majority['timestamp'] = timestamp
+            majority['read_only'] = 1
+
+            print("Writing num labels ...")
+            with sqlite3.connect(sqlite_file) as __con:
+                majority.to_sql('tags', con=__con, if_exists='append', index=False)
+
             # import ipdb;ipdb.set_trace()
         else:
             raise RuntimeError("Unknown table format")
@@ -524,6 +535,8 @@ def apply(sqlite_file, model_selection_file, model_file, thumbnail_sqlite_file, 
         print(f"Result file {result_file} already exists. Just writing it to the database >>{sqlite_file}<<.")
 
         predictions = pd.read_pickle(result_file)
+
+        #import ipdb;ipdb.set_trace()
 
         if "majority" in predictions.columns:
             table_write_ensemble(predictions, tag_prefix)
